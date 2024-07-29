@@ -12,12 +12,32 @@
   "activationEvents": [],
   "main": "./dist/extension.js",
   "contributes": {
+    "configuration": {
+      "type": "object",
+      "properties": {
+        "aragula-ai.apiKey": {
+          "type": "string",
+          "default": "",
+          "description": "OpenAI API Key"
+        }
+      }
+    },
     "commands": [
       {
-        "command": "aragula-ai.helloWorld",
-        "title": "Hello World"
+        "command": "aragula-ai.askAI",
+        "title": "Ask AI",
+        "category": "AI"
       }
-    ]
+    ],
+    "menus": {
+      "explorer/context": [
+        {
+          "command": "aragula-ai.askAI",
+          "when": "resourceLangId != 'binary'",
+          "group": "navigation"
+        }
+      ]
+    }
   },
   "scripts": {
     "vscode:prepublish": "pnpm run package",
@@ -36,6 +56,7 @@
   "devDependencies": {
     "@types/mocha": "^10.0.7",
     "@types/node": "~20.14.13",
+    "@types/sinon": "^17.0.3",
     "@types/vscode": "^1.54.0",
     "@typescript-eslint/eslint-plugin": "^7.14.1",
     "@typescript-eslint/parser": "^7.11.0",
@@ -44,6 +65,10 @@
     "esbuild": "^0.21.5",
     "eslint": "^8.57.0",
     "npm-run-all": "^4.1.5",
+    "sinon": "^18.0.0",
     "typescript": "^5.4.5"
+  },
+  "dependencies": {
+    "openai": "^4.53.2"
   }
 }
