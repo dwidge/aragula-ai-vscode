@@ -2,7 +2,7 @@
   "name": "aragula-ai-vscode",
   "displayName": "aragula-ai",
   "description": "Chat with files in vscode",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "publisher": "dwidge",
   "repository": {
     "url": "https://github.com/dwidge/aragula-ai-vscode.git"
@@ -75,7 +75,7 @@
     "typescript": "^5.4.5"
   },
   "dependencies": {
-    "@dwidge/llm-file-diff": "^0.0.2",
+    "@dwidge/llm-file-diff": "^0.0.3",
     "openai": "^4.53.2"
   }
 }

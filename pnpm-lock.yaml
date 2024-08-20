@@ -9,8 +9,8 @@ importers:
   .:
     dependencies:
       '@dwidge/llm-file-diff':
-        specifier: ^0.0.2
-        version: 0.0.2
+        specifier: ^0.0.3
+        version: 0.0.3
       openai:
         specifier: ^4.53.2
         version: 4.53.2
@@ -111,8 +111,8 @@ packages:
   '@bcoe/v8-coverage@0.2.3':
     resolution: {integrity: sha512-0hYQ8SB4Db5zvZB4axdMHGwEaQjkZzFjQiN9LVYvIFB2nSUHW9tYpxWriPrWDASIxiaXax83REcLxuSdnGPZtw==}
 
-  '@dwidge/llm-file-diff@0.0.2':
-    resolution: {integrity: sha512-RNrg/QnJlOmulF2BZLqOCc9ZLX7UgDbdo3B/IIxDe+sg+hY3kbqezEX0QKvorvBCCw88RQ46Tic3NLTR/QOMvw==}
+  '@dwidge/llm-file-diff@0.0.3':
+    resolution: {integrity: sha512-0ew8zXvEqM2FnwUOMIrSoiPTSfhhgHN2GxM9jv9D1oN+v/XOKEbwwJpXRaIKmo5oKRSSR3c8Nt4AesbrhTTgRQ==}
 
   '@esbuild/aix-ppc64@0.21.5':
     resolution: {integrity: sha512-1SDgH6ZSPTlggy1yI6+Dbkiz8xzpHJEVAlF/AM1tHPLsf5STom9rwtjE4hKAF20FfXXNTFqEYXyJNWh1GiZedQ==}
@@ -2228,7 +2228,7 @@ snapshots:
 
   '@bcoe/v8-coverage@0.2.3': {}
 
-  '@dwidge/llm-file-diff@0.0.2':
+  '@dwidge/llm-file-diff@0.0.3':
     dependencies:
       zod: 3.23.8
 
