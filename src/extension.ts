@@ -26,16 +26,14 @@ async function readOpenFiles(
   const openFiles: { [key: string]: string } = {};
 
   for (const uri of uris) {
-    if (!uri.fsPath) {
-      continue;
-    }
-
-    try {
-      const content = await fs.readFile(uri.fsPath, "utf8");
-      const relativePath = vscode.workspace.asRelativePath(uri);
-      openFiles[relativePath] = content;
-    } catch (error) {
-      vscode.window.showErrorMessage(`Failed to read file: ${uri.fsPath}`);
+    if (uri.fsPath) {
+      try {
+        const content = await fs.readFile(uri.fsPath, "utf8");
+        const relativePath = vscode.workspace.asRelativePath(uri);
+        openFiles[relativePath] = content;
+      } catch {
+        vscode.window.showErrorMessage(`Failed to read file: ${uri.fsPath}`);
+      }
     }
   }
 
@@ -55,15 +53,14 @@ async function openChatWindow(
   );
 
   panel.webview.html = chatview(tabId);
-
   const message = generateInitialMessage(openedFiles);
+
   if (message) {
     panel.webview.postMessage({ command: "receiveMessage", text: message });
   }
 
   panel.webview.onDidReceiveMessage(
-    async (message) =>
-      handleMessage(context, panel, message, openedFiles, tabId),
+    (message) => handleMessage(context, panel, message, openedFiles, tabId),
     undefined,
     context.subscriptions
   );
@@ -97,10 +94,9 @@ async function handleMessage(
       getSystemPrompt() ?? "",
       apiKey
     );
+
     panel.webview.postMessage({ command: "receiveMessage", text: response });
-
     await applyChanges(response, openedFiles);
-
     context.workspaceState.update(`responseText-${tabId}`, response);
   }
 }
@@ -114,10 +110,10 @@ function getApiKey(): string | null {
 }
 
 function getSystemPrompt(): string | undefined {
-  const v = vscode.workspace.getConfiguration("aragula-ai").get("systemPrompt");
-  if (typeof v === "string") {
-    return v;
-  }
+  const prompt = vscode.workspace
+    .getConfiguration("aragula-ai")
+    .get("systemPrompt");
+  return typeof prompt === "string" ? prompt : undefined;
 }
 
 function createPrompt(
@@ -140,10 +136,11 @@ async function applyChanges(
   }
 
   const extractedFiles = extractFilesFromAIResponse(response, openedFiles);
-
-  for (const [filePath, content] of Object.entries(extractedFiles)) {
-    await saveFile(root, filePath, content);
-  }
+  await Promise.all(
+    Object.entries(extractedFiles).map(([filePath, content]) =>
+      saveFile(root, filePath, content)
+    )
+  );
 }
 
 async function saveFile(root: string, filePath: string, content: string) {
@@ -151,7 +148,7 @@ async function saveFile(root: string, filePath: string, content: string) {
     const absolutePath = path.join(root, filePath);
     await fs.writeFile(absolutePath, content);
     vscode.window.showInformationMessage(`File saved: ${filePath}`);
-  } catch (error) {
+  } catch {
     vscode.window.showErrorMessage(`Failed to save file: ${filePath}`);
   }
 }
