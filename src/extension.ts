@@ -12,7 +12,8 @@ export function activate(context: vscode.ExtensionContext) {
     "aragula-ai.askAI",
     async (single: vscode.Uri, multi: vscode.Uri[]) => {
       const openFiles = await readOpenFiles(multi);
-      await openChatWindow(context, openFiles);
+      const tabId = Date.now().toString();
+      await openChatWindow(context, openFiles, tabId);
     }
   );
 
@@ -43,7 +44,8 @@ async function readOpenFiles(
 
 async function openChatWindow(
   context: vscode.ExtensionContext,
-  openedFiles: { [key: string]: string }
+  openedFiles: { [key: string]: string },
+  tabId: string
 ) {
   const panel = vscode.window.createWebviewPanel(
     "askAIChat",
@@ -52,7 +54,7 @@ async function openChatWindow(
     { enableScripts: true }
   );
 
-  panel.webview.html = chatview;
+  panel.webview.html = chatview(tabId);
 
   const message = generateInitialMessage(openedFiles);
   if (message) {
@@ -60,10 +62,14 @@ async function openChatWindow(
   }
 
   panel.webview.onDidReceiveMessage(
-    async (message) => handleMessage(context, panel, message, openedFiles),
+    async (message) =>
+      handleMessage(context, panel, message, openedFiles, tabId),
     undefined,
     context.subscriptions
   );
+
+  context.workspaceState.update(`userInput-${tabId}`, "");
+  context.workspaceState.update(`responseText-${tabId}`, "");
 }
 
 function generateInitialMessage(openedFiles: {
@@ -76,7 +82,8 @@ async function handleMessage(
   context: vscode.ExtensionContext,
   panel: vscode.WebviewPanel,
   message: any,
-  openedFiles: { [key: string]: string }
+  openedFiles: { [key: string]: string },
+  tabId: string
 ) {
   if (message.command === "sendMessage") {
     const apiKey = getApiKey();
@@ -89,6 +96,8 @@ async function handleMessage(
     panel.webview.postMessage({ command: "receiveMessage", text: response });
 
     await applyChanges(response, openedFiles);
+
+    context.workspaceState.update(`responseText-${tabId}`, response);
   }
 }
 

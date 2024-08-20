@@ -46,7 +46,7 @@
       textarea {
         box-sizing: border-box;
         width: 100%;
-        max-width: 100%; /* Allow it to shrink while keeping responsive */
+        max-width: 100%;
         padding: 10px;
         border-radius: 5px;
         border: 1px solid var(--textarea-border);
@@ -71,7 +71,7 @@
         padding: 10px;
         border-radius: 5px;
         border: 1px solid var(--pre-border);
-        white-space: pre-wrap; /* Wrapped long lines */
+        white-space: pre-wrap;
         color: var(--text-color);
       }
       .loader {
@@ -92,7 +92,7 @@
         }
       }
       .hidden {
-        display: none; /* Class to hide elements */
+        display: none;
       }
     </style>
   </head>
@@ -120,24 +120,42 @@
       const vscode = acquireVsCodeApi();
       const loader = document.getElementById("loader");
       const sendButton = document.getElementById("sendButton");
-      let isBusy = false; // State to track if the button is busy
+      let isBusy = false;
+      let userInput = "";
+
+      const tabId = "{{tabId}}"; // Use the passed tabId
+
+      // Initialize the user input from the previous context
+      window.addEventListener("load", () => {
+        const savedInput = localStorage.getItem(`userInput-${tabId}`);
+        const savedResponse = localStorage.getItem(`responseText-${tabId}`);
+        if (savedInput) {
+          document.getElementById("userInput").value = savedInput;
+          userInput = savedInput;
+        }
+        if (savedResponse) {
+          document.getElementById("response").textContent = savedResponse;
+        }
+      });
 
       function sendMessage() {
         if (isBusy) {
-          // Handle cancel logic if already busy
           console.log("Request cancelled.");
-          return; // Exit if already busy
+          return;
         }
-        const userInput = document.getElementById("userInput").value.trim();
+        userInput = document.getElementById("userInput").value.trim();
         if (userInput) {
-          isBusy = true; // Mark as busy
-          loader.style.display = "block"; // Show loader
-          document.getElementById("buttonText").textContent = ""; // Change button text
+          isBusy = true;
+          loader.style.display = "block";
+          document.getElementById("buttonText").textContent = "";
 
           vscode.postMessage({
             command: "sendMessage",
             text: userInput,
           });
+
+          // Save the current input to localStorage to maintain context
+          localStorage.setItem(`userInput-${tabId}`, userInput);
         } else {
           alert("Please enter a message before sending.");
         }
@@ -148,11 +166,22 @@
         if (message.command === "receiveMessage") {
           const responseDiv = document.getElementById("response");
           responseDiv.textContent = message.text;
-          isBusy = false; // Mark as not busy
-          loader.style.display = "none"; // Hide loader
-          document.getElementById("buttonText").textContent = "Send"; // Reset button text
+          isBusy = false;
+          loader.style.display = "none";
+          document.getElementById("buttonText").textContent = "Send";
+
+          // Save the response to localStorage
+          localStorage.setItem(`responseText-${tabId}`, message.text);
         }
       });
+
+      // Save input on change
+      document
+        .getElementById("userInput")
+        .addEventListener("input", (event) => {
+          userInput = event.target.value;
+          localStorage.setItem(`userInput-${tabId}`, userInput);
+        });
     </script>
   </body>
 </html>
