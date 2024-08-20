@@ -92,7 +92,11 @@ async function handleMessage(
     }
 
     const prompt = createPrompt(openedFiles, message.text);
-    const response = await sendToOpenAI(prompt, apiKey);
+    const response = await sendToOpenAI(
+      prompt,
+      getSystemPrompt() ?? "",
+      apiKey
+    );
     panel.webview.postMessage({ command: "receiveMessage", text: response });
 
     await applyChanges(response, openedFiles);
@@ -107,6 +111,13 @@ function getApiKey(): string | null {
     throw new Error("API key is not configured properly.");
   }
   return apiKey;
+}
+
+function getSystemPrompt(): string | undefined {
+  const v = vscode.workspace.getConfiguration("aragula-ai").get("systemPrompt");
+  if (typeof v === "string") {
+    return v;
+  }
 }
 
 function createPrompt(

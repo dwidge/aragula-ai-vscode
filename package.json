@@ -2,7 +2,7 @@
   "name": "aragula-ai-vscode",
   "displayName": "aragula-ai",
   "description": "Chat with files in vscode",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "publisher": "dwidge",
   "repository": {
     "url": "https://github.com/dwidge/aragula-ai-vscode.git"
@@ -23,6 +23,11 @@
           "type": "string",
           "default": "",
           "description": "OpenAI API Key"
+        },
+        "aragula-ai.systemPrompt": {
+          "type": "string",
+          "default": "",
+          "description": "System prompt to prepend to each request."
         }
       }
     },

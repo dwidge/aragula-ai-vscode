@@ -5,6 +5,7 @@ const MAX_TOKENS = 4000;
 
 export async function sendToOpenAI(
   prompt: string,
+  systemPrompt: string,
   apiKey: string
 ): Promise<string> {
   if (!apiKey) {
@@ -16,7 +17,10 @@ export async function sendToOpenAI(
   try {
     const response = await openai.chat.completions.create({
       model: MODEL,
-      messages: [{ content: prompt, role: "user" }],
+      messages: [
+        { content: systemPrompt, role: "system" },
+        { content: prompt, role: "user" },
+      ],
       max_tokens: MAX_TOKENS,
     });
 
