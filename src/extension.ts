@@ -3,7 +3,7 @@ import * as fs from "fs/promises";
 import * as path from "path";
 import { sendToOpenAI } from "./openai";
 import chatview from "./chatview";
-import { extractFilesFromAIResponse } from "./extractFiles";
+import { extractFilesFromAIResponse } from "@dwidge/llm-file-diff";
 
 export function activate(context: vscode.ExtensionContext) {
   console.log('Extension "aragula-ai" active');

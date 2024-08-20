@@ -8,6 +8,9 @@ importers:
 
   .:
     dependencies:
+      '@dwidge/llm-file-diff':
+        specifier: ^0.0.2
+        version: 0.0.2
       openai:
         specifier: ^4.53.2
         version: 4.53.2
@@ -56,6 +59,9 @@ packages:
 
   '@bcoe/v8-coverage@0.2.3':
     resolution: {integrity: sha512-0hYQ8SB4Db5zvZB4axdMHGwEaQjkZzFjQiN9LVYvIFB2nSUHW9tYpxWriPrWDASIxiaXax83REcLxuSdnGPZtw==}
+
+  '@dwidge/llm-file-diff@0.0.2':
+    resolution: {integrity: sha512-RNrg/QnJlOmulF2BZLqOCc9ZLX7UgDbdo3B/IIxDe+sg+hY3kbqezEX0QKvorvBCCw88RQ46Tic3NLTR/QOMvw==}
 
   '@esbuild/aix-ppc64@0.21.5':
     resolution: {integrity: sha512-1SDgH6ZSPTlggy1yI6+Dbkiz8xzpHJEVAlF/AM1tHPLsf5STom9rwtjE4hKAF20FfXXNTFqEYXyJNWh1GiZedQ==}
@@ -1662,9 +1668,16 @@ packages:
     resolution: {integrity: sha512-rVksvsnNCdJ/ohGc6xgPwyN8eheCxsiLM8mxuE/t/mOVqJewPuO1miLpTHQiRgTKCLexL4MeAFVagts7HmNZ2Q==}
     engines: {node: '>=10'}
 
+  zod@3.23.8:
+    resolution: {integrity: sha512-XBx9AXhXktjUqnepgTiE5flcKIYWi/rme0Eaj+5Y0lftuGBq+jyRu/md4WnuxqgP1ubdpNCsYEYPxrzVHD8d6g==}
+
 snapshots:
 
   '@bcoe/v8-coverage@0.2.3': {}
+
+  '@dwidge/llm-file-diff@0.0.2':
+    dependencies:
+      zod: 3.23.8
 
   '@esbuild/aix-ppc64@0.21.5':
     optional: true
@@ -3433,3 +3446,5 @@ snapshots:
       yargs-parser: 21.1.1
 
   yocto-queue@0.1.0: {}
+
+  zod@3.23.8: {}
