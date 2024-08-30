@@ -13,7 +13,8 @@ export function activate(context: vscode.ExtensionContext) {
     async (single: vscode.Uri, multi: vscode.Uri[]) => {
       const openFiles = await readOpenFiles(multi);
       const tabId = Date.now().toString();
-      await openChatWindow(context, openFiles, tabId);
+      const systemPrompt = getSystemPrompt(); // Get the default system prompt
+      await openChatWindow(context, openFiles, tabId, systemPrompt);
     }
   );
 
@@ -43,7 +44,8 @@ async function readOpenFiles(
 async function openChatWindow(
   context: vscode.ExtensionContext,
   openedFiles: { [key: string]: string },
-  tabId: string
+  tabId: string,
+  systemPrompt: string | undefined // Pass the systemPrompt
 ) {
   const panel = vscode.window.createWebviewPanel(
     "askAIChat",
@@ -52,7 +54,7 @@ async function openChatWindow(
     { enableScripts: true }
   );
 
-  panel.webview.html = chatview(tabId);
+  panel.webview.html = chatview(tabId, systemPrompt); // Pass the system prompt to chatview
   const message = generateInitialMessage(openedFiles);
 
   if (message) {
@@ -88,17 +90,42 @@ async function handleMessage(
       return;
     }
 
-    const prompt = createPrompt(openedFiles, message.text);
+    const prompt = createPrompt(
+      openedFiles,
+      message.text,
+      message.systemPrompt
+    );
     const response = await sendToOpenAI(
       prompt,
-      getSystemPrompt() ?? "",
+      message.systemPrompt, // Use the user-defined system prompt
       apiKey
     );
 
     panel.webview.postMessage({ command: "receiveMessage", text: response });
-    await applyChanges(response, openedFiles);
+    // await applyChanges(response, openedFiles);
     context.workspaceState.update(`responseText-${tabId}`, response);
+  } else if (message.command === "setSystemPrompt") {
+    updateSystemPrompt(context, message.systemPrompt);
   }
+}
+
+function updateSystemPrompt(
+  context: vscode.ExtensionContext,
+  newPrompt: string
+) {
+  const config = vscode.workspace.getConfiguration("aragula-ai");
+  config
+    .update("systemPrompt", newPrompt, vscode.ConfigurationTarget.Global)
+    .then(
+      () => {
+        vscode.window.showInformationMessage(`System prompt updated.`);
+      },
+      (err) => {
+        vscode.window.showErrorMessage(
+          `Failed to update system prompt: ${err}`
+        );
+      }
+    );
 }
 
 function getApiKey(): string | null {
@@ -118,12 +145,13 @@ function getSystemPrompt(): string | undefined {
 
 function createPrompt(
   openedFiles: { [key: string]: string },
-  userText: string
+  userText: string,
+  systemPrompt: string | undefined
 ): string {
   const fileContent = Object.entries(openedFiles)
     .map(([file, content]) => `${file}\n\`\`\`\n${content}\n\`\`\`\n`)
     .join("\n\n");
-  return fileContent + userText;
+  return (systemPrompt ? systemPrompt + "\n\n" : "") + fileContent + userText;
 }
 
 async function applyChanges(

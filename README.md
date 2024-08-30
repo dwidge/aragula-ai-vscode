@@ -1,12 +1,18 @@
-# aragula-ai
+# aragula-ai-vscode
 
-This Visual Studio Code extension integrates with OpenAI's API to assist with code analysis and modifications based on natural language queries.
+A VSCode assistant that uses tools/function-calling. It runs bash commands and uses some file helpers to discover/read/write code. It uses AI within some of the tools, like cleaning up stdout from a bash command.
 
 ## Features
 
-AI-Powered Code Assistance: Ask the AI questions about your code or request modifications. The extension reads the contents of your open files and provides responses based on the OpenAI API.
-Interactive Chat Window: Opens a webview panel where you can interact with the AI and receive responses directly within VS Code.
-Automatic File Updates: Modifications suggested by the AI can be applied to your codebase automatically.
+Ask the AI questions about your code or request modifications.
+
+You can ask it to fix code and retry unit tests until they pass.
+
+Select files and right click and choose Ask AI to send them with your prompt.
+
+The extension reads the contents of your open files and provides responses based on the OpenAI API.
+
+Modifications suggested by the AI can be applied to your codebase automatically.
 
 ## Requirements
 
@@ -25,7 +31,7 @@ API Key Configuration: The extension will not work without a valid OpenAI API ke
 
 ### Setup issues
 
-If you get this error when you press F5 to start:
+If you get this error when you press F5 to start the extension in debug mode:
 
 ```
 Error: Invalid problemMatcher reference: $esbuild-watch
@@ -40,7 +46,7 @@ ms-vscode.extension-test-runner
 
 ## Release Notes
 
-### 1.0.0
+### 0.0.5
 
     Initial release of the "aragula-ai" extension.
-    Features include reading open files, sending content to OpenAI, and receiving responses to modify code.
+    Features include reading open files, sending content to llm, and receiving responses to modify code.

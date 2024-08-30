@@ -1,4 +1,4 @@
-export default (tabId: string) => `
+export default (tabId: string, systemPrompt: string | undefined) => `
 <!DOCTYPE html>
 <html lang="en">
   <head>
@@ -101,6 +101,11 @@ export default (tabId: string) => `
     <main>
       <div>
         <textarea
+          id="systemPromptInput"
+          rows="2"
+          placeholder="Edit system prompt here..."
+        >${systemPrompt || ""}</textarea>
+        <textarea
           id="userInput"
           rows="4"
           placeholder="Type your message here..."
@@ -123,10 +128,20 @@ export default (tabId: string) => `
       const sendButton = document.getElementById("sendButton");
       let isBusy = false;
       let userInput = "";
+      let systemPrompt = document.getElementById("systemPromptInput").value;
 
       const tabId = "{{tabId}}"; // Use the passed tabId
 
-      // Initialize the user input from the previous context
+      // Debounce function
+      function debounce(func, delay) {
+        let timeout;
+        return function(...args) {
+          clearTimeout(timeout);
+          timeout = setTimeout(() => func.apply(this, args), delay);
+        };
+      }
+
+      // Initialize the user input from previous context
       window.addEventListener("load", () => {
         const savedInput = localStorage.getItem('userInput-${tabId}');
         const savedResponse = localStorage.getItem('responseText-${tabId}');
@@ -145,6 +160,7 @@ export default (tabId: string) => `
           return;
         }
         userInput = document.getElementById("userInput").value.trim();
+        systemPrompt = document.getElementById("systemPromptInput").value.trim();
         if (userInput) {
           isBusy = true;
           loader.style.display = "block";
@@ -153,6 +169,7 @@ export default (tabId: string) => `
           vscode.postMessage({
             command: "sendMessage",
             text: userInput,
+            systemPrompt: systemPrompt,
           });
 
           // Save the current input to localStorage to maintain context
@@ -162,6 +179,19 @@ export default (tabId: string) => `
         }
       }
 
+      const debouncedSetSystemPrompt = debounce((value) => {
+        localStorage.setItem('systemPrompt-${tabId}', value);
+        vscode.postMessage({
+          command: "setSystemPrompt",
+          systemPrompt: value,
+        });
+      }, 3000);  // Adjust the delay as necessary
+
+      document.getElementById("systemPromptInput").addEventListener("input", (event) => {
+        systemPrompt = event.target.value;
+        debouncedSetSystemPrompt(systemPrompt);
+      });
+
       window.addEventListener("message", (event) => {
         const message = event.data;
         if (message.command === "receiveMessage") {
@@ -170,7 +200,7 @@ export default (tabId: string) => `
           isBusy = false;
           loader.style.display = "none";
           document.getElementById("buttonText").textContent = "Send";
-
+          
           // Save the response to localStorage
           localStorage.setItem('responseText-${tabId}', message.text);
         }
