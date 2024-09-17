@@ -117,7 +117,7 @@ async function readFile({
 async function writeFile(a: {
   filePath: string;
   content: string;
-}): Promise<void | { error: string }> {
+}): Promise<{ success: string } | { error: string }> {
   const { filePath, content } = z
     .object({ filePath: z.string(), content: z.string() })
     .parse(a);
@@ -129,6 +129,7 @@ async function writeFile(a: {
   } catch (error) {
     return handleFileError(error, `writeFile: ${filePath}`);
   }
+  return { success: content.length + " bytes written to " + filePath };
 }
 
 async function runShellCommand(
@@ -172,7 +173,10 @@ async function runShellCommand(
     }
   }
 
-  return { error: "User declined" };
+  return {
+    error:
+      "User declined, try another command or just tell the user what to do",
+  };
 }
 
 const handleFileError = (
