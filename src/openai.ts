@@ -1,6 +1,7 @@
 import { OpenAI } from "openai";
 import * as vscode from "vscode";
-import { runAiTools } from "./runAiTools";
+import { callOpenAi } from "./aiTools/callOpenAi";
+import { askAiWithTools } from "./aiTools/functions";
 
 export async function sendToOpenAI(
   prompt: string,
@@ -8,14 +9,15 @@ export async function sendToOpenAI(
   apiKey: string
 ): Promise<string> {
   validateApiKey(apiKey);
-  const openai = new OpenAI({ apiKey });
-
-  try {
-    vscode.window.showInformationMessage(`asking ai...`);
-    return (await runAiTools(openai, prompt, systemPrompt)) ?? "";
-  } catch (error) {
-    handleError(error);
-  }
+  vscode.window.showInformationMessage(`asking ai...`);
+  console.log("sendToOpenAI1");
+  return await askAiWithTools(
+    { promptAi: callOpenAi(new OpenAI({ apiKey })) },
+    {
+      user: prompt,
+      system: systemPrompt,
+    }
+  ).catch(handleError);
 }
 
 function validateApiKey(apiKey: string): void {

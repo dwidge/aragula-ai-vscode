@@ -4,3 +4,4 @@ out
 notes
 .vscode-test
 *.vsix
+testWorkspace/
