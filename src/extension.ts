@@ -1,9 +1,10 @@
-import * as vscode from "vscode";
+import { extractFilesFromAIResponse } from "@dwidge/llm-file-diff";
 import * as fs from "fs/promises";
 import * as path from "path";
-import { sendToOpenAI } from "./openai";
+import * as vscode from "vscode";
+import { newAiApi } from "./aiTools/AiApi";
 import chatview from "./chatview";
-import { extractFilesFromAIResponse } from "@dwidge/llm-file-diff";
+import { vscodeLog } from "./vscodeLog";
 
 export function activate(context: vscode.ExtensionContext) {
   console.log('Extension "aragula-ai" active');
@@ -95,11 +96,15 @@ async function handleMessage(
       message.text,
       message.systemPrompt
     );
-    const response = await sendToOpenAI(
-      prompt,
-      message.systemPrompt, // Use the user-defined system prompt
-      apiKey
-    );
+    const callAiApi = newAiApi({
+      apiKey,
+      model: "gpt-4o-mini",
+      logger: vscodeLog,
+    });
+    const response = await callAiApi({
+      user: prompt,
+      system: message.systemPrompt,
+    });
 
     panel.webview.postMessage({ command: "receiveMessage", text: response });
     // await applyChanges(response, openedFiles);

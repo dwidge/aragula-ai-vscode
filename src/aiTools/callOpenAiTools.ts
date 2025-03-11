@@ -14,7 +14,7 @@ type OpenAiTool = {
   };
 };
 
-export const callOpenAi =
+export const callOpenAiTools =
   (openai: OpenAI): PromptAi =>
   async (
     c: ToolContext,
