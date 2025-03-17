@@ -1,4 +1,4 @@
-export type ToolContext = { promptAi: PromptAi };
+export type ToolContext = Record<string, ToolFunction>;
 
 export type ToolFunction = (c: ToolContext, args: any) => any;
 

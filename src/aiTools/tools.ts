@@ -7,7 +7,7 @@ import {
   writeFile,
 } from "./functions";
 
-const readDirTool: ToolDef = {
+export const readDirTool: ToolDef = {
   function: readDir,
   name: "readDir",
   description: "readDir",
@@ -19,7 +19,7 @@ const readDirTool: ToolDef = {
   },
 };
 
-const readFileTool: ToolDef = {
+export const readFileTool: ToolDef = {
   function: readFile,
   name: "readFile",
   description: "readFile",
@@ -31,7 +31,7 @@ const readFileTool: ToolDef = {
   },
 };
 
-const writeFileTool: ToolDef = {
+export const writeFileTool: ToolDef = {
   type: "xml",
   function: writeFile,
   name: "writeFile",

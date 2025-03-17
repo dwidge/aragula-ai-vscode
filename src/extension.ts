@@ -5,6 +5,9 @@ import * as vscode from "vscode";
 import { newAiApi } from "./aiTools/AiApi";
 import chatview from "./chatview";
 import { vscodeLog } from "./vscodeLog";
+import { askAiWithTools } from "./aiTools/functions";
+import { filterToolsByName } from "./aiTools/filterToolsByName";
+import { readDirTool, readFileTool, writeFileTool } from "./aiTools/tools";
 
 export function activate(context: vscode.ExtensionContext) {
   console.log('Extension "aragula-ai" active');
@@ -101,9 +104,18 @@ async function handleMessage(
       model: "gpt-4o-mini",
       logger: vscodeLog,
     });
-    const response = await callAiApi({
+    // const response = await callAiApi({
+    //   user: prompt,
+    //   system: message.systemPrompt,
+    // });
+
+    const response = await askAiWithTools(callAiApi, {
       user: prompt,
       system: message.systemPrompt,
+      tools: filterToolsByName(
+        [readDirTool, readFileTool, writeFileTool],
+        ["writeFile"]
+      ),
     });
 
     panel.webview.postMessage({ command: "receiveMessage", text: response });
