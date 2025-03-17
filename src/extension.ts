@@ -2,12 +2,11 @@ import { extractFilesFromAIResponse } from "@dwidge/llm-file-diff";
 import * as fs from "fs/promises";
 import * as path from "path";
 import * as vscode from "vscode";
-import { newAiApi } from "./aiTools/AiApi";
-import chatview from "./chatview";
-import { vscodeLog } from "./vscodeLog";
-import { askAiWithTools } from "./aiTools/functions";
+import { newOpenAiApi } from "./aiTools/AiApi";
 import { filterToolsByName } from "./aiTools/filterToolsByName";
 import { readDirTool, readFileTool, writeFileTool } from "./aiTools/tools";
+import chatview from "./chatview";
+import { vscodeLog } from "./vscodeLog";
 
 export function activate(context: vscode.ExtensionContext) {
   console.log('Extension "aragula-ai" active');
@@ -62,7 +61,11 @@ async function openChatWindow(
   const message = generateInitialMessage(openedFiles);
 
   if (message) {
-    panel.webview.postMessage({ command: "receiveMessage", text: message });
+    panel.webview.postMessage({
+      command: "receiveMessage",
+      text: message,
+      sender: "system",
+    });
   }
 
   panel.webview.onDidReceiveMessage(
@@ -99,17 +102,19 @@ async function handleMessage(
       message.text,
       message.systemPrompt
     );
-    const callAiApi = newAiApi({
+    const callAiApi = newOpenAiApi({
       apiKey,
       model: "gpt-4o-mini",
-      logger: vscodeLog,
+      logger: (msg) => vscodeLog(panel.webview, msg, tabId), // Pass webview and tabId to logger
     });
-    // const response = await callAiApi({
-    //   user: prompt,
-    //   system: message.systemPrompt,
-    // });
 
-    const response = await askAiWithTools(callAiApi, {
+    panel.webview.postMessage({
+      command: "receiveMessage",
+      text: message.text,
+      sender: "user",
+    });
+
+    const response = await callAiApi({
       user: prompt,
       system: message.systemPrompt,
       tools: filterToolsByName(
@@ -118,11 +123,23 @@ async function handleMessage(
       ),
     });
 
-    panel.webview.postMessage({ command: "receiveMessage", text: response });
+    vscodeLog(
+      panel.webview,
+      "Calling tools: " + response.tools.map((t) => t.name).join(", "),
+      tabId
+    );
+
+    panel.webview.postMessage({
+      command: "receiveMessage",
+      text: response.assistant,
+      sender: "assistant",
+    });
     // await applyChanges(response, openedFiles);
     context.workspaceState.update(`responseText-${tabId}`, response);
   } else if (message.command === "setSystemPrompt") {
     updateSystemPrompt(context, message.systemPrompt);
+  } else if (message.command === "clearMessages") {
+    panel.webview.postMessage({ command: "clearMessages" });
   }
 }
 

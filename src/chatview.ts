@@ -1,3 +1,4 @@
+// chatview.ts
 export default (tabId: string, systemPrompt: string | undefined) => `
 <!DOCTYPE html>
 <html lang="en">
@@ -14,8 +15,12 @@ export default (tabId: string, systemPrompt: string | undefined) => `
         --textarea-border: #ccc;
         --button-background: #007acc;
         --button-hover: #005fa3;
-        --pre-background: #fff;
+        --pre-background: #e0e0e0; /* Light background for messages */
         --pre-border: #ccc;
+        --user-message-background: #e0f7fa; /* Light blue for user messages */
+        --assistant-message-background: #f0f0f0; /* Light grey for assistant messages */
+        --system-message-background: #f8e6ff; /* Light purple for system messages */
+        --log-message-background: #ffffe0; /* Light yellow for log messages */
       }
 
       /* Dark theme */
@@ -27,8 +32,12 @@ export default (tabId: string, systemPrompt: string | undefined) => `
           --textarea-border: #555;
           --button-background: #007acc;
           --button-hover: #005fa3;
-          --pre-background: #252526;
+          --pre-background: #252526; /* Dark background for messages */
           --pre-border: #555;
+          --user-message-background: #2a3c42; /* Darker blue for user messages */
+          --assistant-message-background: #333333; /* Dark grey for assistant messages */
+          --system-message-background: #4a2d57; /* Darker purple for system messages */
+          --log-message-background: #554d00; /* Darker yellow for log messages */
         }
       }
 
@@ -74,6 +83,20 @@ export default (tabId: string, systemPrompt: string | undefined) => `
         border: 1px solid var(--pre-border);
         white-space: pre-wrap;
         color: var(--text-color);
+        margin-bottom: 5px;
+        overflow-x: auto; /* Enable horizontal scrolling for long messages */
+      }
+      .user-message {
+        background-color: var(--user-message-background);
+      }
+      .assistant-message {
+        background-color: var(--assistant-message-background);
+      }
+      .system-message {
+        background-color: var(--system-message-background);
+      }
+      .log-message {
+        background-color: var(--log-message-background);
       }
       .loader {
         display: none;
@@ -95,6 +118,22 @@ export default (tabId: string, systemPrompt: string | undefined) => `
       .hidden {
         display: none;
       }
+      .button-row {
+        display: flex;
+        flex-direction: row;
+        gap: 10px;
+        justify-content: flex-start; /* Align buttons to the start */
+        align-items: center; /* Vertically align items in the row */
+      }
+      .button-row button#sendButton {
+        flex-grow: 1; /* Allow Send button to take available space */
+      }
+      .button-row button#clearButton {
+        flex-grow: 0; /* Clear button does not grow */
+        flex-shrink: 0; /* Prevent Clear button from shrinking */
+        background-color: var(--button-background); /* Match send button style */
+      }
+
     </style>
   </head>
   <body>
@@ -110,26 +149,37 @@ export default (tabId: string, systemPrompt: string | undefined) => `
           rows="4"
           placeholder="Type your message here..."
         ></textarea>
-        <button
-          id="sendButton"
-          onclick="sendMessage()"
-          aria-label="Send message"
-        >
-          <span id="buttonText">Send</span>
-          <div id="loader" class="loader"></div>
-        </button>
+        <div class="button-row">
+          <button
+            id="sendButton"
+            onclick="sendMessage()"
+            aria-label="Send message"
+          >
+            <span id="buttonText">Send</span>
+            <div id="loader" class="loader"></div>
+          </button>
+          <button
+            id="clearButton"
+            onclick="clearMessages()"
+            aria-label="Clear messages"
+          >
+            Clear
+          </button>
+        </div>
       </div>
-      <pre id="response" aria-live="polite"></pre>
+      <div id="messages-container">
+        <!-- Messages will be appended here -->
+      </div>
     </main>
 
     <script>
       const vscode = acquireVsCodeApi();
       const loader = document.getElementById("loader");
       const sendButton = document.getElementById("sendButton");
+      const messagesContainer = document.getElementById("messages-container");
       let isBusy = false;
       let userInput = "";
       let systemPrompt = document.getElementById("systemPromptInput").value;
-
       const tabId = "{{tabId}}"; // Use the passed tabId
 
       // Debounce function
@@ -144,13 +194,20 @@ export default (tabId: string, systemPrompt: string | undefined) => `
       // Initialize the user input from previous context
       window.addEventListener("load", () => {
         const savedInput = localStorage.getItem('userInput-${tabId}');
-        const savedResponse = localStorage.getItem('responseText-${tabId}');
+        const savedMessages = localStorage.getItem('chatMessages-${tabId}');
         if (savedInput) {
           document.getElementById("userInput").value = savedInput;
           userInput = savedInput;
         }
-        if (savedResponse) {
-          document.getElementById("response").textContent = savedResponse;
+        if (savedMessages) {
+          try {
+            const messages = JSON.parse(savedMessages);
+            if (Array.isArray(messages)) {
+              messages.forEach(msg => appendMessage(msg.text, msg.sender));
+            }
+          } catch (e) {
+            console.error("Failed to parse saved messages:", e);
+          }
         }
       });
 
@@ -179,6 +236,12 @@ export default (tabId: string, systemPrompt: string | undefined) => `
         }
       }
 
+      function clearMessages() {
+        messagesContainer.innerHTML = ''; // Clear all messages from the container
+        localStorage.removeItem('chatMessages-${tabId}'); // Clear saved messages from localStorage
+      }
+
+
       const debouncedSetSystemPrompt = debounce((value) => {
         localStorage.setItem('systemPrompt-${tabId}', value);
         vscode.postMessage({
@@ -192,17 +255,36 @@ export default (tabId: string, systemPrompt: string | undefined) => `
         debouncedSetSystemPrompt(systemPrompt);
       });
 
+      function appendMessage(text, sender) {
+        const messageElement = document.createElement('pre');
+        messageElement.textContent = text;
+        messageElement.classList.add('message');
+        messageElement.classList.add(\`\${sender}-message\`); // Add sender-specific class
+
+        messagesContainer.appendChild(messageElement);
+        messagesContainer.scrollTop = messagesContainer.scrollHeight; // Scroll to bottom
+
+        // Save messages to localStorage
+        let chatMessages = localStorage.getItem('chatMessages-${tabId}');
+        let messagesArray = chatMessages ? JSON.parse(chatMessages) : [];
+        messagesArray.push({ text: text, sender: sender });
+        localStorage.setItem('chatMessages-${tabId}', JSON.stringify(messagesArray));
+      }
+
+
       window.addEventListener("message", (event) => {
         const message = event.data;
         if (message.command === "receiveMessage") {
-          const responseDiv = document.getElementById("response");
-          responseDiv.textContent = message.text;
+          appendMessage(message.text, message.sender || 'assistant'); // Default sender to assistant if not provided
           isBusy = false;
           loader.style.display = "none";
           document.getElementById("buttonText").textContent = "Send";
-          
-          // Save the response to localStorage
-          localStorage.setItem('responseText-${tabId}', message.text);
+        } else if (message.command === "logMessage") {
+          if (message.tabId === tabId) { // Only show logs for the current tab
+            appendMessage(message.text, 'log'); // Indicate log message sender
+          }
+        } else if (message.command === "clearMessages") {
+          clearMessages();
         }
       });
 
