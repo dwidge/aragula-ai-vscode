@@ -2,7 +2,7 @@ import { extractFilesFromAIResponse } from "@dwidge/llm-file-diff";
 import * as fs from "fs/promises";
 import * as path from "path";
 import * as vscode from "vscode";
-import { newOpenAiApi, ToolCall } from "./aiTools/AiApi";
+import { Logger, newOpenAiApi, ToolCall } from "./aiTools/AiApi";
 import { filterToolsByName } from "./aiTools/filterToolsByName";
 import { readDirTool, readFileTool, writeFileTool } from "./aiTools/tools";
 import chatview from "./chatview";
@@ -160,12 +160,13 @@ function handleWebviewMessage(
   openedFiles: { [key: string]: string },
   tabId: string
 ) {
-  const log = (msg: string) => {
+  const log: Logger = (msg: string, type: string = "log") => {
     vscode.window.showInformationMessage(msg);
     panel.webview.postMessage({
       command: "logMessage",
       text: msg,
       tabId: tabId,
+      messageType: type,
     });
   };
 
@@ -270,11 +271,11 @@ async function handleSendMessage(
   message: { text: string; systemPrompt: string },
   openedFiles: { [key: string]: string },
   tabId: string,
-  log: (msg: string) => void
+  log: Logger
 ) {
   const apiKey = getApiKey();
   if (!apiKey) {
-    log("Api key missing");
+    log("Api key missing", "error");
     return;
   }
 
@@ -294,11 +295,6 @@ async function handleSendMessage(
   const abortController = new AbortController();
   activeRequests.set(messageId, { abortController });
   panel.webview.postMessage({ command: "startLoading", messageId });
-
-  console.log(
-    "filterToolsByName1",
-    filterToolsByName([readDirTool, readFileTool, writeFileTool], ["writeFile"])
-  );
 
   try {
     const readFileToolResponse: ToolCall[] = Object.entries(openedFiles).map(
@@ -330,7 +326,7 @@ async function handleSendMessage(
     context.workspaceState.update(`responseText-${tabId}`, response);
   } catch (error: any) {
     if (error.name === "AbortError") {
-      log("Request was aborted by user.");
+      log("Request was aborted by user.", "info");
       panel.webview.postMessage({
         command: "updateMessage",
         messageId,
@@ -339,7 +335,7 @@ async function handleSendMessage(
         messageType: "aborted",
       });
     } else {
-      log(`API call failed: ${error.message}`);
+      log(`API call failed: ${error.message}`, "error");
       panel.webview.postMessage({
         command: "updateMessage",
         messageId,
@@ -354,11 +350,11 @@ async function handleSendMessage(
 }
 
 /** Cancels an active API request. */
-function cancelActiveRequest(messageId: string, log: (msg: string) => void) {
+function cancelActiveRequest(messageId: string, log: Logger) {
   const activeRequest = activeRequests.get(messageId);
   if (activeRequest) {
     activeRequest.abortController.abort();
-    log(`Cancelling request with ID: ${messageId}`);
+    log(`Cancelling request with ID: ${messageId}`, "info");
   }
 }
 

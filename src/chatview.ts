@@ -18,8 +18,11 @@ export default (tabId: string, systemPrompt: string | undefined) => `
         --user-message-background: #e0f7fa;
         --assistant-message-background: #f0f0f0;
         --system-message-background: #f8e6ff;
-        --log-message-background: #ffffe0;
+        --prompt-message-background: #f8e6ff;
+        --log-message-background: #e0e0e0;
         --error-message-background: #ffe0b2;
+        --warning-message-background: #fff9c4;
+        --info-message-background: #bbdefb;
         --loading-message-background: #e8f5e9;
         --file-button-background: #ddd;
         --file-button-hover: #ccc;
@@ -39,8 +42,11 @@ export default (tabId: string, systemPrompt: string | undefined) => `
           --user-message-background: #2a3c42;
           --assistant-message-background: #333333;
           --system-message-background: #4a2d57;
-          --log-message-background: #554d00;
+          --prompt-message-background: #4a2d57;
+          --log-message-background: #333333;
           --error-message-background: #572c0f;
+          --warning-message-background: #554d00;
+          --info-message-background: #2a3c42;
           --loading-message-background: #1e3628;
           --file-button-background: #555;
           --file-button-hover: #666;
@@ -126,6 +132,17 @@ export default (tabId: string, systemPrompt: string | undefined) => `
         color: var(--text-color);
         margin-bottom: 5px;
         overflow-x: auto;
+        position: relative;
+      }
+      .message-type-badge {
+        position: absolute;
+        top: 5px;
+        right: 5px;
+        padding: 2px 5px;
+        border-radius: 3px;
+        font-size: 0.7em;
+        background-color: rgba(0, 0, 0, 0.2);
+        color: white;
       }
       .message {
         word-wrap: break-word;
@@ -133,8 +150,11 @@ export default (tabId: string, systemPrompt: string | undefined) => `
       .user-message { background-color: var(--user-message-background); }
       .assistant-message { background-color: var(--assistant-message-background); }
       .system-message { background-color: var(--system-message-background); }
+      .prompt-message { background-color: var(--prompt-message-background); }
       .log-message { background-color: var(--log-message-background); }
       .error-message { background-color: var(--error-message-background); }
+      .warning-message { background-color: var(--warning-message-background); }
+      .info-message { background-color: var(--info-message-background); }
       .loading-message { background-color: var(--loading-message-background); }
       .loader {
         width: 20px;
@@ -172,17 +192,17 @@ export default (tabId: string, systemPrompt: string | undefined) => `
       const vscode = acquireVsCodeApi();
       const tabId = "${tabId}";
 
-      /** @type {string[]} */
-      let openFiles = [];
-
-      /** @typedef {Object} ChatMessage
+      /**
+       * @typedef {Object} ChatMessage
        * @property {string} id
        * @property {string} text
        * @property {string} sender
-       * @property {string} [messageType]
+       * @property {string} [messageType] - Type of message for styling (user, assistant, log, etc.)
        */
       /** @type {ChatMessage[]} */
       let chatHistory = [];
+      /** @type {string[]} */
+      let openFiles = [];
 
       const STORAGE_KEYS = {
         chatHistory: \`chatMessages-\${tabId}\`,
@@ -191,6 +211,7 @@ export default (tabId: string, systemPrompt: string | undefined) => `
         openFiles: \`openFiles-\${tabId}\`
       };
 
+      // DOM elements
       const messagesContainer = document.getElementById("messages-container");
       const userInputEl = document.getElementById("userInput");
       const systemPromptEl = document.getElementById("systemPromptInput");
@@ -199,47 +220,83 @@ export default (tabId: string, systemPrompt: string | undefined) => `
       const loader = document.getElementById("loader");
       const selectedFilesContainer = document.getElementById("selected-files-container");
 
-      /** Loads chat history from localStorage. */
+      /**
+       * Loads state from localStorage: chat history and open files.
+       */
       function loadState() {
-        const historyData = localStorage.getItem(STORAGE_KEYS.chatHistory);
+        chatHistory = loadFromLocalStorage(STORAGE_KEYS.chatHistory, []);
+        openFiles = loadFromLocalStorage(STORAGE_KEYS.openFiles, []);
+      }
+
+      /**
+       * Helper function to load and parse JSON data from localStorage.
+       * @param {string} key - localStorage key
+       * @param {any} defaultValue - Default value if key not found or parsing fails.
+       * @returns {any} - Parsed data or defaultValue.
+       */
+      function loadFromLocalStorage(key, defaultValue) {
+        const data = localStorage.getItem(key);
         try {
-          chatHistory = historyData ? JSON.parse(historyData) : [];
+          return data ? JSON.parse(data) : defaultValue;
         } catch (e) {
-          chatHistory = [];
-        }
-        const filesData = localStorage.getItem(STORAGE_KEYS.openFiles);
-        try {
-          openFiles = filesData ? JSON.parse(filesData) : [];
-        } catch (e) {
-          openFiles = [];
+          console.error(\`Error parsing localStorage key \${key}: \`, e);
+          return defaultValue;
         }
       }
 
-      /** Saves chat history to localStorage. */
+      /**
+       * Saves state to localStorage: chat history and open files.
+       */
       function saveState() {
-        localStorage.setItem(STORAGE_KEYS.chatHistory, JSON.stringify(chatHistory));
-        localStorage.setItem(STORAGE_KEYS.openFiles, JSON.stringify(openFiles));
+        saveToLocalStorage(STORAGE_KEYS.chatHistory, chatHistory);
+        saveToLocalStorage(STORAGE_KEYS.openFiles, openFiles);
       }
 
-      /** Renders the entire chat history to the DOM. */
+      /**
+       * Helper function to save data to localStorage as JSON.
+       * @param {string} key - localStorage key
+       * @param {any} data - Data to stringify and save.
+       */
+      function saveToLocalStorage(key, data) {
+        localStorage.setItem(key, JSON.stringify(data));
+      }
+
+      /**
+       * Renders the entire chat history to the DOM.
+       */
       function renderChatHistory() {
-        messagesContainer.innerHTML = "";
-        chatHistory.forEach(msg => renderMessage(msg));
+        messagesContainer.innerHTML = ""; // Clear existing messages
+        chatHistory.forEach(renderMessage);
         scrollToBottom();
       }
 
-      /** Creates and appends a message element. */
-      function renderMessage({ id, text, sender, messageType }) {
+      /**
+       * Creates and appends a message element to the messages container.
+       * @param {ChatMessage} msg - Chat message object.
+       */
+      function renderMessage({ id, text, sender, messageType = 'log' }) {
         const el = document.createElement('pre');
         el.textContent = text;
-        el.classList.add('message', \`\${sender}-message\`);
-        if (messageType) el.classList.add(\`\${messageType}-message\`);
+        el.classList.add('message'); // General message styling
+        el.classList.add(\`\${messageType}-message\`); // Message type specific styling (background color)
+
+        const badge = document.createElement('span');
+        badge.classList.add('message-type-badge');
+        badge.textContent = messageType;
+        el.appendChild(badge);
+
         if (id) el.id = \`message-\${id}\`;
         messagesContainer.appendChild(el);
       }
 
-      /** Adds a new message to the chat history and re-renders. */
-      function addChatMessage(text, sender, messageType) {
+      /**
+       * Adds a new message to the chat history, saves state, and re-renders.
+       * @param {string} text - Message text.
+       * @param {string} sender - Sender of the message (user, assistant, etc.).
+       * @param {string} [messageType='log'] - Type of message (log, error, etc.) for styling.
+       * @returns {string} - The ID of the newly added message.
+       */
+      function addChatMessage(text, sender, messageType = 'log') {
         /** @type ChatMessage */
         const message = {
           id: Date.now().toString(),
@@ -253,7 +310,13 @@ export default (tabId: string, systemPrompt: string | undefined) => `
         return message.id;
       }
 
-      /** Updates an existing chat message and re-renders. */
+      /**
+       * Updates an existing chat message, saves state, and re-renders.
+       * @param {string} id - ID of the message to update.
+       * @param {string} newText - New message text.
+       * @param {string} newSender - New sender.
+       * @param {string} newMessageType - New message type.
+       */
       function updateChatMessage(id, newText, newSender, newMessageType) {
         const msg = chatHistory.find(m => m.id === id);
         if (msg) {
@@ -265,19 +328,28 @@ export default (tabId: string, systemPrompt: string | undefined) => `
         }
       }
 
-      /** Clears chat history in both memory and localStorage. */
+      /**
+       * Clears chat history from memory and localStorage, then re-renders.
+       */
       function clearChatHistory() {
         chatHistory = [];
         localStorage.removeItem(STORAGE_KEYS.chatHistory);
         renderChatHistory();
       }
 
-      /** Scrolls the messages container to the bottom. */
+      /**
+       * Scrolls the messages container to the bottom.
+       */
       function scrollToBottom() {
         messagesContainer.scrollTop = messagesContainer.scrollHeight;
       }
 
-      /** A debounce helper. */
+      /**
+       * Debounces a function call.
+       * @param {Function} func - Function to debounce.
+       * @param {number} delay - Delay in milliseconds.
+       * @returns {Function} - Debounced function.
+       */
       function debounce(func, delay) {
         let timeout;
         return (...args) => {
@@ -286,19 +358,24 @@ export default (tabId: string, systemPrompt: string | undefined) => `
         };
       }
 
-      // Debounced update for the system prompt.
+      // Debounced update for the system prompt. Saves to localStorage and sends to extension.
       const updateSystemPrompt = debounce((value) => {
         localStorage.setItem(STORAGE_KEYS.systemPrompt, value);
         vscode.postMessage({ command: "setSystemPrompt", systemPrompt: value });
       }, 3000);
 
-      // Reset send button UI state.
+      /**
+       * Resets the send button state to enable and hide loader.
+       */
       function resetSendButton() {
         sendButton.disabled = false;
         loader.style.display = "none";
         buttonText.textContent = "Send";
       }
 
+      /**
+       * Renders the selected files in the UI.
+       */
       function renderSelectedFiles() {
         selectedFilesContainer.innerHTML = '';
         openFiles.forEach(filePath => {
@@ -316,6 +393,10 @@ export default (tabId: string, systemPrompt: string | undefined) => `
         });
       }
 
+      /**
+       * Removes a file from the open files list and updates UI and extension.
+       * @param {string} filePath - Path of the file to remove.
+       */
       function removeFile(filePath) {
         openFiles = openFiles.filter(file => file !== filePath);
         saveState();
@@ -323,72 +404,66 @@ export default (tabId: string, systemPrompt: string | undefined) => `
         vscode.postMessage({ command: "removeFile", filePath: filePath });
       }
 
+      /**
+       * Adds files to the open files list, updates UI and extension.
+       * Prevents duplicate file paths.
+       * @param {string[]} files - Array of file paths to add.
+       */
       function addFiles(files) {
         const newFiles = files.filter(filePath => !openFiles.includes(filePath));
-        openFiles.push(...newFiles);
-        saveState();
-        renderSelectedFiles();
-        vscode.postMessage({ command: "addFiles", filePaths: newFiles });
+        if (newFiles.length > 0) {
+            openFiles.push(...newFiles);
+            saveState();
+            renderSelectedFiles();
+            vscode.postMessage({ command: "addFiles", filePaths: newFiles });
+        }
       }
 
+      /**
+       * Opens the file dialog to add files.
+       */
       function addFilesDialog() {
         vscode.postMessage({ command: "requestAddFiles" });
       }
 
+      /**
+       * Allows drag over event for drag and drop file functionality.
+       * @param {DragEvent} event
+       */
       function allowDrop(event) {
         event.preventDefault();
-        console.log('allowDrop1');
       }
 
-      function dropHandler(event) {
+      /**
+       * Handles the drop event for drag and drop file functionality.
+       * @param {DragEvent} event
+       */
+      async function dropHandler(event) {
         event.preventDefault();
-        console.log('dropHandler1');
+        let filePaths = [];
         if (event.dataTransfer.items) {
           // Use DataTransferItemList interface to access the file system
           const items = Array.from(event.dataTransfer.items);
-          Promise.all(items.map(item => {
+          filePaths = await Promise.all(items.map(item => { // Changed to await Promise.all
             if (item.kind === 'file') {
               const file = item.getAsFile();
-              if (file) {
-                return file.path; // This might be the full path
-              }
+              return file ? file.path : null;
             }
             return null;
-          }))
-          .then(filePaths => {
-            const validFilePaths = filePaths.filter(path => path !== null);
-            vscode.postMessage({ command: "addFilesFromDialog", filePaths: validFilePaths });
-          });
+          })).then(paths => paths.filter(path => path !== null));
         } else {
           // Use DataTransfer interface to access file URI list
-          const files = Array.from(event.dataTransfer.files).map(file => file.path);
-          vscode.postMessage({ command: "addFilesFromDialog", filePaths: files });
+          filePaths = Array.from(event.dataTransfer.files).map(file => file.path);
+        }
+
+        if (filePaths.length > 0) {
+          vscode.postMessage({ command: "addFilesFromDialog", filePaths: filePaths });
         }
       }
 
-
-      // Restore state on load.
-      window.addEventListener("load", () => {
-        const savedUserInput = localStorage.getItem(STORAGE_KEYS.userInput);
-        if (savedUserInput) userInputEl.value = savedUserInput;
-
-        const savedSystemPrompt = localStorage.getItem(STORAGE_KEYS.systemPrompt);
-        if (savedSystemPrompt) systemPromptEl.value = savedSystemPrompt;
-
-        loadState();
-        renderChatHistory();
-        renderSelectedFiles();
-      });
-
-      userInputEl.addEventListener("input", (e) => {
-        localStorage.setItem(STORAGE_KEYS.userInput, e.target.value);
-      });
-
-      systemPromptEl.addEventListener("input", (e) => {
-        updateSystemPrompt(e.target.value);
-      });
-
-      /** Handles the send button click. */
+      /**
+       * Handles sending a message to the extension.
+       */
       function handleSendMessage() {
         if (sendButton.disabled) return;
         const text = userInputEl.value.trim();
@@ -409,21 +484,36 @@ export default (tabId: string, systemPrompt: string | undefined) => `
         });
       }
 
-      /** Displays a temporary loading message. */
+      /**
+       * Displays a temporary loading message in the chat.
+       * @param {string} messageId - ID to assign to the loading message.
+       */
       function showLoadingMessage(messageId) {
-        /** @type ChatMessage */
-        const loadingMessage = {
-          id: messageId,
-          text: "Loading response...",
-          sender: "assistant",
-          messageType: "loading"
-        };
-        chatHistory.push(loadingMessage);
-        saveState();
-        renderChatHistory();
+        addChatMessage("Loading response...", "assistant", "loading");
       }
 
-      // Handle messages from the extension.
+      // --- Event Listeners ---
+
+      // Restore state and input values on window load
+      window.addEventListener("load", () => {
+        userInputEl.value = localStorage.getItem(STORAGE_KEYS.userInput) || "";
+        systemPromptEl.value = localStorage.getItem(STORAGE_KEYS.systemPrompt) || "";
+        loadState();
+        renderChatHistory();
+        renderSelectedFiles();
+      });
+
+      // Save user input to localStorage on input change
+      userInputEl.addEventListener("input", (e) => {
+        localStorage.setItem(STORAGE_KEYS.userInput, e.target.value);
+      });
+
+      // Update system prompt on input change (debounced)
+      systemPromptEl.addEventListener("input", (e) => {
+        updateSystemPrompt(e.target.value);
+      });
+
+      // Handle messages from the extension
       window.addEventListener("message", (event) => {
         const message = event.data;
         switch (message.command) {
@@ -436,7 +526,7 @@ export default (tabId: string, systemPrompt: string | undefined) => `
             resetSendButton();
             break;
           case "logMessage":
-            addChatMessage(message.text, "log");
+            addChatMessage(message.text, "log", message.messageType || 'log'); // Ensure messageType is passed and default to 'log'
             break;
           case "clearMessages":
             clearChatHistory();

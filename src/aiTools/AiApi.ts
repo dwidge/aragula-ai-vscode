@@ -72,7 +72,7 @@ export interface AiApiCaller {
   ): Promise<{ assistant: string; tools: ToolCall[] }>;
 }
 
-type Logger = (message: string) => void;
+export type Logger = (message: string, type?: string) => void;
 
 /**
  * Settings for the AI API caller.
@@ -355,7 +355,7 @@ interface OpenAiSpecificSettings {
   baseURL?: string;
   model: string;
   max_tokens?: number;
-  logger?: (message: string) => void;
+  logger?: Logger;
 }
 
 export function newOpenAiApi(settings: OpenAiSpecificSettings): AiApiCaller {
@@ -461,7 +461,7 @@ const callOpenAi = async (
     model: string;
     max_tokens?: number;
     tools?: ToolDefinition[];
-    logger: (msg: string) => void;
+    logger: Logger;
   },
   prompt: { user: string; system?: string; tools?: ToolCall[] },
   signal?: AbortSignal
@@ -511,7 +511,8 @@ const callOpenAi = async (
     };
 
   apiSettings.logger(
-    "apiCallParams\n\n" + JSON.stringify(apiCallParams, null, 2)
+    "apiCallParams\n\n" + JSON.stringify(apiCallParams, null, 2),
+    "prompt"
   );
 
   const response = await openaiInstance.chat.completions.create(apiCallParams, {
@@ -529,8 +530,11 @@ const callOpenAi = async (
     ...decodeToolCalls(messageContent),
   ];
 
-  apiSettings.logger("messageContent\n\n" + messageContent);
-  apiSettings.logger("toolCalls\n\n" + JSON.stringify(toolCalls, null, 2));
+  apiSettings.logger("messageContent\n\n" + messageContent, "prompt");
+  apiSettings.logger(
+    "toolCalls\n\n" + JSON.stringify(toolCalls, null, 2),
+    "prompt"
+  );
 
   return { assistant: messageContent, tools: toolCalls };
 };
@@ -563,7 +567,7 @@ interface GeminiSpecificSettings {
   baseURL?: string;
   model: string;
   max_tokens?: number;
-  logger?: (message: string) => void;
+  logger?: Logger;
 }
 
 export function newGeminiApi(settings: GeminiSpecificSettings): AiApiCaller {
@@ -662,7 +666,7 @@ interface GroqSpecificSettings {
   baseURL?: string;
   model: string;
   max_tokens?: number;
-  logger?: (message: string) => void;
+  logger?: Logger;
 }
 
 export function newGroqApi(settings: GroqSpecificSettings): AiApiCaller {
@@ -763,7 +767,7 @@ interface CerebrasSpecificSettings {
   baseURL?: string;
   model: string;
   max_tokens?: number;
-  logger?: (message: string) => void;
+  logger?: Logger;
 }
 
 export function newCerebrasApi(
@@ -848,7 +852,7 @@ interface ClaudeSpecificSettings {
   baseURL?: string;
   model: string;
   max_tokens?: number;
-  logger?: (message: string) => void;
+  logger?: Logger;
 }
 
 export function newClaudeApi(settings: ClaudeSpecificSettings): AiApiCaller {
@@ -1037,7 +1041,7 @@ export const withFunctionCalling =
               const errorMsg = `Function ${toolCall.name} failed: ${
                 error.message || error
               }`;
-              logger(errorMsg);
+              logger(errorMsg, "error");
               functionResults.push({
                 ...toolCall,
                 response: `Error: ${errorMsg}`,
