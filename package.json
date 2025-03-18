@@ -36,12 +36,24 @@
         "command": "aragula-ai.askAI",
         "title": "Ask AI",
         "category": "AI"
+      },
+      {
+        "command": "aragula-ai.askAIEditor",
+        "title": "Ask AI",
+        "category": "AI"
       }
     ],
     "menus": {
       "explorer/context": [
         {
           "command": "aragula-ai.askAI",
+          "when": "resourceLangId != 'binary'",
+          "group": "navigation"
+        }
+      ],
+      "editor/title/context": [
+        {
+          "command": "aragula-ai.askAIEditor",
           "when": "resourceLangId != 'binary'",
           "group": "navigation"
         }

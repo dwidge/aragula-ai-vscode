@@ -13,35 +13,44 @@ const chatPanels = new Map<string, vscode.WebviewPanel>();
 export function activate(context: vscode.ExtensionContext) {
   console.log('Extension "aragula-ai" active');
 
-  const disposable = vscode.commands.registerCommand(
-    "aragula-ai.askAI",
-    async (single: vscode.Uri, multi: vscode.Uri[]) => {
-      const openFiles = await readOpenFiles(multi);
-      let tabId = Date.now().toString();
-      let existingPanel: vscode.WebviewPanel | undefined = undefined;
+  const addFiles = async (multi: vscode.Uri[]) => {
+    const openFiles = await readOpenFiles(multi);
+    let tabId = Date.now().toString();
+    let existingPanel: vscode.WebviewPanel | undefined = undefined;
 
-      // Try to find an existing chat panel
-      for (const panel of chatPanels.values()) {
-        if (!panel) continue; // defensive check in case of null panel in map
-        existingPanel = panel;
-        tabId = panel.title.split(" - ")[1]; // Extract tabId from panel title "Ask AI - {tabId}"
-        break; // Use the first non-disposed panel found
-      }
-
-      const systemPrompt = getSystemPrompt();
-
-      if (existingPanel) {
-        // If panel exists, reuse it and add files
-        existingPanel.reveal(vscode.ViewColumn.One); // Bring existing panel to front
-        sendFilesToExistingChat(existingPanel, openFiles);
-      } else {
-        // If no panel exists, open a new one
-        await openChatWindow(context, openFiles, tabId, systemPrompt);
-      }
+    // Try to find an existing chat panel
+    for (const panel of chatPanels.values()) {
+      if (!panel) continue; // defensive check in case of null panel in map
+      existingPanel = panel;
+      tabId = panel.title.split(" - ")[1]; // Extract tabId from panel title "Ask AI - {tabId}"
+      break; // Use the first non-disposed panel found
     }
+
+    const systemPrompt = getSystemPrompt();
+
+    if (existingPanel) {
+      // If panel exists, reuse it and add files
+      existingPanel.reveal(vscode.ViewColumn.One); // Bring existing panel to front
+      sendFilesToExistingChat(existingPanel, openFiles);
+    } else {
+      // If no panel exists, open a new one
+      await openChatWindow(context, openFiles, tabId, systemPrompt);
+    }
+  };
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand(
+      "aragula-ai.askAI",
+      async (single: vscode.Uri, multi: vscode.Uri[]) => addFiles(multi)
+    )
   );
 
-  context.subscriptions.push(disposable);
+  context.subscriptions.push(
+    vscode.commands.registerCommand(
+      "aragula-ai.askAIEditor",
+      async (single: vscode.Uri, options: any) => addFiles([single])
+    )
+  );
 }
 
 /** Send files to an existing chat panel */
