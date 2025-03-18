@@ -59,7 +59,7 @@ async function openChatWindow(
     "askAIChat",
     "Ask AI",
     vscode.ViewColumn.One,
-    { enableScripts: true }
+    { enableScripts: true, retainContextWhenHidden: true }
   );
   panel.webview.html = chatview(tabId, systemPrompt);
   sendInitialSystemMessage(panel, openedFiles);
@@ -80,6 +80,10 @@ function sendInitialSystemMessage(
   panel: vscode.WebviewPanel,
   openedFiles: { [key: string]: string }
 ) {
+  panel.webview.postMessage({
+    command: "setOpenFiles",
+    files: Object.keys(openedFiles),
+  });
   const initialMessage = generateInitialMessage(openedFiles);
   if (initialMessage) {
     panel.webview.postMessage({
@@ -126,9 +130,85 @@ function handleWebviewMessage(
     case "cancelRequest":
       cancelActiveRequest(message.messageId, log);
       break;
+    case "removeFile":
+      handleRemoveFile(panel, message.filePath, openedFiles);
+      break;
+    case "addFiles":
+      handleAddFiles(panel, message.filePaths, openedFiles);
+      break;
+    case "requestAddFiles":
+      requestAddFilesDialog(panel);
+      break;
+    case "addFilesFromDialog":
+      handleAddFilesFromDialog(panel, message.filePaths, openedFiles);
+      break;
     default:
       console.warn("Unknown command from webview:", message.command);
   }
+}
+
+async function handleAddFilesFromDialog(
+  panel: vscode.WebviewPanel,
+  filePaths: string[],
+  openedFiles: { [key: string]: string }
+) {
+  await handleAddFiles(panel, filePaths, openedFiles);
+}
+
+async function requestAddFilesDialog(panel: vscode.WebviewPanel) {
+  const files = await vscode.window.showOpenDialog({
+    canSelectFiles: true,
+    canSelectFolders: false,
+    canSelectMany: true,
+    openLabel: "Add Files to AI Chat",
+  });
+  if (files) {
+    const filePaths = files.map((file) =>
+      vscode.workspace.asRelativePath(file)
+    );
+    panel.webview.postMessage({ command: "addFilesFromDialog", filePaths });
+  }
+}
+
+function handleRemoveFile(
+  panel: vscode.WebviewPanel,
+  filePath: string,
+  openedFiles: { [key: string]: string }
+) {
+  delete openedFiles[filePath];
+  panel.webview.postMessage({
+    command: "setOpenFiles",
+    files: Object.keys(openedFiles),
+  });
+}
+
+async function handleAddFiles(
+  panel: vscode.WebviewPanel,
+  filePaths: string[],
+  openedFiles: { [key: string]: string }
+) {
+  const addedFiles: string[] = [];
+  for (const filePath of filePaths) {
+    if (!openedFiles[filePath]) {
+      try {
+        const fileUri = vscode.Uri.file(
+          path.join(vscode.workspace.workspaceFolders![0].uri.fsPath, filePath)
+        );
+        const content = await fs.readFile(fileUri.fsPath, "utf8");
+        openedFiles[filePath] = content;
+        addedFiles.push(filePath);
+      } catch (error) {
+        vscode.window.showErrorMessage(`Failed to read file: ${filePath}`);
+        continue; // Skip to the next file if this one fails
+      }
+    }
+  }
+  panel.webview.postMessage({
+    command: "setOpenFiles",
+    files: Object.keys(openedFiles),
+  });
+  console.log("addedFiles1", addedFiles);
+  return addedFiles;
 }
 
 /** Handles a sendMessage request from the webview. */

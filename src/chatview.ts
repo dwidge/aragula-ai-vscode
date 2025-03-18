@@ -21,6 +21,10 @@ export default (tabId: string, systemPrompt: string | undefined) => `
         --log-message-background: #ffffe0;
         --error-message-background: #ffe0b2;
         --loading-message-background: #e8f5e9;
+        --file-button-background: #ddd;
+        --file-button-hover: #ccc;
+        --file-button-remove-hover: #f44336;
+        --file-button-text-color: #000;
       }
       @media (prefers-color-scheme: dark) {
         :root {
@@ -38,6 +42,10 @@ export default (tabId: string, systemPrompt: string | undefined) => `
           --log-message-background: #554d00;
           --error-message-background: #572c0f;
           --loading-message-background: #1e3628;
+          --file-button-background: #555;
+          --file-button-hover: #666;
+          --file-button-remove-hover: #e57373;
+          --file-button-text-color: #eee;
         }
       }
       body {
@@ -46,6 +54,38 @@ export default (tabId: string, systemPrompt: string | undefined) => `
         padding: 20px;
         background-color: var(--background-color);
         color: var(--text-color);
+      }
+      #selected-files-container {
+        display: flex;
+        gap: 5px;
+        margin-bottom: 10px;
+        flex-wrap: wrap;
+      }
+      .file-button {
+        background-color: var(--file-button-background);
+        color: var(--file-button-text-color);
+        border: none;
+        padding: 5px 10px;
+        border-radius: 5px;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        font-size: 0.9em;
+      }
+      .file-button:hover {
+        background-color: var(--file-button-hover);
+      }
+      .file-button .remove-file-button {
+        background: none;
+        border: none;
+        color: var(--file-button-text-color);
+        cursor: pointer;
+        padding: 0 5px;
+        border-radius: 3px;
+      }
+      .file-button .remove-file-button:hover {
+        color: white;
+        background-color: var(--file-button-remove-hover);
       }
       .input-area {
         display: flex;
@@ -87,6 +127,9 @@ export default (tabId: string, systemPrompt: string | undefined) => `
         margin-bottom: 5px;
         overflow-x: auto;
       }
+      .message {
+        word-wrap: break-word;
+      }
       .user-message { background-color: var(--user-message-background); }
       .assistant-message { background-color: var(--assistant-message-background); }
       .system-message { background-color: var(--system-message-background); }
@@ -105,8 +148,9 @@ export default (tabId: string, systemPrompt: string | undefined) => `
       @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
   </head>
-  <body>
+  <body ondragover="allowDrop(event)" ondrop="dropHandler(event)">
     <main>
+      <div id="selected-files-container"></div>
       <div class="input-area">
         <textarea id="systemPromptInput" rows="2" placeholder="Edit system prompt here...">${
           systemPrompt || ""
@@ -118,30 +162,33 @@ export default (tabId: string, systemPrompt: string | undefined) => `
             <span id="loader" class="loader" style="display:none;"></span>
           </button>
           <button id="clearButton" onclick="clearChatHistory()">Clear</button>
+          <button id="addFilesButton" onclick="addFilesDialog()">Add Files</button>
         </div>
       </div>
       <div id="messages-container"></div>
     </main>
     <script>
-      // Type definition for a chat message.
-      /**
-       * @typedef {Object} ChatMessage
-       * @property {string} id - Unique message ID.
-       * @property {string} text - Message text.
-       * @property {string} sender - Message sender ("user", "assistant", "system", etc.).
-       * @property {string} [messageType] - Optional extra type (e.g. "error", "loading").
-       */
-
+      // @ts-ignore
       const vscode = acquireVsCodeApi();
       const tabId = "${tabId}";
 
+      /** @type {string[]} */
+      let openFiles = [];
+
+      /** @typedef {Object} ChatMessage
+       * @property {string} id
+       * @property {string} text
+       * @property {string} sender
+       * @property {string} [messageType]
+       */
       /** @type {ChatMessage[]} */
       let chatHistory = [];
 
       const STORAGE_KEYS = {
         chatHistory: \`chatMessages-\${tabId}\`,
         userInput: \`userInput-\${tabId}\`,
-        systemPrompt: \`systemPrompt-\${tabId}\`
+        systemPrompt: \`systemPrompt-\${tabId}\`,
+        openFiles: \`openFiles-\${tabId}\`
       };
 
       const messagesContainer = document.getElementById("messages-container");
@@ -150,20 +197,28 @@ export default (tabId: string, systemPrompt: string | undefined) => `
       const sendButton = document.getElementById("sendButton");
       const buttonText = document.getElementById("buttonText");
       const loader = document.getElementById("loader");
+      const selectedFilesContainer = document.getElementById("selected-files-container");
 
-      /** Loads chat history from localStorage without modifying it. */
-      function loadChatHistory() {
-        const data = localStorage.getItem(STORAGE_KEYS.chatHistory);
+      /** Loads chat history from localStorage. */
+      function loadState() {
+        const historyData = localStorage.getItem(STORAGE_KEYS.chatHistory);
         try {
-          chatHistory = data ? JSON.parse(data) : [];
+          chatHistory = historyData ? JSON.parse(historyData) : [];
         } catch (e) {
           chatHistory = [];
         }
+        const filesData = localStorage.getItem(STORAGE_KEYS.openFiles);
+        try {
+          openFiles = filesData ? JSON.parse(filesData) : [];
+        } catch (e) {
+          openFiles = [];
+        }
       }
 
-      /** Saves the current chatHistory array to localStorage. */
-      function saveChatHistory() {
+      /** Saves chat history to localStorage. */
+      function saveState() {
         localStorage.setItem(STORAGE_KEYS.chatHistory, JSON.stringify(chatHistory));
+        localStorage.setItem(STORAGE_KEYS.openFiles, JSON.stringify(openFiles));
       }
 
       /** Renders the entire chat history to the DOM. */
@@ -185,6 +240,7 @@ export default (tabId: string, systemPrompt: string | undefined) => `
 
       /** Adds a new message to the chat history and re-renders. */
       function addChatMessage(text, sender, messageType) {
+        /** @type ChatMessage */
         const message = {
           id: Date.now().toString(),
           text,
@@ -192,7 +248,7 @@ export default (tabId: string, systemPrompt: string | undefined) => `
           messageType
         };
         chatHistory.push(message);
-        saveChatHistory();
+        saveState();
         renderChatHistory();
         return message.id;
       }
@@ -204,7 +260,7 @@ export default (tabId: string, systemPrompt: string | undefined) => `
           msg.text = newText;
           msg.sender = newSender;
           msg.messageType = newMessageType;
-          saveChatHistory();
+          saveState();
           renderChatHistory();
         }
       }
@@ -243,6 +299,74 @@ export default (tabId: string, systemPrompt: string | undefined) => `
         buttonText.textContent = "Send";
       }
 
+      function renderSelectedFiles() {
+        selectedFilesContainer.innerHTML = '';
+        openFiles.forEach(filePath => {
+          const fileButton = document.createElement('div');
+          fileButton.classList.add('file-button');
+          fileButton.textContent = filePath;
+
+          const removeButton = document.createElement('button');
+          removeButton.classList.add('remove-file-button');
+          removeButton.textContent = '✕';
+          removeButton.onclick = () => removeFile(filePath);
+
+          fileButton.appendChild(removeButton);
+          selectedFilesContainer.appendChild(fileButton);
+        });
+      }
+
+      function removeFile(filePath) {
+        openFiles = openFiles.filter(file => file !== filePath);
+        saveState();
+        renderSelectedFiles();
+        vscode.postMessage({ command: "removeFile", filePath: filePath });
+      }
+
+      function addFiles(files) {
+        const newFiles = files.filter(filePath => !openFiles.includes(filePath));
+        openFiles.push(...newFiles);
+        saveState();
+        renderSelectedFiles();
+        vscode.postMessage({ command: "addFiles", filePaths: newFiles });
+      }
+
+      function addFilesDialog() {
+        vscode.postMessage({ command: "requestAddFiles" });
+      }
+
+      function allowDrop(event) {
+        event.preventDefault();
+        console.log('allowDrop1');
+      }
+
+      function dropHandler(event) {
+        event.preventDefault();
+        console.log('dropHandler1');
+        if (event.dataTransfer.items) {
+          // Use DataTransferItemList interface to access the file system
+          const items = Array.from(event.dataTransfer.items);
+          Promise.all(items.map(item => {
+            if (item.kind === 'file') {
+              const file = item.getAsFile();
+              if (file) {
+                return file.path; // This might be the full path
+              }
+            }
+            return null;
+          }))
+          .then(filePaths => {
+            const validFilePaths = filePaths.filter(path => path !== null);
+            vscode.postMessage({ command: "addFilesFromDialog", filePaths: validFilePaths });
+          });
+        } else {
+          // Use DataTransfer interface to access file URI list
+          const files = Array.from(event.dataTransfer.files).map(file => file.path);
+          vscode.postMessage({ command: "addFilesFromDialog", filePaths: files });
+        }
+      }
+
+
       // Restore state on load.
       window.addEventListener("load", () => {
         const savedUserInput = localStorage.getItem(STORAGE_KEYS.userInput);
@@ -251,8 +375,9 @@ export default (tabId: string, systemPrompt: string | undefined) => `
         const savedSystemPrompt = localStorage.getItem(STORAGE_KEYS.systemPrompt);
         if (savedSystemPrompt) systemPromptEl.value = savedSystemPrompt;
 
-        loadChatHistory();
+        loadState();
         renderChatHistory();
+        renderSelectedFiles();
       });
 
       userInputEl.addEventListener("input", (e) => {
@@ -286,6 +411,7 @@ export default (tabId: string, systemPrompt: string | undefined) => `
 
       /** Displays a temporary loading message. */
       function showLoadingMessage(messageId) {
+        /** @type ChatMessage */
         const loadingMessage = {
           id: messageId,
           text: "Loading response...",
@@ -293,7 +419,7 @@ export default (tabId: string, systemPrompt: string | undefined) => `
           messageType: "loading"
         };
         chatHistory.push(loadingMessage);
-        saveChatHistory();
+        saveState();
         renderChatHistory();
       }
 
@@ -315,8 +441,16 @@ export default (tabId: string, systemPrompt: string | undefined) => `
           case "clearMessages":
             clearChatHistory();
             break;
+          case "setOpenFiles":
+            openFiles = message.files;
+            saveState();
+            renderSelectedFiles();
+            break;
           case "startLoading":
             showLoadingMessage(message.messageId);
+            break;
+          case "addFilesFromDialog":
+            addFiles(message.filePaths);
             break;
           default:
             console.warn("Unknown command:", message.command);
@@ -326,6 +460,9 @@ export default (tabId: string, systemPrompt: string | undefined) => `
       // Expose functions to the global scope.
       window.handleSendMessage = handleSendMessage;
       window.clearChatHistory = clearChatHistory;
+      window.addFilesDialog = addFilesDialog;
+      window.allowDrop = allowDrop;
+      window.dropHandler = dropHandler;
     </script>
   </body>
 </html>
