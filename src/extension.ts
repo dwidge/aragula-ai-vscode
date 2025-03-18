@@ -26,9 +26,22 @@ export function activate(context: vscode.ExtensionContext) {
       break; // Use the first non-disposed panel found
     }
 
-    const systemPrompt = getSystemPrompt();
     const systemPrompts = getSystemPromptsFromStorage(context);
     const userPrompts = getUserPromptsFromStorage(context);
+
+    // Load workspace prompts if available, otherwise use defaults
+    const workspaceSystemPrompt = getCurrentSystemPromptFromWorkspace(
+      context,
+      tabId
+    );
+    const systemPrompt =
+      workspaceSystemPrompt ?? systemPrompts[0] ?? getSystemPrompt() ?? "";
+
+    const workspaceUserPrompt = getCurrentUserPromptFromWorkspace(
+      context,
+      tabId
+    );
+    const userPrompt = workspaceUserPrompt ?? userPrompts[0] ?? "";
 
     if (existingPanel) {
       // If panel exists, reuse it and add files
@@ -42,7 +55,8 @@ export function activate(context: vscode.ExtensionContext) {
         tabId,
         systemPrompt,
         systemPrompts,
-        userPrompts
+        userPrompts,
+        userPrompt // Pass userPrompt to openChatWindow
       );
     }
   };
@@ -108,7 +122,8 @@ async function openChatWindow(
   tabId: string,
   systemPrompt: string | undefined,
   systemPrompts: string[],
-  userPrompts: string[]
+  userPrompts: string[],
+  userPrompt: string // Receive userPrompt
 ) {
   const panel = vscode.window.createWebviewPanel(
     "askAIChat",
@@ -124,12 +139,7 @@ async function openChatWindow(
     chatPanels.delete(tabId); // Remove panel from map when disposed
   });
 
-  panel.webview.html = chatview(
-    tabId,
-    systemPrompt,
-    systemPrompts,
-    userPrompts
-  );
+  panel.webview.html = chatview(tabId);
   sendInitialSystemMessage(panel, openedFiles);
 
   panel.webview.onDidReceiveMessage(
@@ -138,6 +148,15 @@ async function openChatWindow(
     undefined,
     context.subscriptions
   );
+
+  // Send initial prompts and prompt libraries via message
+  panel.webview.postMessage({
+    command: "initPrompts",
+    systemPrompt: systemPrompt,
+    userPrompt: userPrompt,
+    systemPrompts: systemPrompts,
+    userPrompts: userPrompts,
+  });
 
   context.workspaceState.update(`userInput-${tabId}`, "");
   context.workspaceState.update(`responseText-${tabId}`, "");
@@ -191,7 +210,10 @@ function handleWebviewMessage(
       handleSendMessage(context, panel, message, openedFiles, tabId, log);
       break;
     case "setSystemPrompt":
-      updateSystemPrompt(context, message.systemPrompt);
+      handleSetSystemPrompt(context, panel, message.systemPrompt, tabId); // Use new handler
+      break;
+    case "setUserPrompt": // New case for user prompt
+      handleSetUserPrompt(context, panel, message.userPrompt, tabId); // New handler for user prompt
       break;
     case "clearMessages":
       panel.webview.postMessage({ command: "clearMessages" });
@@ -229,9 +251,41 @@ function handleWebviewMessage(
     case "requestUserPrompts":
       handleRequestUserPrompts(context, panel);
       break;
+    case "useSystemPromptFromLibrary": // New case for using system prompt from library
+      handleUseSystemPromptFromLibrary(context, panel, message.prompt);
+      break;
+    case "useUserPromptFromLibrary": // New case for using user prompt from library
+      handleUseUserPromptFromLibrary(context, panel, message.prompt);
+      break;
     default:
       console.warn("Unknown command from webview:", message.command);
   }
+}
+
+async function handleUseSystemPromptFromLibrary(
+  context: vscode.ExtensionContext,
+  panel: vscode.WebviewPanel,
+  prompt: string
+) {
+  await useSystemPromptInStorage(context, prompt);
+  const updatedSystemPrompts = getSystemPromptsFromStorage(context);
+  panel.webview.postMessage({
+    command: "systemPromptsList",
+    prompts: updatedSystemPrompts,
+  });
+}
+
+async function handleUseUserPromptFromLibrary(
+  context: vscode.ExtensionContext,
+  panel: vscode.WebviewPanel,
+  prompt: string
+) {
+  await useUserPromptInStorage(context, prompt);
+  const updatedUserPrompts = getUserPromptsFromStorage(context);
+  panel.webview.postMessage({
+    command: "userPromptsList",
+    prompts: updatedUserPrompts,
+  });
 }
 
 async function handleRequestSystemPrompts(
@@ -399,6 +453,9 @@ async function handleSendMessage(
     sender: "user",
   });
 
+  // Save current user prompt to workspace state
+  setCurrentUserPromptToWorkspace(context, tabId, message.text);
+
   const messageId = Date.now().toString();
   const abortController = new AbortController();
   activeRequests.set(messageId, { abortController });
@@ -457,6 +514,26 @@ async function handleSendMessage(
   }
 }
 
+/** Handles setting the system prompt and saves it to workspace state. */
+async function handleSetSystemPrompt(
+  context: vscode.ExtensionContext,
+  panel: vscode.WebviewPanel,
+  newPrompt: string,
+  tabId: string
+) {
+  setCurrentSystemPromptToWorkspace(context, tabId, newPrompt);
+}
+
+/** Handles setting the user prompt and saves it to workspace state. */
+async function handleSetUserPrompt(
+  context: vscode.ExtensionContext,
+  panel: vscode.WebviewPanel,
+  newPrompt: string,
+  tabId: string
+) {
+  setCurrentUserPromptToWorkspace(context, tabId, newPrompt);
+}
+
 /** Cancels an active API request. */
 function cancelActiveRequest(messageId: string, log: Logger) {
   const activeRequest = activeRequests.get(messageId);
@@ -464,21 +541,6 @@ function cancelActiveRequest(messageId: string, log: Logger) {
     activeRequest.abortController.abort();
     log(`Cancelling request with ID: ${messageId}`, "info");
   }
-}
-
-/** Updates the system prompt in the global configuration. */
-function updateSystemPrompt(
-  context: vscode.ExtensionContext,
-  newPrompt: string
-) {
-  const config = vscode.workspace.getConfiguration("aragula-ai");
-  config
-    .update("systemPrompt", newPrompt, vscode.ConfigurationTarget.Global)
-    .then(
-      () => vscode.window.showInformationMessage("System prompt updated."),
-      (err) =>
-        vscode.window.showErrorMessage(`Failed to update system prompt: ${err}`)
-    );
 }
 
 /** Retrieves the API key from configuration. */
@@ -499,42 +561,62 @@ function getSystemPrompt(): string | undefined {
   return typeof prompt === "string" ? prompt : undefined;
 }
 
-/** Retrieves system prompts from global storage */
+/** Retrieves system prompts from global storage, MRU order */
 function getSystemPromptsFromStorage(
   context: vscode.ExtensionContext
 ): string[] {
   return context.globalState.get<string[]>("systemPrompts", []) || [];
 }
 
-/** Retrieves user prompts from global storage */
+/** Retrieves user prompts from global storage, MRU order */
 function getUserPromptsFromStorage(context: vscode.ExtensionContext): string[] {
   return context.globalState.get<string[]>("userPrompts", []) || []; // New storage for user prompts
 }
 
-/** Saves system prompt to global storage */
+/** Saves system prompt to global storage, MRU at top */
 async function saveSystemPromptToStorage(
   context: vscode.ExtensionContext,
   prompt: string
 ): Promise<void> {
   let prompts = getSystemPromptsFromStorage(context);
   if (!prompts.includes(prompt)) {
-    // Avoid duplicates
-    prompts.push(prompt);
+    prompts.unshift(prompt); // Add to the beginning for MRU
     await context.globalState.update("systemPrompts", prompts);
   }
 }
 
-/** Saves user prompt to global storage */
+/** Saves user prompt to global storage, MRU at top */
 async function saveUserPromptToStorage(
   context: vscode.ExtensionContext,
   prompt: string
 ): Promise<void> {
   let prompts = getUserPromptsFromStorage(context);
   if (!prompts.includes(prompt)) {
-    // Avoid duplicates
-    prompts.push(prompt);
+    prompts.unshift(prompt); // Add to the beginning for MRU
     await context.globalState.update("userPrompts", prompts); // Save to user prompts storage
   }
+}
+
+/** Use system prompt, move to top in MRU list */
+async function useSystemPromptInStorage(
+  context: vscode.ExtensionContext,
+  prompt: string
+): Promise<void> {
+  let prompts = getSystemPromptsFromStorage(context);
+  const filteredPrompts = prompts.filter((p) => p !== prompt); // Remove existing
+  filteredPrompts.unshift(prompt); // Add to the beginning for MRU
+  await context.globalState.update("systemPrompts", filteredPrompts);
+}
+
+/** Use user prompt, move to top in MRU list */
+async function useUserPromptInStorage(
+  context: vscode.ExtensionContext,
+  prompt: string
+): Promise<void> {
+  let prompts = getUserPromptsFromStorage(context);
+  const filteredPrompts = prompts.filter((p) => p !== prompt); // Remove existing
+  filteredPrompts.unshift(prompt); // Add to the beginning for MRU
+  await context.globalState.update("userPrompts", filteredPrompts);
 }
 
 /** Deletes system prompt from global storage */
@@ -555,6 +637,40 @@ async function deleteUserPromptFromStorage(
   let prompts = getUserPromptsFromStorage(context);
   const updatedPrompts = prompts.filter((p) => p !== prompt);
   await context.globalState.update("userPrompts", updatedPrompts); // Delete from user prompts storage
+}
+
+/** Get current system prompt from workspace state */
+function getCurrentSystemPromptFromWorkspace(
+  context: vscode.ExtensionContext,
+  tabId: string
+): string | undefined {
+  return context.workspaceState.get<string>(`workspaceSystemPrompt-${tabId}`);
+}
+
+/** Set current system prompt to workspace state */
+async function setCurrentSystemPromptToWorkspace(
+  context: vscode.ExtensionContext,
+  tabId: string,
+  prompt: string
+): Promise<void> {
+  await context.workspaceState.update(`workspaceSystemPrompt-${tabId}`, prompt);
+}
+
+/** Get current user prompt from workspace state */
+function getCurrentUserPromptFromWorkspace(
+  context: vscode.ExtensionContext,
+  tabId: string
+): string | undefined {
+  return context.workspaceState.get<string>(`workspaceUserPrompt-${tabId}`);
+}
+
+/** Set current user prompt to workspace state */
+async function setCurrentUserPromptToWorkspace(
+  context: vscode.ExtensionContext,
+  tabId: string,
+  prompt: string
+): Promise<void> {
+  await context.workspaceState.update(`workspaceUserPrompt-${tabId}`, prompt);
 }
 
 /** Builds the complete prompt from the open files and user input. */

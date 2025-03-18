@@ -1,9 +1,4 @@
-export default (
-  tabId: string,
-  systemPrompt: string | undefined,
-  systemPrompts: string[],
-  userPrompts: string[]
-) => `
+export default (tabId: string) => `
 <!DOCTYPE html>
 <html lang="en">
   <head>
@@ -301,9 +296,7 @@ export default (
       <div class="input-area">
 
         <div class="input-row">
-          <textarea id="systemPromptInput" rows="2" placeholder="Edit system prompt here...">${
-            systemPrompt || ""
-          }</textarea>
+          <textarea id="systemPromptInput" rows="2" placeholder="Edit system prompt here..."></textarea>
           <div class="prompt-buttons">
             <button onclick="toggleSystemPromptsPopup()">Load</button>
             <button onclick="addSystemPromptToLibrary()">Save</button>
@@ -354,22 +347,21 @@ export default (
       /** @type {string[]} */
       let openFiles = [];
       /** @type {string[]} */
-      let systemPrompts = ${JSON.stringify(
-        systemPrompts
-      )}; // Initialize from server-provided prompts
+      let systemPrompts = []; // Will be updated by message
       /** @type {string[]} */
-      let userPrompts = ${JSON.stringify(
-        userPrompts
-      )}; // Initialize from server-provided user prompts
+      let userPrompts = []; // Will be updated by message
       let systemPromptsPopupVisible = false;
       let userPromptsPopupVisible = false;
+      /** @type {string} */
+      let currentSystemPrompt = ""; // Placeholder, will be initialized by message
+      /** @type {string} */
+      let currentUserPrompt = ""; // Placeholder, will be initialized by message
 
 
       const STORAGE_KEYS = {
         chatHistory: \`chatMessages-\${tabId}\`,
         userInput: \`userInput-\${tabId}\`,
-        systemPrompt: \`systemPrompt-\${tabId}\`,
-        openFiles: \`openFiles-\${tabId}\`
+        openFiles: \`openFiles-\${tabId}\` // systemPrompt removed from localStorage
       };
 
       // DOM elements
@@ -526,11 +518,16 @@ export default (
         };
       }
 
-      // Debounced update for the system prompt. Saves to localStorage and sends to extension.
+      // Debounced update for the system prompt. Sends to extension to save to workspace state.
       const updateSystemPrompt = debounce((value) => {
-        localStorage.setItem(STORAGE_KEYS.systemPrompt, value);
         vscode.postMessage({ command: "setSystemPrompt", systemPrompt: value });
       }, 3000);
+
+      // Debounced update for the user prompt. Sends to extension to save to workspace state.
+      const updateUserPrompt = debounce((value) => {
+        vscode.postMessage({ command: "setUserPrompt", userPrompt: value });
+      }, 3000);
+
 
       /**
        * Resets the send button state to enable and hide loader.
@@ -765,11 +762,13 @@ export default (
 
       function insertSystemPrompt(prompt) {
         systemPromptEl.value = prompt;
+        vscode.postMessage({ command: "useSystemPromptFromLibrary", prompt: prompt }); // Send message to update MRU
         toggleSystemPromptsPopup(); // Close popup after inserting
       }
 
       function insertUserPrompt(prompt) {
         userInputEl.value = prompt;
+        vscode.postMessage({ command: "useUserPromptFromLibrary", prompt: prompt }); // Send message to update MRU
         toggleUserPromptsPopup(); // Close popup after inserting
       }
 
@@ -780,14 +779,14 @@ export default (
       // Restore state and input values on window load
       window.addEventListener("load", () => {
         userInputEl.value = localStorage.getItem(STORAGE_KEYS.userInput) || "";
-        systemPromptEl.value = localStorage.getItem(STORAGE_KEYS.systemPrompt) || "";
+        // systemPromptEl.value = localStorage.getItem(STORAGE_KEYS.systemPrompt) || ""; // No longer loading systemPrompt from localStorage
         loadState();
         renderChatHistory();
         renderSelectedFiles();
-        renderSystemPromptsList(); // Render system prompts on load - for initial render if popup is somehow visible on load (though it shouldn't be)
+        renderSystemPromptsList(); // Render system prompts on load
         renderUserPromptsList(); // Render user prompts on load
-        vscode.postMessage({ command: "requestSystemPrompts" }); // Request latest prompts from extension
-        vscode.postMessage({ command: "requestUserPrompts" }); // Request latest user prompts from extension
+        vscode.postMessage({ command: "requestSystemPrompts" }); // Request latest prompts from extension - might be redundant now as initPrompts sends them
+        vscode.postMessage({ command: "requestUserPrompts" }); // Request latest user prompts from extension - might be redundant now as initPrompts sends them
 
         document.addEventListener('click', function(event) {
           if (systemPromptsPopupVisible && !systemPromptsPopupEl.contains(event.target) && event.target !== document.getElementById('systemPromptInput') && event.target !== systemPromptLoadButton) {
@@ -802,6 +801,7 @@ export default (
       // Save user input to localStorage on input change
       userInputEl.addEventListener("input", (e) => {
         localStorage.setItem(STORAGE_KEYS.userInput, e.target.value);
+        updateUserPrompt(e.target.value); // Update workspace user prompt
       });
 
       // Update system prompt on input change (debounced)
@@ -846,6 +846,16 @@ export default (
             userPrompts = message.prompts;
             renderUserPromptsList();
             break;
+          case "initPrompts": // New case to handle initial prompts and libraries
+            currentSystemPrompt = message.systemPrompt || "";
+            currentUserPrompt = message.userPrompt || "";
+            systemPrompts = message.systemPrompts || [];
+            userPrompts = message.userPrompts || [];
+            systemPromptEl.value = currentSystemPrompt;
+            userInputEl.value = currentUserPrompt;
+            renderSystemPromptsList();
+            renderUserPromptsList();
+            break;
           default:
             console.warn("Unknown command:", message.command);
         }
@@ -863,6 +873,8 @@ export default (
       window.addUserPromptToLibrary = addUserPromptToLibrary;
       window.deleteSystemPrompt = deleteSystemPrompt;
       window.deleteUserPrompt = deleteUserPrompt;
+      window.insertSystemPrompt = insertSystemPrompt;
+      window.insertUserPrompt = insertUserPrompt;
     </script>
   </body>
 </html>
