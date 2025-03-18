@@ -2,11 +2,10 @@ import { extractFilesFromAIResponse } from "@dwidge/llm-file-diff";
 import * as fs from "fs/promises";
 import * as path from "path";
 import * as vscode from "vscode";
-import { newOpenAiApi } from "./aiTools/AiApi";
+import { newOpenAiApi, ToolCall } from "./aiTools/AiApi";
 import { filterToolsByName } from "./aiTools/filterToolsByName";
 import { readDirTool, readFileTool, writeFileTool } from "./aiTools/tools";
 import chatview from "./chatview";
-import { vscodeLog } from "./vscodeLog";
 
 export function activate(context: vscode.ExtensionContext) {
   console.log('Extension "aragula-ai" active');
@@ -16,7 +15,7 @@ export function activate(context: vscode.ExtensionContext) {
     async (single: vscode.Uri, multi: vscode.Uri[]) => {
       const openFiles = await readOpenFiles(multi);
       const tabId = Date.now().toString();
-      const systemPrompt = getSystemPrompt(); // Get the default system prompt
+      const systemPrompt = getSystemPrompt();
       await openChatWindow(context, openFiles, tabId, systemPrompt);
     }
   );
@@ -24,11 +23,11 @@ export function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(disposable);
 }
 
+/** Reads the content of open files given their URIs. */
 async function readOpenFiles(
   uris: vscode.Uri[]
 ): Promise<{ [key: string]: string }> {
   const openFiles: { [key: string]: string } = {};
-
   for (const uri of uris) {
     if (uri.fsPath) {
       try {
@@ -40,15 +39,21 @@ async function readOpenFiles(
       }
     }
   }
-
   return openFiles;
 }
 
+interface ActiveRequest {
+  abortController: AbortController;
+}
+
+const activeRequests: Map<string, ActiveRequest> = new Map();
+
+/** Opens a new chat webview and sets up message handling. */
 async function openChatWindow(
   context: vscode.ExtensionContext,
   openedFiles: { [key: string]: string },
   tabId: string,
-  systemPrompt: string | undefined // Pass the systemPrompt
+  systemPrompt: string | undefined
 ) {
   const panel = vscode.window.createWebviewPanel(
     "askAIChat",
@@ -56,20 +61,12 @@ async function openChatWindow(
     vscode.ViewColumn.One,
     { enableScripts: true }
   );
-
-  panel.webview.html = chatview(tabId, systemPrompt); // Pass the system prompt to chatview
-  const message = generateInitialMessage(openedFiles);
-
-  if (message) {
-    panel.webview.postMessage({
-      command: "receiveMessage",
-      text: message,
-      sender: "system",
-    });
-  }
+  panel.webview.html = chatview(tabId, systemPrompt);
+  sendInitialSystemMessage(panel, openedFiles);
 
   panel.webview.onDidReceiveMessage(
-    (message) => handleMessage(context, panel, message, openedFiles, tabId),
+    (message) =>
+      handleWebviewMessage(context, panel, message, openedFiles, tabId),
     undefined,
     context.subscriptions
   );
@@ -78,71 +75,162 @@ async function openChatWindow(
   context.workspaceState.update(`responseText-${tabId}`, "");
 }
 
+/** Sends an initial system message with the list of open files. */
+function sendInitialSystemMessage(
+  panel: vscode.WebviewPanel,
+  openedFiles: { [key: string]: string }
+) {
+  const initialMessage = generateInitialMessage(openedFiles);
+  if (initialMessage) {
+    panel.webview.postMessage({
+      command: "receiveMessage",
+      text: initialMessage,
+      sender: "system",
+    });
+  }
+}
+
 function generateInitialMessage(openedFiles: {
   [key: string]: string;
 }): string {
   return "using:\n" + Object.keys(openedFiles).join("\n");
 }
 
-async function handleMessage(
+/** Dispatches webview messages to the appropriate handler. */
+function handleWebviewMessage(
   context: vscode.ExtensionContext,
   panel: vscode.WebviewPanel,
   message: any,
   openedFiles: { [key: string]: string },
   tabId: string
 ) {
-  if (message.command === "sendMessage") {
-    const apiKey = getApiKey();
-    if (!apiKey) {
-      return;
-    }
-
-    const prompt = createPrompt(
-      openedFiles,
-      message.text,
-      message.systemPrompt
-    );
-    const callAiApi = newOpenAiApi({
-      apiKey,
-      model: "gpt-4o-mini",
-      logger: (msg) => vscodeLog(panel.webview, msg, tabId), // Pass webview and tabId to logger
-    });
-
+  const log = (msg: string) => {
+    vscode.window.showInformationMessage(msg);
     panel.webview.postMessage({
-      command: "receiveMessage",
-      text: message.text,
-      sender: "user",
+      command: "logMessage",
+      text: msg,
+      tabId: tabId,
     });
+  };
 
-    const response = await callAiApi({
-      user: prompt,
-      system: message.systemPrompt,
-      tools: filterToolsByName(
-        [readDirTool, readFileTool, writeFileTool],
-        ["writeFile"]
-      ),
-    });
-
-    vscodeLog(
-      panel.webview,
-      "Calling tools: " + response.tools.map((t) => t.name).join(", "),
-      tabId
-    );
-
-    panel.webview.postMessage({
-      command: "receiveMessage",
-      text: response.assistant,
-      sender: "assistant",
-    });
-    // await applyChanges(response, openedFiles);
-    context.workspaceState.update(`responseText-${tabId}`, response);
-  } else if (message.command === "setSystemPrompt") {
-    updateSystemPrompt(context, message.systemPrompt);
-  } else if (message.command === "clearMessages") {
-    panel.webview.postMessage({ command: "clearMessages" });
+  switch (message.command) {
+    case "sendMessage":
+      handleSendMessage(context, panel, message, openedFiles, tabId, log);
+      break;
+    case "setSystemPrompt":
+      updateSystemPrompt(context, message.systemPrompt);
+      break;
+    case "clearMessages":
+      panel.webview.postMessage({ command: "clearMessages" });
+      break;
+    case "cancelRequest":
+      cancelActiveRequest(message.messageId, log);
+      break;
+    default:
+      console.warn("Unknown command from webview:", message.command);
   }
 }
 
+/** Handles a sendMessage request from the webview. */
+async function handleSendMessage(
+  context: vscode.ExtensionContext,
+  panel: vscode.WebviewPanel,
+  message: { text: string; systemPrompt: string },
+  openedFiles: { [key: string]: string },
+  tabId: string,
+  log: (msg: string) => void
+) {
+  const apiKey = getApiKey();
+  if (!apiKey) {
+    log("Api key missing");
+    return;
+  }
+
+  const callAiApi = newOpenAiApi({
+    apiKey,
+    model: "gpt-4o-mini",
+    logger: log,
+  });
+
+  panel.webview.postMessage({
+    command: "receiveMessage",
+    text: message.text,
+    sender: "user",
+  });
+
+  const messageId = Date.now().toString();
+  const abortController = new AbortController();
+  activeRequests.set(messageId, { abortController });
+  panel.webview.postMessage({ command: "startLoading", messageId });
+
+  console.log(
+    "filterToolsByName1",
+    filterToolsByName([readDirTool, readFileTool, writeFileTool], ["writeFile"])
+  );
+
+  try {
+    const readFileToolResponse: ToolCall[] = Object.entries(openedFiles).map(
+      ([k, v]) => ({
+        name: "readFile",
+        parameters: { path: k },
+        response: { content: v },
+      })
+    );
+    const response = await callAiApi(
+      {
+        user: message.text,
+        system: message.systemPrompt,
+        tools: readFileToolResponse,
+      },
+      filterToolsByName(
+        [readDirTool, readFileTool, writeFileTool],
+        ["writeFile"]
+      ),
+      abortController.signal
+    );
+    log("Calling tools: " + response.tools.map((t) => t.name).join(", "));
+    panel.webview.postMessage({
+      command: "updateMessage",
+      messageId,
+      text: response.assistant,
+      sender: "assistant",
+    });
+    context.workspaceState.update(`responseText-${tabId}`, response);
+  } catch (error: any) {
+    if (error.name === "AbortError") {
+      log("Request was aborted by user.");
+      panel.webview.postMessage({
+        command: "updateMessage",
+        messageId,
+        text: "Request was aborted.",
+        sender: "system",
+        messageType: "aborted",
+      });
+    } else {
+      log(`API call failed: ${error.message}`);
+      panel.webview.postMessage({
+        command: "updateMessage",
+        messageId,
+        text: `API call failed: ${error.message}`,
+        sender: "error",
+        messageType: "error",
+      });
+    }
+  } finally {
+    activeRequests.delete(messageId);
+  }
+}
+
+/** Cancels an active API request. */
+function cancelActiveRequest(messageId: string, log: (msg: string) => void) {
+  const activeRequest = activeRequests.get(messageId);
+  if (activeRequest) {
+    activeRequest.abortController.abort();
+    log(`Cancelling request with ID: ${messageId}`);
+  }
+}
+
+/** Updates the system prompt in the global configuration. */
 function updateSystemPrompt(
   context: vscode.ExtensionContext,
   newPrompt: string
@@ -151,25 +239,23 @@ function updateSystemPrompt(
   config
     .update("systemPrompt", newPrompt, vscode.ConfigurationTarget.Global)
     .then(
-      () => {
-        vscode.window.showInformationMessage(`System prompt updated.`);
-      },
-      (err) => {
-        vscode.window.showErrorMessage(
-          `Failed to update system prompt: ${err}`
-        );
-      }
+      () => vscode.window.showInformationMessage("System prompt updated."),
+      (err) =>
+        vscode.window.showErrorMessage(`Failed to update system prompt: ${err}`)
     );
 }
 
+/** Retrieves the API key from configuration. */
 function getApiKey(): string | null {
   const apiKey = vscode.workspace.getConfiguration("aragula-ai").get("apiKey");
   if (typeof apiKey !== "string") {
-    throw new Error("API key is not configured properly.");
+    vscode.window.showErrorMessage("API key is not configured properly.");
+    return null;
   }
   return apiKey;
 }
 
+/** Retrieves the default system prompt from configuration. */
 function getSystemPrompt(): string | undefined {
   const prompt = vscode.workspace
     .getConfiguration("aragula-ai")
@@ -177,6 +263,7 @@ function getSystemPrompt(): string | undefined {
   return typeof prompt === "string" ? prompt : undefined;
 }
 
+/** Builds the complete prompt from the open files and user input. */
 function createPrompt(
   openedFiles: { [key: string]: string },
   userText: string,

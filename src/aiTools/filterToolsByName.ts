@@ -1,10 +1,7 @@
-import { ToolName } from "./tools";
+import { ToolDefinition } from "./AiApi";
 import { ToolDef } from "./ToolTypes";
 
 export const filterToolsByName = (
-  tools: ToolDef[],
+  tools: ToolDefinition[],
   names: string[]
-): ToolDef[] =>
-  Object.entries(tools)
-    .filter(([k]) => names.includes(k as ToolName))
-    .map(([k, v]) => v);
+): ToolDefinition[] => tools.filter((t) => names.includes(t.name));

@@ -1,6 +1,7 @@
-import { OpenAI } from "openai";
 import { parseXml } from "@dwidge/xml-parser";
+import { OpenAI } from "openai";
 import { ChatCompletionMessageParam } from "openai/resources/index.mjs";
+import { toXml } from "./toXml";
 
 /**
  * Type representing valid JSON values.
@@ -61,8 +62,13 @@ type AiMessage = {
  */
 export interface AiApiCaller {
   (
-    prompt: { user: string; system?: string; tools?: ToolCall[] }, // accept tool call results in the prompt
-    tools?: ToolDefinition[]
+    prompt: {
+      user: string;
+      system?: string;
+      tools?: ToolCall[];
+    },
+    tools?: ToolDefinition[],
+    signal?: AbortSignal
   ): Promise<{ assistant: string; tools: ToolCall[] }>;
 }
 
@@ -87,37 +93,26 @@ export interface AiApiSettings {
 /**
  * Encodes an array of tools into an XML string.
  */
-export function encodeToolsToXml(tools: ToolDefinition[]): string {
-  return tools
-    .map((tool) => {
-      const props = tool.parameters.properties;
-      const inner = props
-        ? Object.entries(props)
-            .map(([k, v]) => `<${k}>${v.description || v.type}</${k}>`)
-            .join("\n")
-        : "";
-      return `<${tool.name}>\n${inner}\n</${tool.name}>`;
-    })
-    .join("\n\n");
-}
+export const encodeToolsToXml = (tools: ToolDefinition[]): string =>
+  tools.map(encodeToolToXml).join("\n\n");
+
+export const encodeToolToXml = (tool: ToolDefinition): string =>
+  toXml(
+    Object.fromEntries(
+      Object.entries(tool.parameters.properties ?? {}).map(([k, v]) => [
+        k,
+        `${v.type} - ${v.description ?? "value"}`,
+      ])
+    ),
+    tool.name
+  );
 
 /**
- * Encodes an array of tool calls (with results) into an XML string for prompt.
+ * Encodes an array of tool calls (with results) into an XML string for prompt using recursive toXml.
  */
 export function encodeToolCallsWithResultsToXml(toolCalls: ToolCall[]): string {
   return toolCalls
-    .map((toolCall) => {
-      const paramsXml = toolCall.parameters
-        ? Object.entries(toolCall.parameters)
-            .map(([k, v]) => `<${k}>${v}</${k}>`)
-            .join("\n")
-        : "";
-      const responseXml =
-        toolCall.response !== undefined
-          ? `<response>${JSON.stringify(toolCall.response)}</response>`
-          : "";
-      return `<${toolCall.name}>\n${paramsXml}\n${responseXml}\n</${toolCall.name}>`;
-    })
+    .map(({ name, ...toolCall }) => toXml(toolCall, name))
     .join("\n\n");
 }
 
@@ -168,6 +163,22 @@ export function encodeToolsToJson(tools: ToolDefinition[]): string {
   });
   return JSON.stringify(arr, null, 2);
 }
+export function encodeToolToJson(tool: ToolDefinition): string {
+  const params: Record<string, string> = {};
+  if (tool.parameters.properties) {
+    for (const [key, schema] of Object.entries(tool.parameters.properties)) {
+      params[key] = schema.description || schema.type;
+    }
+  }
+  return JSON.stringify(
+    {
+      name: tool.name,
+      parameters: params,
+    },
+    null,
+    2
+  );
+}
 
 /**
  * Encodes an array of tool calls (with results) into a JSON string for prompt.
@@ -208,7 +219,7 @@ export function decodeJsonToolCalls(response: string): ToolCall[] {
  * Returns a decoding function to parse the AI’s response.
  */
 export function prepareFormattedToolPrompt(
-  prompt: { user: string; system?: string; tools?: ToolCall[] }, // Modified prompt type
+  prompt: { user: string; system?: string; tools?: ToolCall[] },
   tools?: ToolDefinition[]
 ): {
   prompt: { user: string; system: string };
@@ -219,7 +230,7 @@ export function prepareFormattedToolPrompt(
 
   if (prompt.tools && prompt.tools.length > 0) {
     const callType =
-      tools && tools.length > 0 ? tools[0].type || "native" : "xml"; // Default to xml if tools are expected but definitions missing
+      tools && tools.length > 0 ? tools[0].type || "native" : "xml";
     if (callType === "xml") {
       const toolCallResultsXml = encodeToolCallsWithResultsToXml(prompt.tools);
       userPrompt = `${prompt.user}\n\nTool Call Results:\n${toolCallResultsXml}`;
@@ -229,7 +240,7 @@ export function prepareFormattedToolPrompt(
       );
       userPrompt = `${prompt.user}\n\nTool Call Results:\n${toolCallResultsJson}`;
     } else {
-      // Native - tool results are handled in vendor specific API calls, no prompt modification here.
+      // Native - tool results are handled in vendor specific API calls.
     }
   }
 
@@ -241,7 +252,6 @@ export function prepareFormattedToolPrompt(
   }
 
   const callType = tools[0].type || "native";
-  // Ensure all tools share the same call type.
   for (const tool of tools) {
     if ((tool.type || "native") !== callType) {
       throw new Error("All tools must have the same call type");
@@ -277,7 +287,6 @@ export function prepareFormattedToolPrompt(
       decodeToolCalls: decodeJsonToolCalls,
     };
   } else {
-    // Native tool calling – no modifications needed for tool *definitions* prompt.tools already handled.
     return {
       prompt: { user: userPrompt, system: systemPrompt },
       decodeToolCalls: () => [],
@@ -331,9 +340,9 @@ export function validateJsonAgainstSchema(
     }
     return true;
   } else if (schema.type === "array") {
-    return Array.isArray(json); // Basic array check, can be extended for items schema
+    return Array.isArray(json);
   }
-  return false; // Unknown type or validation failed
+  return false;
 }
 
 /* ============================================================================
@@ -353,8 +362,97 @@ export function newOpenAiApi(settings: OpenAiSpecificSettings): AiApiCaller {
   const { logger = () => {}, apiKey, baseURL, model, max_tokens } = settings;
   const openai = new OpenAI({ apiKey, baseURL });
 
-  return async (prompt, tools) =>
-    callOpenAi(openai, { model, max_tokens, tools, logger }, prompt);
+  return async (prompt, tools, signal) =>
+    callOpenAi(openai, { model, max_tokens, tools, logger }, prompt, signal);
+}
+
+/**
+ * Helper function to build chat messages.
+ * The messages order will be:
+ * 1. Tool call messages (each tool call in its own message),
+ * 2. System message (if any),
+ * 3. User message.
+ *
+ * For native mode, each tool call generates two messages (assistant request and tool response).
+ * For xml/json modes, each tool call is encoded into a single assistant message.
+ */
+function buildPromptMessages(
+  prompt: { user: string; system?: string; tools?: ToolCall[] },
+  callType: "native" | "xml" | "json"
+): {
+  messages: ChatCompletionMessageParam[];
+  decodeToolCalls: (s: string) => ToolCall[];
+} {
+  const messages: ChatCompletionMessageParam[] = [];
+  let decodeToolCalls = (res: string) => [] as ToolCall[];
+
+  if (prompt.tools && prompt.tools.length > 0) {
+    if (callType === "native") {
+      for (const toolCall of prompt.tools) {
+        if (!toolCall) {
+          continue;
+        }
+        const toolCallId = `tool_call_${toolCall.name}_${Math.random()
+          .toString(36)
+          .substring(7)}`;
+        // Assistant message for tool call request
+        messages.push({
+          role: "assistant",
+          content: "",
+          tool_calls: [
+            {
+              id: toolCallId,
+              type: "function",
+              function: {
+                name: toolCall.name,
+                arguments: JSON.stringify(toolCall.parameters || {}),
+              },
+            },
+          ],
+        });
+        // Tool message for tool call response
+        messages.push({
+          role: "tool",
+          tool_call_id: toolCallId,
+          content: JSON.stringify(toolCall.response) || "No response",
+        });
+      }
+    } else if (callType === "xml") {
+      for (const toolCall of prompt.tools) {
+        const xmlMessage = encodeToolCallsWithResultsToXml([toolCall]);
+        messages.push({
+          role: "assistant",
+          content: xmlMessage,
+        });
+      }
+      decodeToolCalls = decodeXmlToolCalls;
+    } else if (callType === "json") {
+      for (const toolCall of prompt.tools) {
+        const jsonMessage = encodeToolCallsWithResultsToJson([toolCall]);
+        messages.push({
+          role: "assistant",
+          content: jsonMessage,
+        });
+      }
+      decodeToolCalls = decodeJsonToolCalls;
+    }
+  }
+
+  // Append system and user messages AFTER tool call messages
+  if (prompt.system) {
+    messages.push({
+      role: "system",
+      content: prompt.system,
+    });
+  }
+  if (prompt.user) {
+    messages.push({
+      role: "user",
+      content: prompt.user,
+    });
+  }
+
+  return { messages, decodeToolCalls };
 }
 
 const callOpenAi = async (
@@ -365,94 +463,74 @@ const callOpenAi = async (
     tools?: ToolDefinition[];
     logger: (msg: string) => void;
   },
-  prompt: { user: string; system?: string; tools?: ToolCall[] }
+  prompt: { user: string; system?: string; tools?: ToolCall[] },
+  signal?: AbortSignal
 ): Promise<{ assistant: string; tools: ToolCall[] }> => {
-  let messages: Array<ChatCompletionMessageParam> = [];
-  let decodeToolCalls = (res: string) => [] as ToolCall[];
+  // Determine call type: native, xml, or json.
+  const callType: "native" | "xml" | "json" =
+    apiSettings.tools && apiSettings.tools.length > 0
+      ? apiSettings.tools[0].type || "native"
+      : "native";
 
-  if (
-    apiSettings.tools &&
-    apiSettings.tools.length > 0 &&
-    (apiSettings.tools[0].type || "native") !== "native"
-  ) {
-    const prepared = prepareFormattedToolPrompt(prompt, apiSettings.tools);
-    messages = [
-      { content: prepared.prompt.system, role: "system" },
-      { content: prepared.prompt.user, role: "user" },
-    ];
-    decodeToolCalls = prepared.decodeToolCalls;
-  } else {
-    messages = prompt.system
-      ? [
-          { content: prompt.system, role: "system" },
-          { content: prompt.user, role: "user" },
-        ]
-      : [{ content: prompt.user, role: "user" }];
-    apiSettings.logger("Using native tool calling for OpenAI.");
+  // Build messages with tool calls (if any) coming first.
+  const { messages, decodeToolCalls } = buildPromptMessages(prompt, callType);
+
+  if (signal?.aborted) {
+    throw new Error("AbortError: Request aborted by user.");
   }
 
-  // Handle tool call results in prompt for native tools
-  if (
-    prompt.tools &&
-    prompt.tools.length > 0 &&
-    apiSettings.tools &&
-    (apiSettings.tools[0].type || "native") === "native"
-  ) {
-    prompt.tools.forEach((toolCallResult) => {
-      const toolCallId = `tool_call_${toolCallResult.name}_${Math.random()
-        .toString(36)
-        .substring(7)}`; // Generate a unique tool_call_id
-
-      // Add the tool call *request* message from assistant
+  let nativeTools: OpenAI.Chat.Completions.ChatCompletionTool[] = [];
+  for (const tool of apiSettings.tools ?? []) {
+    if (tool.type === "native") {
+      nativeTools.push(convertToOpenAiTool(tool));
+    }
+    if (tool.type === "xml") {
       messages.push({
-        role: "assistant",
-        content: null, // or ""
-        tool_calls: [
-          {
-            id: toolCallId,
-            type: "function",
-            function: {
-              name: toolCallResult.name,
-              arguments: JSON.stringify(toolCallResult.parameters || {}), // stringify params, handle undefined
-            },
-          },
-        ],
+        role: "system",
+        content:
+          "Output only xml when calling this tool:\n" + encodeToolToXml(tool),
       });
-
-      // Add the tool call *response* message from tool
+    }
+    if (tool.type === "json") {
       messages.push({
-        role: "tool",
-        tool_call_id: toolCallId,
-        content: JSON.stringify(toolCallResult.response) || "No response", // Stringify tool response, handle null/undefined
+        role: "system",
+        content:
+          "Output only json when calling this tool:\n" + encodeToolToJson(tool),
       });
-    });
-    messages.push({ content: prompt.user, role: "user" }); // Append user prompt after tool results
-    if (prompt.system) {
-      messages.unshift({ content: prompt.system, role: "system" }); // Ensure system message is still first if present
     }
   }
 
-  const response = await openaiInstance.chat.completions.create({
-    model: apiSettings.model,
-    max_tokens: apiSettings.max_tokens,
-    messages,
-    tools:
-      apiSettings.tools && (apiSettings.tools[0].type || "native") === "native"
-        ? apiSettings.tools.map(convertToOpenAiTool)
-        : undefined,
-    tool_choice:
-      apiSettings.tools && (apiSettings.tools[0].type || "native") === "native"
-        ? "auto"
-        : undefined,
+  // Prepare API call parameters.
+  const apiCallParams: OpenAI.Chat.Completions.ChatCompletionCreateParamsNonStreaming =
+    {
+      model: apiSettings.model,
+      max_tokens: apiSettings.max_tokens,
+      messages,
+      tools: nativeTools,
+      tool_choice: "auto",
+    };
+
+  apiSettings.logger(
+    "apiCallParams\n\n" + JSON.stringify(apiCallParams, null, 2)
+  );
+
+  const response = await openaiInstance.chat.completions.create(apiCallParams, {
+    signal,
   });
 
-  const messageContent = response.choices[0]?.message?.content?.trim() ?? "";
-  const toolCalls =
-    apiSettings.tools && (apiSettings.tools[0].type || "native") === "native"
-      ? response.choices[0]?.message?.tool_calls?.map(
-          convertFromOpenAiToolCall
-        ) ?? []
-      : decodeToolCalls(messageContent);
+  const resonseMessage = response.choices[0]?.message;
+  const messageContent = resonseMessage?.content?.trim() ?? "";
+  // const toolCalls =
+  //   callType === "native"
+  //     ? resonseMessage?.tool_calls?.map(convertFromOpenAiToolCall) ?? []
+  //     : decodeToolCalls(messageContent);
+  const toolCalls = [
+    ...(resonseMessage?.tool_calls?.map(convertFromOpenAiToolCall) ?? []),
+    ...decodeToolCalls(messageContent),
+  ];
+
+  apiSettings.logger("messageContent\n\n" + messageContent);
+  apiSettings.logger("toolCalls\n\n" + JSON.stringify(toolCalls, null, 2));
 
   return { assistant: messageContent, tools: toolCalls };
 };
@@ -492,7 +570,10 @@ export function newGeminiApi(settings: GeminiSpecificSettings): AiApiCaller {
   const { logger = () => {}, apiKey, baseURL, model, max_tokens } = settings;
   // Placeholder Gemini API client – replace with actual Gemini SDK initialization.
   const geminiApi = {
-    generateContent: async (request: any) => {
+    generateContent: async (
+      request: any,
+      options?: { abortSignal?: AbortSignal }
+    ) => {
       logger("Calling Gemini API...");
       return {
         candidates: [
@@ -507,7 +588,11 @@ export function newGeminiApi(settings: GeminiSpecificSettings): AiApiCaller {
     },
   };
 
-  return async (prompt, tools) => {
+  return async (prompt, tools, signal) => {
+    if (signal?.aborted) {
+      throw new Error("AbortError: Request aborted by user.");
+    }
+
     let formattedPrompt = prompt;
     let decodeToolCalls = (res: string) => [] as ToolCall[];
 
@@ -542,7 +627,9 @@ export function newGeminiApi(settings: GeminiSpecificSettings): AiApiCaller {
           : undefined,
     };
 
-    const response = await geminiApi.generateContent(geminiPrompt);
+    const response = await geminiApi.generateContent(geminiPrompt, {
+      abortSignal: signal,
+    });
     const messageContent =
       response.candidates[0]?.content?.parts[0]?.text?.trim() ?? "";
     const toolCalls =
@@ -584,7 +671,10 @@ export function newGroqApi(settings: GroqSpecificSettings): AiApiCaller {
   const groqApi = {
     chat: {
       completions: {
-        create: async (request: any) => {
+        create: async (
+          request: any,
+          options?: { abortSignal?: AbortSignal }
+        ) => {
           logger("Calling Groq API...");
           return {
             choices: [
@@ -601,7 +691,10 @@ export function newGroqApi(settings: GroqSpecificSettings): AiApiCaller {
     },
   };
 
-  return async (prompt, tools) => {
+  return async (prompt, tools, signal) => {
+    if (signal?.aborted) {
+      throw new Error("AbortError: Request aborted by user.");
+    }
     let formattedPrompt = prompt;
     let decodeToolCalls = (res: string) => [] as ToolCall[];
 
@@ -638,7 +731,9 @@ export function newGroqApi(settings: GroqSpecificSettings): AiApiCaller {
           : undefined,
     };
 
-    const response = await groqApi.chat.completions.create(groqPrompt);
+    const response = await groqApi.chat.completions.create(groqPrompt, {
+      abortSignal: signal,
+    });
     const messageContent = response.choices[0]?.message?.content?.trim() ?? "";
     const toolCalls =
       tools && (tools[0].type || "native") === "native"
@@ -677,7 +772,7 @@ export function newCerebrasApi(
   const { logger = () => {}, apiKey, baseURL, model, max_tokens } = settings;
   // Placeholder Cerebras API client – replace with actual Cerebras SDK initialization.
   const cerebrasApi = {
-    generate: async (request: any) => {
+    generate: async (request: any, options?: { abortSignal?: AbortSignal }) => {
       logger("Calling Cerebras API...");
       return {
         text: "Cerebras response",
@@ -686,7 +781,10 @@ export function newCerebrasApi(
     },
   };
 
-  return async (prompt, tools) => {
+  return async (prompt, tools, signal) => {
+    if (signal?.aborted) {
+      throw new Error("AbortError: Request aborted by user.");
+    }
     let formattedPrompt = prompt;
     let decodeToolCalls = (res: string) => [] as ToolCall[];
 
@@ -718,7 +816,9 @@ export function newCerebrasApi(
           : undefined,
     };
 
-    const response = await cerebrasApi.generate(cerebrasPrompt);
+    const response = await cerebrasApi.generate(cerebrasPrompt, {
+      abortSignal: signal,
+    });
     const messageContent = response.text?.trim() ?? "";
     const toolCalls =
       tools && (tools[0].type || "native") === "native"
@@ -756,7 +856,7 @@ export function newClaudeApi(settings: ClaudeSpecificSettings): AiApiCaller {
   // Placeholder Claude API client – replace with actual Claude SDK initialization.
   const claudeApi = {
     messages: {
-      create: async (request: any) => {
+      create: async (request: any, options?: { abortSignal?: AbortSignal }) => {
         logger("Calling Claude API...");
         return {
           content: [{ type: "text", text: "Claude response" }],
@@ -766,7 +866,10 @@ export function newClaudeApi(settings: ClaudeSpecificSettings): AiApiCaller {
     },
   };
 
-  return async (prompt, tools) => {
+  return async (prompt, tools, signal) => {
+    if (signal?.aborted) {
+      throw new Error("AbortError: Request aborted by user.");
+    }
     let formattedPrompt = prompt;
     let decodeToolCalls = (res: string) => [] as ToolCall[];
 
@@ -803,7 +906,9 @@ export function newClaudeApi(settings: ClaudeSpecificSettings): AiApiCaller {
           : undefined,
     };
 
-    const response = await claudeApi.messages.create(claudePrompt);
+    const response = await claudeApi.messages.create(claudePrompt, {
+      abortSignal: signal,
+    });
     const messageContent = response.content?.[0]?.text?.trim() ?? "";
     const toolCalls =
       tools && (tools[0].type || "native") === "native"
@@ -835,7 +940,15 @@ export const withFunctionCalling =
     apiCaller: AiApiCaller,
     { logger = () => {} }: { logger?: Logger } = {}
   ): AiApiCaller =>
-  async (prompt, tools) => {
+  async (
+    prompt: {
+      user: string;
+      system?: string;
+      tools?: ToolCall[];
+    },
+    tools?: ToolDefinition[],
+    signal?: AbortSignal
+  ) => {
     let currentPrompt = { ...prompt };
     let currentTools = tools;
     let finalMessage = "";
@@ -843,24 +956,31 @@ export const withFunctionCalling =
     let functionCallLoop = true;
 
     while (functionCallLoop) {
-      const apiResponse = await apiCaller(currentPrompt, currentTools);
+      if (signal?.aborted) {
+        logger("Request aborted before API call.");
+        return { assistant: finalMessage, tools: finalToolCalls };
+      }
+      const apiResponse = await apiCaller(currentPrompt, currentTools, signal);
       finalMessage = apiResponse.assistant;
       finalToolCalls = apiResponse.tools;
-      functionCallLoop = false; // Assume no function calls to process in this iteration
+      functionCallLoop = false;
 
       if (apiResponse.tools && apiResponse.tools.length > 0 && tools) {
-        const functionResults: ToolCall[] = []; // Store ToolCall objects with responses
+        const functionResults: ToolCall[] = [];
         for (const toolCall of apiResponse.tools) {
+          if (signal?.aborted) {
+            logger("Request aborted during function call processing.");
+            return { assistant: finalMessage, tools: finalToolCalls };
+          }
           const toolDefinition = tools.find((t) => t.name === toolCall.name);
           if (toolDefinition && toolDefinition.function) {
-            functionCallLoop = true; // Set to true as we are processing a function call
+            functionCallLoop = true;
             logger(
               `Calling function: ${toolCall.name} with params: ${JSON.stringify(
                 toolCall.parameters
               )}`
             );
 
-            // Validate arguments against schema if schema is provided
             if (toolDefinition.parameters && toolCall.parameters) {
               if (
                 !validateJsonAgainstSchema(
@@ -880,10 +1000,10 @@ export const withFunctionCalling =
 
             try {
               const functionResponse = await toolDefinition.function(
-                toolCall.parameters
+                toolCall.parameters,
+                signal
               );
 
-              // Validate response against schema if schema is provided
               if (toolDefinition.response) {
                 if (
                   !validateJsonAgainstSchema(
@@ -905,8 +1025,15 @@ export const withFunctionCalling =
                   functionResponse
                 )}`
               );
-              functionResults.push({ ...toolCall, response: functionResponse }); // Store ToolCall with response
+              functionResults.push({
+                ...toolCall,
+                response: functionResponse,
+              });
             } catch (error: any) {
+              if (error.name === "AbortError") {
+                logger(`Function ${toolCall.name} aborted.`);
+                return { assistant: finalMessage, tools: finalToolCalls };
+              }
               const errorMsg = `Function ${toolCall.name} failed: ${
                 error.message || error
               }`;
@@ -914,12 +1041,11 @@ export const withFunctionCalling =
               functionResults.push({
                 ...toolCall,
                 response: `Error: ${errorMsg}`,
-              }); // Store error as response
+              });
             }
           } else {
-            // If tool is called but no function is defined, stop function calling loop
             functionCallLoop = false;
-            break; // Stop processing functions if one is called without a function def
+            break;
           }
         }
 
@@ -928,7 +1054,7 @@ export const withFunctionCalling =
             prompt.system,
             `Function call results:`,
             ...functionResults.map(
-              (toolCallResult, index) =>
+              (toolCallResult) =>
                 `- Tool: ${toolCallResult.name}, Parameters: ${JSON.stringify(
                   toolCallResult.parameters
                 )}, Result: ${JSON.stringify(toolCallResult.response)}`
@@ -941,9 +1067,9 @@ export const withFunctionCalling =
           currentPrompt = {
             user: prompt.user,
             system: systemMessage,
-            tools: functionResults, // Pass tool call results back in prompt
+            tools: functionResults,
           };
-          currentTools = tools; // Re-use the same tools for the next call, important for native tools
+          currentTools = tools;
         }
       }
     }
