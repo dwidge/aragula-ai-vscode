@@ -7,6 +7,9 @@ import { filterToolsByName } from "./aiTools/filterToolsByName";
 import { readDirTool, readFileTool, writeFileTool } from "./aiTools/tools";
 import chatview from "./chatview";
 
+// Track existing chat panels using tabId as key
+const chatPanels = new Map<string, vscode.WebviewPanel>();
+
 export function activate(context: vscode.ExtensionContext) {
   console.log('Extension "aragula-ai" active');
 
@@ -14,13 +17,43 @@ export function activate(context: vscode.ExtensionContext) {
     "aragula-ai.askAI",
     async (single: vscode.Uri, multi: vscode.Uri[]) => {
       const openFiles = await readOpenFiles(multi);
-      const tabId = Date.now().toString();
+      let tabId = Date.now().toString();
+      let existingPanel: vscode.WebviewPanel | undefined = undefined;
+
+      // Try to find an existing chat panel
+      for (const panel of chatPanels.values()) {
+        if (!panel) continue; // defensive check in case of null panel in map
+        existingPanel = panel;
+        tabId = panel.title.split(" - ")[1]; // Extract tabId from panel title "Ask AI - {tabId}"
+        break; // Use the first non-disposed panel found
+      }
+
       const systemPrompt = getSystemPrompt();
-      await openChatWindow(context, openFiles, tabId, systemPrompt);
+
+      if (existingPanel) {
+        // If panel exists, reuse it and add files
+        existingPanel.reveal(vscode.ViewColumn.One); // Bring existing panel to front
+        sendFilesToExistingChat(existingPanel, openFiles);
+      } else {
+        // If no panel exists, open a new one
+        await openChatWindow(context, openFiles, tabId, systemPrompt);
+      }
     }
   );
 
   context.subscriptions.push(disposable);
+}
+
+/** Send files to an existing chat panel */
+function sendFilesToExistingChat(
+  panel: vscode.WebviewPanel,
+  openFiles: { [key: string]: string }
+) {
+  const filePaths = Object.keys(openFiles).map((filePath) => filePath);
+  panel.webview.postMessage({
+    command: "addFilesFromDialog",
+    filePaths: filePaths,
+  });
 }
 
 /** Reads the content of open files given their URIs. */
@@ -28,6 +61,8 @@ async function readOpenFiles(
   uris: vscode.Uri[]
 ): Promise<{ [key: string]: string }> {
   const openFiles: { [key: string]: string } = {};
+  if (!uris) return openFiles; // Handle case where no files are selected
+
   for (const uri of uris) {
     if (uri.fsPath) {
       try {
@@ -57,10 +92,18 @@ async function openChatWindow(
 ) {
   const panel = vscode.window.createWebviewPanel(
     "askAIChat",
-    "Ask AI",
+    `Ask AI - ${tabId}`, // Include tabId in title for tracking
     vscode.ViewColumn.One,
     { enableScripts: true, retainContextWhenHidden: true }
   );
+
+  // Store the panel in the map
+  chatPanels.set(tabId, panel);
+
+  panel.onDidDispose(() => {
+    chatPanels.delete(tabId); // Remove panel from map when disposed
+  });
+
   panel.webview.html = chatview(tabId, systemPrompt);
   sendInitialSystemMessage(panel, openedFiles);
 
