@@ -1,4 +1,9 @@
-export default (tabId: string, systemPrompt: string | undefined) => `
+export default (
+  tabId: string,
+  systemPrompt: string | undefined,
+  systemPrompts: string[],
+  userPrompts: string[]
+) => `
 <!DOCTYPE html>
 <html lang="en">
   <head>
@@ -28,6 +33,14 @@ export default (tabId: string, systemPrompt: string | undefined) => `
         --file-button-hover: #ccc;
         --file-button-remove-hover: #f44336;
         --file-button-text-color: #000;
+        --prompts-header-background: #ddd;
+        --prompts-header-hover: #ccc;
+        --prompt-item-background: #eee;
+        --prompt-item-hover: #ddd;
+        --prompt-delete-button-hover: #f44336;
+        --popup-background: var(--background-color);
+        --popup-border: var(--pre-border);
+        --popup-shadow: 0 4px 8px rgba(0,0,0,0.1);
       }
       @media (prefers-color-scheme: dark) {
         :root {
@@ -52,6 +65,14 @@ export default (tabId: string, systemPrompt: string | undefined) => `
           --file-button-hover: #666;
           --file-button-remove-hover: #e57373;
           --file-button-text-color: #eee;
+          --prompts-header-background: #555;
+          --prompts-header-hover: #666;
+          --prompt-item-background: #444;
+          --prompt-item-hover: #555;
+          --prompt-delete-button-hover: #e57373;
+          --popup-background: var(--background-color);
+          --popup-border: var(--pre-border);
+          --popup-shadow: 0 4px 8px rgba(0,0,0,0.2);
         }
       }
       body {
@@ -98,6 +119,12 @@ export default (tabId: string, systemPrompt: string | undefined) => `
         flex-direction: column;
         gap: 10px;
       }
+      .input-row {
+        display: flex;
+        gap: 10px;
+        align-items: flex-start; /* Align items to the start to position buttons correctly */
+        position: relative; /* needed for popup positioning */
+      }
       textarea {
         box-sizing: border-box;
         width: 100%;
@@ -107,6 +134,17 @@ export default (tabId: string, systemPrompt: string | undefined) => `
         background-color: var(--textarea-background);
         color: var(--text-color);
         resize: vertical;
+      }
+      .prompt-buttons {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+        align-self: stretch; /* Make buttons container stretch to textarea height */
+      }
+      .prompt-buttons button {
+        flex-grow: 1; /* Distribute space evenly */
+        padding: 8px 10px; /* Slightly smaller padding for prompt buttons */
+        font-size: 0.9em;
       }
       .button-row {
         display: flex;
@@ -166,16 +204,128 @@ export default (tabId: string, systemPrompt: string | undefined) => `
         display: inline-block;
       }
       @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+      .prompts-section { margin-bottom: 15px; }
+      .prompts-header {
+        background-color: var(--prompts-header-background);
+        padding: 10px;
+        border-radius: 5px 5px 0 0;
+        cursor: pointer;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      .prompts-header:hover { background-color: var(--prompts-header-hover); }
+      .prompts-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        border: 1px solid var(--pre-border);
+        border-top: none;
+        border-radius: 0 0 5px 5px;
+        overflow: hidden; /* Ensure rounded corners are visible */
+      }
+      .prompt-item {
+        background-color: var(--prompt-item-background);
+        padding: 10px;
+        border-bottom: 1px solid var(--pre-border);
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start; /* changed from center to start to align multiline text nicely */
+        cursor: pointer;
+        word-wrap: break-word; /* Allow text to wrap */
+        white-space: normal; /* Ensure text wraps within item */
+      }
+      .prompt-item:last-child { border-bottom: none; }
+      .prompt-item:hover { background-color: var(--prompt-item-hover); }
+      .prompt-delete-button {
+        background: none;
+        border: none;
+        color: var(--file-button-text-color);
+        cursor: pointer;
+        padding: 0 5px;
+        border-radius: 3px;
+        font-size: 0.8em;
+      }
+      .prompt-delete-button:hover {
+        color: white;
+        background-color: var(--prompt-delete-button-hover);
+      }
+      .prompt-text { flex-grow: 1; margin-right: 10px;  word-wrap: break-word; /* Ensure text wrapping in text span too */}
+
+      .prompt-popup {
+        position: fixed; /* Changed to fixed */
+        z-index: 10; /* Ensure it's on top of other content */
+        background-color: var(--popup-background);
+        border: 1px solid var(--popup-border);
+        border-radius: 5px;
+        box-shadow: var(--popup-shadow);
+        padding: 10px;
+        display: none; /* Hidden by default */
+        top: 0; /* Placeholder, will be set by JS */
+        right: 0; /* Placeholder, will be set by JS */
+        max-height: 300px; /* Added max height for popup */
+        overflow-y: auto; /* Added scroll if popup is too tall */
+        max-width: 80vw; /* Limit popup width to viewport width */
+      }
+      .prompt-popup .prompts-list {
+        border: none; /* Remove border from list inside popup as it has its own border */
+        overflow-y: auto; /* Enable scroll for list within popup if needed - redundant because popup has scroll now */
+        max-height: unset; /* Remove max height from list inside popup - popup controls height now */
+      }
+
+
     </style>
   </head>
   <body ondragover="allowDrop(event)" ondrop="dropHandler(event)">
     <main>
+
+      <div class="prompts-section" style="display:none;"> <!-- Hiding old header section -->
+        <div class="prompts-header" onclick="toggleSystemPromptsList()">
+          <span>System Prompt Library</span>
+          <span id="system-prompts-toggle-icon">▼</span>
+        </div>
+        <ul id="system-prompts-list" class="prompts-list" style="display: none;"></ul>
+      </div>
+
+      <div class="prompts-section" style="display:none;"> <!-- Hiding old header section -->
+        <div class="prompts-header" onclick="toggleUserPromptsList()">
+          <span>User Prompt Library</span>
+          <span id="user-prompts-toggle-icon">▼</span>
+        </div>
+        <ul id="user-prompts-list" class="prompts-list" style="display: none;"></ul>
+      </div>
+
+
       <div id="selected-files-container"></div>
       <div class="input-area">
-        <textarea id="systemPromptInput" rows="2" placeholder="Edit system prompt here...">${
-          systemPrompt || ""
-        }</textarea>
-        <textarea id="userInput" rows="4" placeholder="Type your message here..."></textarea>
+
+        <div class="input-row">
+          <textarea id="systemPromptInput" rows="2" placeholder="Edit system prompt here...">${
+            systemPrompt || ""
+          }</textarea>
+          <div class="prompt-buttons">
+            <button onclick="toggleSystemPromptsPopup()">Load</button>
+            <button onclick="addSystemPromptToLibrary()">Save</button>
+          </div>
+        </div>
+        <div id="system-prompts-popup" class="prompt-popup">
+          <ul id="system-prompts-popup-list" class="prompts-list"></ul>
+        </div>
+
+
+        <div class="input-row">
+          <textarea id="userInput" rows="4" placeholder="Type your message here..."></textarea>
+          <div class="prompt-buttons">
+            <button onclick="toggleUserPromptsPopup()">Load</button>
+            <button onclick="addUserPromptToLibrary()">Save</button>
+          </div>
+        </div>
+        <div id="user-prompts-popup" class="prompt-popup">
+          <ul id="user-prompts-popup-list" class="prompts-list"></ul>
+        </div>
+
+
         <div class="button-row">
           <button id="sendButton" onclick="handleSendMessage()">
             <span id="buttonText">Send</span>
@@ -203,6 +353,17 @@ export default (tabId: string, systemPrompt: string | undefined) => `
       let chatHistory = [];
       /** @type {string[]} */
       let openFiles = [];
+      /** @type {string[]} */
+      let systemPrompts = ${JSON.stringify(
+        systemPrompts
+      )}; // Initialize from server-provided prompts
+      /** @type {string[]} */
+      let userPrompts = ${JSON.stringify(
+        userPrompts
+      )}; // Initialize from server-provided user prompts
+      let systemPromptsPopupVisible = false;
+      let userPromptsPopupVisible = false;
+
 
       const STORAGE_KEYS = {
         chatHistory: \`chatMessages-\${tabId}\`,
@@ -219,6 +380,13 @@ export default (tabId: string, systemPrompt: string | undefined) => `
       const buttonText = document.getElementById("buttonText");
       const loader = document.getElementById("loader");
       const selectedFilesContainer = document.getElementById("selected-files-container");
+      const systemPromptsPopupEl = document.getElementById("system-prompts-popup");
+      const userPromptsPopupEl = document.getElementById("user-prompts-popup");
+      const systemPromptsPopupListEl = document.getElementById("system-prompts-popup-list");
+      const userPromptsPopupListEl = document.getElementById("user-prompts-popup-list");
+      const systemPromptLoadButton = document.querySelector('#systemPromptInput + .prompt-buttons > button:nth-child(1)');
+      const userPromptLoadButton = document.querySelector('#userInput + .prompt-buttons > button:nth-child(1)');
+
 
       /**
        * Loads state from localStorage: chat history and open files.
@@ -492,7 +660,122 @@ export default (tabId: string, systemPrompt: string | undefined) => `
         addChatMessage("Loading response...", "assistant", "loading");
       }
 
+      function renderSystemPromptsList() {
+        systemPromptsPopupListEl.innerHTML = '';
+        systemPrompts.forEach(prompt => {
+          const listItem = document.createElement('li');
+          listItem.classList.add('prompt-item');
+
+          const textSpan = document.createElement('span');
+          textSpan.classList.add('prompt-text');
+          textSpan.textContent = prompt;
+          listItem.onclick = () => insertSystemPrompt(prompt); // Insert prompt on click - whole item clickable now
+
+          const deleteButton = document.createElement('button');
+          deleteButton.classList.add('prompt-delete-button');
+          deleteButton.textContent = '✕';
+          deleteButton.onclick = (event) => {
+            event.stopPropagation(); // Prevent item click when delete is clicked
+            deleteSystemPrompt(prompt);
+          };
+
+          listItem.appendChild(textSpan);
+          listItem.appendChild(deleteButton);
+          systemPromptsPopupListEl.appendChild(listItem);
+        });
+      }
+
+      function renderUserPromptsList() {
+        userPromptsPopupListEl.innerHTML = '';
+        userPrompts.forEach(prompt => {
+          const listItem = document.createElement('li');
+          listItem.classList.add('prompt-item');
+
+          const textSpan = document.createElement('span');
+          textSpan.classList.add('prompt-text');
+          textSpan.textContent = prompt;
+          listItem.onclick = () => insertUserPrompt(prompt); // Insert prompt on click - whole item clickable now
+
+          const deleteButton = document.createElement('button');
+          deleteButton.classList.add('prompt-delete-button');
+          deleteButton.textContent = '✕';
+          deleteButton.onclick = (event) => {
+            event.stopPropagation(); // Prevent item click when delete is clicked
+            deleteUserPrompt(prompt);
+          };
+
+          listItem.appendChild(textSpan);
+          listItem.appendChild(deleteButton);
+          userPromptsPopupListEl.appendChild(listItem);
+        });
+      }
+
+      function toggleSystemPromptsPopup() {
+        systemPromptsPopupVisible = !systemPromptsPopupVisible;
+        systemPromptsPopupEl.style.display = systemPromptsPopupVisible ? 'block' : 'none';
+        if (systemPromptsPopupVisible) {
+          renderSystemPromptsList(); // Re-render list every time popup is opened to ensure it's up-to-date
+          positionSystemPromptsPopup();
+        }
+      }
+
+      function toggleUserPromptsPopup() {
+        userPromptsPopupVisible = !userPromptsPopupVisible;
+        userPromptsPopupEl.style.display = userPromptsPopupVisible ? 'block' : 'none';
+        if (userPromptsPopupVisible) {
+          renderUserPromptsList(); // Re-render list every time popup is opened to ensure it's up-to-date
+          positionUserPromptsPopup();
+        }
+      }
+
+      function positionSystemPromptsPopup() {
+        const buttonRect = systemPromptLoadButton.getBoundingClientRect();
+        systemPromptsPopupEl.style.top = \`\${buttonRect.bottom + window.scrollY}px\`; // Position below the button
+        systemPromptsPopupEl.style.right = \`\${window.innerWidth - buttonRect.right}px\`; // Align right edges
+      }
+
+      function positionUserPromptsPopup() {
+        const buttonRect = userPromptLoadButton.getBoundingClientRect();
+        userPromptsPopupEl.style.top = \`\${buttonRect.bottom + window.scrollY}px\`; // Position below the button
+        userPromptsPopupEl.style.right = \`\${window.innerWidth - buttonRect.right}px\`; // Align right edges
+      }
+
+
+      function addSystemPromptToLibrary() {
+        const prompt = systemPromptEl.value.trim();
+        if (prompt) {
+          vscode.postMessage({ command: "saveSystemPromptToLibrary", prompt: prompt });
+        }
+      }
+
+      function addUserPromptToLibrary() {
+        const prompt = userInputEl.value.trim();
+        if (prompt) {
+          vscode.postMessage({ command: "saveUserPromptToLibrary", prompt: prompt });
+        }
+      }
+
+      function deleteSystemPrompt(prompt) {
+        vscode.postMessage({ command: "deleteSystemPromptFromLibrary", prompt: prompt });
+      }
+
+      function deleteUserPrompt(prompt) {
+        vscode.postMessage({ command: "deleteUserPromptFromLibrary", prompt: prompt });
+      }
+
+      function insertSystemPrompt(prompt) {
+        systemPromptEl.value = prompt;
+        toggleSystemPromptsPopup(); // Close popup after inserting
+      }
+
+      function insertUserPrompt(prompt) {
+        userInputEl.value = prompt;
+        toggleUserPromptsPopup(); // Close popup after inserting
+      }
+
+
       // --- Event Listeners ---
+
 
       // Restore state and input values on window load
       window.addEventListener("load", () => {
@@ -501,6 +784,19 @@ export default (tabId: string, systemPrompt: string | undefined) => `
         loadState();
         renderChatHistory();
         renderSelectedFiles();
+        renderSystemPromptsList(); // Render system prompts on load - for initial render if popup is somehow visible on load (though it shouldn't be)
+        renderUserPromptsList(); // Render user prompts on load
+        vscode.postMessage({ command: "requestSystemPrompts" }); // Request latest prompts from extension
+        vscode.postMessage({ command: "requestUserPrompts" }); // Request latest user prompts from extension
+
+        document.addEventListener('click', function(event) {
+          if (systemPromptsPopupVisible && !systemPromptsPopupEl.contains(event.target) && event.target !== document.getElementById('systemPromptInput') && event.target !== systemPromptLoadButton) {
+            toggleSystemPromptsPopup(); // Close system prompt popup if click outside
+          }
+          if (userPromptsPopupVisible && !userPromptsPopupEl.contains(event.target) && event.target !== document.getElementById('userInput') && event.target !== userPromptLoadButton) {
+            toggleUserPromptsPopup(); // Close user prompt popup if click outside
+          }
+        });
       });
 
       // Save user input to localStorage on input change
@@ -542,6 +838,14 @@ export default (tabId: string, systemPrompt: string | undefined) => `
           case "addFilesFromDialog":
             addFiles(message.filePaths);
             break;
+          case "systemPromptsList": // Renamed command
+            systemPrompts = message.prompts;
+            renderSystemPromptsList();
+            break;
+          case "userPromptsList": // New command
+            userPrompts = message.prompts;
+            renderUserPromptsList();
+            break;
           default:
             console.warn("Unknown command:", message.command);
         }
@@ -553,6 +857,12 @@ export default (tabId: string, systemPrompt: string | undefined) => `
       window.addFilesDialog = addFilesDialog;
       window.allowDrop = allowDrop;
       window.dropHandler = dropHandler;
+      window.toggleSystemPromptsPopup = toggleSystemPromptsPopup;
+      window.toggleUserPromptsPopup = toggleUserPromptsPopup;
+      window.addSystemPromptToLibrary = addSystemPromptToLibrary;
+      window.addUserPromptToLibrary = addUserPromptToLibrary;
+      window.deleteSystemPrompt = deleteSystemPrompt;
+      window.deleteUserPrompt = deleteUserPrompt;
     </script>
   </body>
 </html>

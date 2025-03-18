@@ -27,6 +27,8 @@ export function activate(context: vscode.ExtensionContext) {
     }
 
     const systemPrompt = getSystemPrompt();
+    const systemPrompts = getSystemPromptsFromStorage(context);
+    const userPrompts = getUserPromptsFromStorage(context);
 
     if (existingPanel) {
       // If panel exists, reuse it and add files
@@ -34,7 +36,14 @@ export function activate(context: vscode.ExtensionContext) {
       sendFilesToExistingChat(existingPanel, openFiles);
     } else {
       // If no panel exists, open a new one
-      await openChatWindow(context, openFiles, tabId, systemPrompt);
+      await openChatWindow(
+        context,
+        openFiles,
+        tabId,
+        systemPrompt,
+        systemPrompts,
+        userPrompts
+      );
     }
   };
 
@@ -97,7 +106,9 @@ async function openChatWindow(
   context: vscode.ExtensionContext,
   openedFiles: { [key: string]: string },
   tabId: string,
-  systemPrompt: string | undefined
+  systemPrompt: string | undefined,
+  systemPrompts: string[],
+  userPrompts: string[]
 ) {
   const panel = vscode.window.createWebviewPanel(
     "askAIChat",
@@ -113,7 +124,12 @@ async function openChatWindow(
     chatPanels.delete(tabId); // Remove panel from map when disposed
   });
 
-  panel.webview.html = chatview(tabId, systemPrompt);
+  panel.webview.html = chatview(
+    tabId,
+    systemPrompt,
+    systemPrompts,
+    userPrompts
+  );
   sendInitialSystemMessage(panel, openedFiles);
 
   panel.webview.onDidReceiveMessage(
@@ -195,9 +211,101 @@ function handleWebviewMessage(
     case "addFilesFromDialog":
       handleAddFilesFromDialog(panel, message.filePaths, openedFiles);
       break;
+    case "saveSystemPromptToLibrary":
+      handleSaveSystemPromptToLibrary(context, panel, message.prompt);
+      break;
+    case "saveUserPromptToLibrary":
+      handleSaveUserPromptToLibrary(context, panel, message.prompt);
+      break;
+    case "deleteSystemPromptFromLibrary":
+      handleDeleteSystemPromptFromLibrary(context, panel, message.prompt);
+      break;
+    case "deleteUserPromptFromLibrary":
+      handleDeleteUserPromptFromLibrary(context, panel, message.prompt);
+      break;
+    case "requestSystemPrompts":
+      handleRequestSystemPrompts(context, panel);
+      break;
+    case "requestUserPrompts":
+      handleRequestUserPrompts(context, panel);
+      break;
     default:
       console.warn("Unknown command from webview:", message.command);
   }
+}
+
+async function handleRequestSystemPrompts(
+  context: vscode.ExtensionContext,
+  panel: vscode.WebviewPanel
+) {
+  const systemPrompts = getSystemPromptsFromStorage(context);
+  panel.webview.postMessage({
+    command: "systemPromptsList",
+    prompts: systemPrompts,
+  }); // Renamed command
+}
+
+async function handleRequestUserPrompts(
+  context: vscode.ExtensionContext,
+  panel: vscode.WebviewPanel
+) {
+  const userPrompts = getUserPromptsFromStorage(context);
+  panel.webview.postMessage({
+    command: "userPromptsList",
+    prompts: userPrompts,
+  }); // New command for user prompts
+}
+
+async function handleSaveSystemPromptToLibrary(
+  context: vscode.ExtensionContext,
+  panel: vscode.WebviewPanel,
+  prompt: string
+) {
+  await saveSystemPromptToStorage(context, prompt);
+  const updatedSystemPrompts = getSystemPromptsFromStorage(context);
+  panel.webview.postMessage({
+    command: "systemPromptsList",
+    prompts: updatedSystemPrompts,
+  }); // Renamed command
+}
+
+async function handleSaveUserPromptToLibrary(
+  context: vscode.ExtensionContext,
+  panel: vscode.WebviewPanel,
+  prompt: string
+) {
+  await saveUserPromptToStorage(context, prompt);
+  const updatedUserPrompts = getUserPromptsFromStorage(context);
+  panel.webview.postMessage({
+    command: "userPromptsList",
+    prompts: updatedUserPrompts,
+  }); // New command for user prompts
+}
+
+async function handleDeleteSystemPromptFromLibrary(
+  context: vscode.ExtensionContext,
+  panel: vscode.WebviewPanel,
+  prompt: string
+) {
+  await deleteSystemPromptFromStorage(context, prompt);
+  const updatedSystemPrompts = getSystemPromptsFromStorage(context);
+  panel.webview.postMessage({
+    command: "systemPromptsList",
+    prompts: updatedSystemPrompts,
+  }); // Renamed command
+}
+
+async function handleDeleteUserPromptFromLibrary(
+  context: vscode.ExtensionContext,
+  panel: vscode.WebviewPanel,
+  prompt: string
+) {
+  await deleteUserPromptFromStorage(context, prompt);
+  const updatedUserPrompts = getUserPromptsFromStorage(context);
+  panel.webview.postMessage({
+    command: "userPromptsList",
+    prompts: updatedUserPrompts,
+  }); // New command for user prompts
 }
 
 async function handleAddFilesFromDialog(
@@ -389,6 +497,64 @@ function getSystemPrompt(): string | undefined {
     .getConfiguration("aragula-ai")
     .get("systemPrompt");
   return typeof prompt === "string" ? prompt : undefined;
+}
+
+/** Retrieves system prompts from global storage */
+function getSystemPromptsFromStorage(
+  context: vscode.ExtensionContext
+): string[] {
+  return context.globalState.get<string[]>("systemPrompts", []) || [];
+}
+
+/** Retrieves user prompts from global storage */
+function getUserPromptsFromStorage(context: vscode.ExtensionContext): string[] {
+  return context.globalState.get<string[]>("userPrompts", []) || []; // New storage for user prompts
+}
+
+/** Saves system prompt to global storage */
+async function saveSystemPromptToStorage(
+  context: vscode.ExtensionContext,
+  prompt: string
+): Promise<void> {
+  let prompts = getSystemPromptsFromStorage(context);
+  if (!prompts.includes(prompt)) {
+    // Avoid duplicates
+    prompts.push(prompt);
+    await context.globalState.update("systemPrompts", prompts);
+  }
+}
+
+/** Saves user prompt to global storage */
+async function saveUserPromptToStorage(
+  context: vscode.ExtensionContext,
+  prompt: string
+): Promise<void> {
+  let prompts = getUserPromptsFromStorage(context);
+  if (!prompts.includes(prompt)) {
+    // Avoid duplicates
+    prompts.push(prompt);
+    await context.globalState.update("userPrompts", prompts); // Save to user prompts storage
+  }
+}
+
+/** Deletes system prompt from global storage */
+async function deleteSystemPromptFromStorage(
+  context: vscode.ExtensionContext,
+  prompt: string
+): Promise<void> {
+  let prompts = getSystemPromptsFromStorage(context);
+  const updatedPrompts = prompts.filter((p) => p !== prompt);
+  await context.globalState.update("systemPrompts", updatedPrompts);
+}
+
+/** Deletes user prompt from global storage */
+async function deleteUserPromptFromStorage(
+  context: vscode.ExtensionContext,
+  prompt: string
+): Promise<void> {
+  let prompts = getUserPromptsFromStorage(context);
+  const updatedPrompts = prompts.filter((p) => p !== prompt);
+  await context.globalState.update("userPrompts", updatedPrompts); // Delete from user prompts storage
 }
 
 /** Builds the complete prompt from the open files and user input. */
