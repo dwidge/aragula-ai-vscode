@@ -38,7 +38,9 @@ const parseToolCommands = (xml: string): XmlToolCommand[] => {
       case "runShellCommand":
         params.command = extractTagContent(content, "command");
         const workingDir = extractTagContent(content, "workingDir");
-        if (workingDir) params.workingDir = workingDir;
+        if (workingDir) {
+          params.workingDir = workingDir;
+        }
         break;
     }
 
