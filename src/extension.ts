@@ -2,13 +2,27 @@ import { extractFilesFromAIResponse } from "@dwidge/llm-file-diff";
 import * as fs from "fs/promises";
 import * as path from "path";
 import * as vscode from "vscode";
-import { Logger, newOpenAiApi, ToolCall } from "./aiTools/AiApi";
+import {
+  Json,
+  Logger,
+  newOpenAiApi,
+  ToolCall,
+  ToolDefinition,
+} from "./aiTools/AiApi";
 import { filterToolsByName } from "./aiTools/filterToolsByName";
 import { readDirTool, readFileTool, writeFileTool } from "./aiTools/tools";
 import chatview from "./chatview";
 
 // Track existing chat panels using tabId as key
 const chatPanels = new Map<string, vscode.WebviewPanel>();
+
+// Available tools for the extension. In real scenario, this might be configurable or dynamically loaded.
+const availableToolsDefinitions: ToolDefinition[] = [
+  readDirTool,
+  readFileTool,
+  writeFileTool,
+];
+const availableToolNames = availableToolsDefinitions.map((tool) => tool.name);
 
 export function activate(context: vscode.ExtensionContext) {
   console.log('Extension "aragula-ai" active');
@@ -20,7 +34,9 @@ export function activate(context: vscode.ExtensionContext) {
 
     // Try to find an existing chat panel
     for (const panel of chatPanels.values()) {
-      if (!panel) continue; // defensive check in case of null panel in map
+      if (!panel) {
+        continue; // defensive check in case of null panel in map
+      }
       existingPanel = panel;
       tabId = panel.title.split(" - ")[1]; // Extract tabId from panel title "Ask AI - {tabId}"
       break; // Use the first non-disposed panel found
@@ -28,6 +44,7 @@ export function activate(context: vscode.ExtensionContext) {
 
     const systemPrompts = getSystemPromptsFromStorage(context);
     const userPrompts = getUserPromptsFromStorage(context);
+    const enabledToolNames = getEnabledToolNamesFromWorkspace(context, tabId);
 
     // Load workspace prompts if available, otherwise use defaults
     const workspaceSystemPrompt = getCurrentSystemPromptFromWorkspace(
@@ -56,7 +73,9 @@ export function activate(context: vscode.ExtensionContext) {
         systemPrompt,
         systemPrompts,
         userPrompts,
-        userPrompt // Pass userPrompt to openChatWindow
+        userPrompt,
+        availableToolNames,
+        enabledToolNames
       );
     }
   };
@@ -93,7 +112,9 @@ async function readOpenFiles(
   uris: vscode.Uri[]
 ): Promise<{ [key: string]: string }> {
   const openFiles: { [key: string]: string } = {};
-  if (!uris) return openFiles; // Handle case where no files are selected
+  if (!uris) {
+    return openFiles; // Handle case where no files are selected
+  }
 
   for (const uri of uris) {
     if (uri.fsPath) {
@@ -123,7 +144,9 @@ async function openChatWindow(
   systemPrompt: string | undefined,
   systemPrompts: string[],
   userPrompts: string[],
-  userPrompt: string // Receive userPrompt
+  userPrompt: string,
+  availableToolNames: string[],
+  enabledToolNames: string[]
 ) {
   const panel = vscode.window.createWebviewPanel(
     "askAIChat",
@@ -144,7 +167,14 @@ async function openChatWindow(
 
   panel.webview.onDidReceiveMessage(
     (message) =>
-      handleWebviewMessage(context, panel, message, openedFiles, tabId),
+      handleWebviewMessage(
+        context,
+        panel,
+        message,
+        openedFiles,
+        tabId,
+        enabledToolNames
+      ),
     undefined,
     context.subscriptions
   );
@@ -156,6 +186,8 @@ async function openChatWindow(
     userPrompt: userPrompt,
     systemPrompts: systemPrompts,
     userPrompts: userPrompts,
+    availableTools: availableToolNames,
+    enabledTools: enabledToolNames,
   });
 
   context.workspaceState.update(`userInput-${tabId}`, "");
@@ -193,7 +225,8 @@ function handleWebviewMessage(
   panel: vscode.WebviewPanel,
   message: any,
   openedFiles: { [key: string]: string },
-  tabId: string
+  tabId: string,
+  enabledToolNames: string[]
 ) {
   const log: Logger = (msg: string, type: string = "log") => {
     vscode.window.showInformationMessage(msg);
@@ -207,7 +240,15 @@ function handleWebviewMessage(
 
   switch (message.command) {
     case "sendMessage":
-      handleSendMessage(context, panel, message, openedFiles, tabId, log);
+      handleSendMessage(
+        context,
+        panel,
+        message,
+        openedFiles,
+        tabId,
+        log,
+        enabledToolNames
+      );
       break;
     case "setSystemPrompt":
       handleSetSystemPrompt(context, panel, message.systemPrompt, tabId); // Use new handler
@@ -257,9 +298,47 @@ function handleWebviewMessage(
     case "useUserPromptFromLibrary": // New case for using user prompt from library
       handleUseUserPromptFromLibrary(context, panel, message.prompt);
       break;
+    case "enableTool":
+      handleEnableTool(context, panel, message.toolName, tabId);
+      break;
+    case "disableTool":
+      handleDisableTool(context, panel, message.toolName, tabId);
+      break;
     default:
       console.warn("Unknown command from webview:", message.command);
   }
+}
+
+async function handleEnableTool(
+  context: vscode.ExtensionContext,
+  panel: vscode.WebviewPanel,
+  toolName: string,
+  tabId: string
+) {
+  let enabledTools = getEnabledToolNamesFromWorkspace(context, tabId);
+  if (!enabledTools.includes(toolName)) {
+    enabledTools = [...enabledTools, toolName];
+    setEnabledToolNamesToWorkspace(context, tabId, enabledTools);
+    panel.webview.postMessage({
+      command: "updateEnabledTools",
+      enabledTools: enabledTools,
+    });
+  }
+}
+
+async function handleDisableTool(
+  context: vscode.ExtensionContext,
+  panel: vscode.WebviewPanel,
+  toolName: string,
+  tabId: string
+) {
+  let enabledTools = getEnabledToolNamesFromWorkspace(context, tabId);
+  enabledTools = enabledTools.filter((name) => name !== toolName);
+  setEnabledToolNamesToWorkspace(context, tabId, enabledTools);
+  panel.webview.postMessage({
+    command: "updateEnabledTools",
+    enabledTools: enabledTools,
+  });
 }
 
 async function handleUseSystemPromptFromLibrary(
@@ -430,10 +509,16 @@ async function handleAddFiles(
 async function handleSendMessage(
   context: vscode.ExtensionContext,
   panel: vscode.WebviewPanel,
-  message: { text: string; systemPrompt: string },
+  message: {
+    user: string;
+    system: string;
+    fileNames: string[];
+    toolNames: string[];
+  },
   openedFiles: { [key: string]: string },
   tabId: string,
-  log: Logger
+  log: Logger,
+  enabledToolNames: string[]
 ) {
   const apiKey = getApiKey();
   if (!apiKey) {
@@ -449,12 +534,12 @@ async function handleSendMessage(
 
   panel.webview.postMessage({
     command: "receiveMessage",
-    text: message.text,
+    text: message.user,
     sender: "user",
   });
 
   // Save current user prompt to workspace state
-  setCurrentUserPromptToWorkspace(context, tabId, message.text);
+  setCurrentUserPromptToWorkspace(context, tabId, message.user);
 
   const messageId = Date.now().toString();
   const abortController = new AbortController();
@@ -462,26 +547,61 @@ async function handleSendMessage(
   panel.webview.postMessage({ command: "startLoading", messageId });
 
   try {
-    const readFileToolResponse: ToolCall[] = Object.entries(openedFiles).map(
-      ([k, v]) => ({
-        name: "readFile",
-        parameters: { path: k },
-        response: { content: v },
-      })
+    const fullFiles = message.fileNames.map((k) => [k, openedFiles[k]]);
+    const readFileToolResponse: ToolCall[] = fullFiles.map(([k, v]) => ({
+      name: "readFile",
+      parameters: { path: k },
+      response: { content: v },
+    }));
+    console.log("enabledToolNames in handleSendMessage:", message.toolNames);
+    const enabledTools: ToolDefinition[] = filterToolsByName(
+      availableToolsDefinitions,
+      message.toolNames
     );
+
     const response = await callAiApi(
       {
-        user: message.text,
-        system: message.systemPrompt,
+        user: message.user,
+        system: message.system,
         tools: readFileToolResponse,
       },
-      filterToolsByName(
-        [readDirTool, readFileTool, writeFileTool],
-        ["writeFile"]
-      ),
+      enabledTools,
       abortController.signal
     );
+
     log("Calling tools: " + response.tools.map((t) => t.name).join(", "));
+
+    const toolCallResults: {
+      name: string;
+      parameters?: Json;
+      response?: Json;
+      error?: string;
+    }[] = await Promise.all(
+      response.tools.map(async (tool) => {
+        try {
+          const toolFunction = enabledTools.find((t) => t.name === tool.name);
+          if (!toolFunction) {
+            throw new Error(`Unknown tool: ${tool.name}`);
+          }
+          if (toolFunction.function) {
+            const toolResult: any = await toolFunction.function(
+              {},
+              tool.parameters
+            );
+            return { ...tool, response: toolResult };
+          } else {
+            return tool;
+          }
+        } catch (error: any) {
+          return { ...tool, error: error.message || "Tool execution failed" };
+        }
+      })
+    );
+
+    for (const toolResult of toolCallResults) {
+      log(JSON.stringify(toolResult), "tool");
+    }
+
     panel.webview.postMessage({
       command: "updateMessage",
       messageId,
@@ -671,6 +791,25 @@ async function setCurrentUserPromptToWorkspace(
   prompt: string
 ): Promise<void> {
   await context.workspaceState.update(`workspaceUserPrompt-${tabId}`, prompt);
+}
+
+/** Get enabled tool names from workspace state */
+function getEnabledToolNamesFromWorkspace(
+  context: vscode.ExtensionContext,
+  tabId: string
+): string[] {
+  return (
+    context.workspaceState.get<string[]>(`enabledToolNames-${tabId}`) || []
+  );
+}
+
+/** Set enabled tool names to workspace state */
+async function setEnabledToolNamesToWorkspace(
+  context: vscode.ExtensionContext,
+  tabId: string,
+  toolNames: string[]
+): Promise<void> {
+  await context.workspaceState.update(`enabledToolNames-${tabId}`, toolNames);
 }
 
 /** Builds the complete prompt from the open files and user input. */

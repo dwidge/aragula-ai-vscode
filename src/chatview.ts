@@ -36,6 +36,10 @@ export default (tabId: string) => `
         --popup-background: var(--background-color);
         --popup-border: var(--pre-border);
         --popup-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        --tool-button-background: var(--file-button-background);
+        --tool-button-hover: var(--file-button-hover);
+        --tool-button-remove-hover: var(--file-button-remove-hover);
+        --tool-button-text-color: var(--file-button-text-color);
       }
       @media (prefers-color-scheme: dark) {
         :root {
@@ -68,6 +72,10 @@ export default (tabId: string) => `
           --popup-background: var(--background-color);
           --popup-border: var(--pre-border);
           --popup-shadow: 0 4px 8px rgba(0,0,0,0.2);
+          --tool-button-background: var(--file-button-background);
+          --tool-button-hover: var(--file-button-hover);
+          --tool-button-remove-hover: var(--file-button-remove-hover);
+          --tool-button-text-color: var(--file-button-text-color);
         }
       }
       body {
@@ -77,15 +85,15 @@ export default (tabId: string) => `
         background-color: var(--background-color);
         color: var(--text-color);
       }
-      #selected-files-container {
+      #selected-files-container, #enabled-tools-container {
         display: flex;
         gap: 5px;
         margin-bottom: 10px;
         flex-wrap: wrap;
       }
-      .file-button {
-        background-color: var(--file-button-background);
-        color: var(--file-button-text-color);
+      .file-button, .tool-button {
+        background-color: var(--tool-button-background);
+        color: var(--tool-button-text-color);
         border: none;
         padding: 5px 10px;
         border-radius: 5px;
@@ -94,20 +102,20 @@ export default (tabId: string) => `
         gap: 5px;
         font-size: 0.9em;
       }
-      .file-button:hover {
-        background-color: var(--file-button-hover);
+      .file-button:hover, .tool-button:hover {
+        background-color: var(--tool-button-hover);
       }
-      .file-button .remove-file-button {
+      .file-button .remove-file-button, .tool-button .remove-tool-button {
         background: none;
         border: none;
-        color: var(--file-button-text-color);
+        color: var(--tool-button-text-color);
         cursor: pointer;
         padding: 0 5px;
         border-radius: 3px;
       }
-      .file-button .remove-file-button:hover {
+      .file-button .remove-file-button:hover, .tool-button .remove-tool-button:hover {
         color: white;
-        background-color: var(--file-button-remove-hover);
+        background-color: var(--tool-button-remove-hover);
       }
       .input-area {
         display: flex;
@@ -248,7 +256,7 @@ export default (tabId: string) => `
       }
       .prompt-text { flex-grow: 1; margin-right: 10px;  word-wrap: break-word; /* Ensure text wrapping in text span too */}
 
-      .prompt-popup {
+      .prompt-popup, .tool-popup {
         position: fixed; /* Changed to fixed */
         z-index: 10; /* Ensure it's on top of other content */
         background-color: var(--popup-background);
@@ -263,11 +271,24 @@ export default (tabId: string) => `
         overflow-y: auto; /* Added scroll if popup is too tall */
         max-width: 80vw; /* Limit popup width to viewport width */
       }
-      .prompt-popup .prompts-list {
+      .prompt-popup .prompts-list, .tool-popup .tool-list {
         border: none; /* Remove border from list inside popup as it has its own border */
         overflow-y: auto; /* Enable scroll for list within popup if needed - redundant because popup has scroll now */
         max-height: unset; /* Remove max height from list inside popup - popup controls height now */
       }
+      .tool-popup .tool-list .tool-item {
+        background-color: var(--prompt-item-background);
+        padding: 10px;
+        border-bottom: 1px solid var(--pre-border);
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start; /* changed from center to start to align multiline text nicely */
+        cursor: pointer;
+        word-wrap: break-word; /* Allow text to wrap */
+        white-space: normal; /* Ensure text wraps within item */
+      }
+      .tool-popup .tool-list .tool-item:last-child { border-bottom: none; }
+      .tool-popup .tool-list .tool-item:hover { background-color: var(--prompt-item-hover); }
 
 
     </style>
@@ -289,6 +310,12 @@ export default (tabId: string) => `
           <span id="user-prompts-toggle-icon">▼</span>
         </div>
         <ul id="user-prompts-list" class="prompts-list" style="display: none;"></ul>
+      </div>
+
+      <div id="enabled-tools-container">
+      </div>
+      <div id="tool-popup" class="tool-popup">
+        <ul id="tool-popup-list" class="tool-list"></ul>
       </div>
 
 
@@ -326,6 +353,7 @@ export default (tabId: string) => `
           </button>
           <button id="clearButton" onclick="clearChatHistory()">Clear</button>
           <button id="addFilesButton" onclick="addFilesDialog()">Add Files</button>
+          <button id="addToolButton" onclick="toggleToolPopup()">Add Tool</button>
         </div>
       </div>
       <div id="messages-container"></div>
@@ -350,8 +378,13 @@ export default (tabId: string) => `
       let systemPrompts = []; // Will be updated by message
       /** @type {string[]} */
       let userPrompts = []; // Will be updated by message
+      /** @type {string[]} */
+      let availableTools = []; // Will be updated by message on init
+      /** @type {string[]} */
+      let enabledTools = []; // Will be updated by message on init and user actions
       let systemPromptsPopupVisible = false;
       let userPromptsPopupVisible = false;
+      let toolPopupVisible = false;
       /** @type {string} */
       let currentSystemPrompt = ""; // Placeholder, will be initialized by message
       /** @type {string} */
@@ -361,7 +394,8 @@ export default (tabId: string) => `
       const STORAGE_KEYS = {
         chatHistory: \`chatMessages-\${tabId}\`,
         userInput: \`userInput-\${tabId}\`,
-        openFiles: \`openFiles-\${tabId}\` // systemPrompt removed from localStorage
+        openFiles: \`openFiles-\${tabId}\`,
+        enabledTools: \`enabledTools-\${tabId}\` // Key for enabled tools
       };
 
       // DOM elements
@@ -372,12 +406,16 @@ export default (tabId: string) => `
       const buttonText = document.getElementById("buttonText");
       const loader = document.getElementById("loader");
       const selectedFilesContainer = document.getElementById("selected-files-container");
+      const enabledToolsContainer = document.getElementById("enabled-tools-container"); // Enabled tools container
       const systemPromptsPopupEl = document.getElementById("system-prompts-popup");
       const userPromptsPopupEl = document.getElementById("user-prompts-popup");
       const systemPromptsPopupListEl = document.getElementById("system-prompts-popup-list");
       const userPromptsPopupListEl = document.getElementById("user-prompts-popup-list");
       const systemPromptLoadButton = document.querySelector('#systemPromptInput + .prompt-buttons > button:nth-child(1)');
       const userPromptLoadButton = document.querySelector('#userInput + .prompt-buttons > button:nth-child(1)');
+      const toolPopupEl = document.getElementById("tool-popup");
+      const toolPopupListEl = document.getElementById("tool-popup-list");
+      const addToolButton = document.getElementById("addToolButton");
 
 
       /**
@@ -386,6 +424,7 @@ export default (tabId: string) => `
       function loadState() {
         chatHistory = loadFromLocalStorage(STORAGE_KEYS.chatHistory, []);
         openFiles = loadFromLocalStorage(STORAGE_KEYS.openFiles, []);
+        enabledTools = loadFromLocalStorage(STORAGE_KEYS.enabledTools, []); // Load enabled tools from localStorage
       }
 
       /**
@@ -410,6 +449,7 @@ export default (tabId: string) => `
       function saveState() {
         saveToLocalStorage(STORAGE_KEYS.chatHistory, chatHistory);
         saveToLocalStorage(STORAGE_KEYS.openFiles, openFiles);
+        saveToLocalStorage(STORAGE_KEYS.enabledTools, enabledTools); // Save enabled tools to localStorage
       }
 
       /**
@@ -559,6 +599,27 @@ export default (tabId: string) => `
       }
 
       /**
+       * Renders the enabled tools in the UI.
+       */
+      function renderEnabledTools() {
+        enabledToolsContainer.innerHTML = ''; // Clear old buttons first
+        enabledTools.forEach(toolName => {
+          const toolButton = document.createElement('div');
+          toolButton.classList.add('tool-button');
+          toolButton.textContent = toolName;
+
+          const removeButton = document.createElement('button');
+          removeButton.classList.add('remove-tool-button');
+          removeButton.textContent = '✕';
+          removeButton.onclick = () => disableTool(toolName);
+
+          toolButton.appendChild(removeButton);
+          enabledToolsContainer.appendChild(toolButton);
+        });
+      }
+
+
+      /**
        * Removes a file from the open files list and updates UI and extension.
        * @param {string} filePath - Path of the file to remove.
        */
@@ -631,20 +692,22 @@ export default (tabId: string) => `
        */
       function handleSendMessage() {
         if (sendButton.disabled) return;
-        const text = userInputEl.value.trim();
-        const systemPrompt = systemPromptEl.value.trim();
-        if (!text) {
+        const user = userInputEl.value.trim();
+        const system = systemPromptEl.value.trim();
+        if (!user) {
           alert("Please enter a message before sending.");
           return;
         }
         sendButton.disabled = true;
         loader.style.display = "inline-block";
         buttonText.textContent = "";
-        const messageId = addChatMessage(text, "user");
+        const messageId = addChatMessage(user, "user");
         vscode.postMessage({
           command: "sendMessage",
-          text,
-          systemPrompt,
+          user: user, // changed from text: text to user: user
+          system: system, // changed from systemPrompt: systemPrompt to system: system
+          fileNames: openFiles, // add fileNames
+          toolNames: enabledTools, // add toolNames
           messageId
         });
       }
@@ -707,6 +770,20 @@ export default (tabId: string) => `
         });
       }
 
+      function renderToolPopupList() {
+        toolPopupListEl.innerHTML = '';
+        availableTools.forEach(toolName => {
+          if (!enabledTools.includes(toolName)) { // Only show tools that are not already enabled
+            const listItem = document.createElement('li');
+            listItem.classList.add('tool-item');
+            listItem.textContent = toolName;
+            listItem.onclick = () => enableTool(toolName); // Enable tool on click
+            toolPopupListEl.appendChild(listItem);
+          }
+        });
+      }
+
+
       function toggleSystemPromptsPopup() {
         systemPromptsPopupVisible = !systemPromptsPopupVisible;
         systemPromptsPopupEl.style.display = systemPromptsPopupVisible ? 'block' : 'none';
@@ -725,6 +802,17 @@ export default (tabId: string) => `
         }
       }
 
+      function toggleToolPopup() {
+        console.log("toggleToolPopup, current state:", toolPopupVisible); // DEBUG
+        toolPopupVisible = !toolPopupVisible;
+        toolPopupEl.style.display = toolPopupVisible ? 'block' : 'none';
+        if (toolPopupVisible) {
+          renderToolPopupList();
+          positionToolPopup();
+        }
+      }
+
+
       function positionSystemPromptsPopup() {
         const buttonRect = systemPromptLoadButton.getBoundingClientRect();
         systemPromptsPopupEl.style.top = \`\${buttonRect.bottom + window.scrollY}px\`; // Position below the button
@@ -735,6 +823,12 @@ export default (tabId: string) => `
         const buttonRect = userPromptLoadButton.getBoundingClientRect();
         userPromptsPopupEl.style.top = \`\${buttonRect.bottom + window.scrollY}px\`; // Position below the button
         userPromptsPopupEl.style.right = \`\${window.innerWidth - buttonRect.right}px\`; // Align right edges
+      }
+
+      function positionToolPopup() {
+        const buttonRect = addToolButton.getBoundingClientRect(); // Position relative to "Add Tool" button
+        toolPopupEl.style.top = \`\${buttonRect.bottom + window.scrollY}px\`; // Position below the button
+        toolPopupEl.style.right = \`\${window.innerWidth - buttonRect.right}px\`; // Align right edges
       }
 
 
@@ -772,6 +866,23 @@ export default (tabId: string) => `
         toggleUserPromptsPopup(); // Close popup after inserting
       }
 
+      function enableTool(toolName) {
+        if (!enabledTools.includes(toolName)) {
+          enabledTools = [...enabledTools, toolName]; // Create a new array
+          saveState();
+          renderEnabledTools();
+          vscode.postMessage({ command: "enableTool", toolName: toolName });
+        }
+        toggleToolPopup(); // Close tool popup after enabling
+      }
+
+      function disableTool(toolName) {
+        enabledTools = enabledTools.filter(tool => tool !== toolName);
+        saveState();
+        renderEnabledTools();
+        vscode.postMessage({ command: "disableTool", toolName: toolName });
+      }
+
 
       // --- Event Listeners ---
 
@@ -783,6 +894,7 @@ export default (tabId: string) => `
         loadState();
         renderChatHistory();
         renderSelectedFiles();
+        renderEnabledTools(); // Render enabled tools on load
         renderSystemPromptsList(); // Render system prompts on load
         renderUserPromptsList(); // Render user prompts on load
         vscode.postMessage({ command: "requestSystemPrompts" }); // Request latest prompts from extension - might be redundant now as initPrompts sends them
@@ -794,6 +906,9 @@ export default (tabId: string) => `
           }
           if (userPromptsPopupVisible && !userPromptsPopupEl.contains(event.target) && event.target !== document.getElementById('userInput') && event.target !== userPromptLoadButton) {
             toggleUserPromptsPopup(); // Close user prompt popup if click outside
+          }
+          if (toolPopupVisible && !toolPopupEl.contains(event.target) && event.target !== addToolButton) { // Check click outside tool popup and "Add Tool" button
+            toggleToolPopup(); // Close tool popup if click outside
           }
         });
       });
@@ -851,10 +966,17 @@ export default (tabId: string) => `
             currentUserPrompt = message.userPrompt || "";
             systemPrompts = message.systemPrompts || [];
             userPrompts = message.userPrompts || [];
+            availableTools = message.availableTools || []; // Initialize available tools
+            enabledTools = message.enabledTools || []; // Initialize enabled tools
             systemPromptEl.value = currentSystemPrompt;
             userInputEl.value = currentUserPrompt;
             renderSystemPromptsList();
             renderUserPromptsList();
+            renderEnabledTools(); // Render enabled tools on init
+            break;
+          case "updateEnabledTools":
+            enabledTools = message.enabledTools;
+            renderEnabledTools();
             break;
           default:
             console.warn("Unknown command:", message.command);
@@ -869,12 +991,15 @@ export default (tabId: string) => `
       window.dropHandler = dropHandler;
       window.toggleSystemPromptsPopup = toggleSystemPromptsPopup;
       window.toggleUserPromptsPopup = toggleUserPromptsPopup;
+      window.toggleToolPopup = toggleToolPopup;
       window.addSystemPromptToLibrary = addSystemPromptToLibrary;
       window.addUserPromptToLibrary = addUserPromptToLibrary;
       window.deleteSystemPrompt = deleteSystemPrompt;
       window.deleteUserPrompt = deleteUserPrompt;
       window.insertSystemPrompt = insertSystemPrompt;
       window.insertUserPrompt = insertUserPrompt;
+      window.enableTool = enableTool;
+      window.disableTool = disableTool;
     </script>
   </body>
 </html>
