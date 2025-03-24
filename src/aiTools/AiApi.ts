@@ -231,66 +231,6 @@ export function decodeJsonToolCalls(response: string): ToolCall[] {
   }
 }
 
-/**
- * Prepares a formatted system prompt by embedding tool call instructions.
- * Returns a decoding function to parse the AI’s response.
- */
-export function prepareFormattedToolPrompt(
-  prompt: { user: string; system?: string; tools?: ToolCall[] },
-  tools?: ToolDefinition[]
-): { user: string; system: string } {
-  let userPrompt = prompt.user;
-  let systemPrompt = prompt.system || "";
-
-  if (prompt.tools && prompt.tools.length > 0) {
-    const callType =
-      tools && tools.length > 0 ? tools[0].type || "native" : "xml";
-    if (callType === "xml") {
-      const toolCallResultsXml = encodeToolCallsWithResultsToXml(prompt.tools);
-      userPrompt = `${prompt.user}\n\nTool Call Results:\n${toolCallResultsXml}`;
-    } else if (callType === "json") {
-      const toolCallResultsJson = encodeToolCallsWithResultsToJson(
-        prompt.tools
-      );
-      userPrompt = `${prompt.user}\n\nTool Call Results:\n${toolCallResultsJson}`;
-    } else {
-      // Native - tool results are handled in vendor specific API calls.
-    }
-  }
-
-  if (!tools || tools.length === 0) {
-    return { user: userPrompt, system: systemPrompt };
-  }
-
-  const callType = tools[0].type || "native";
-  for (const tool of tools) {
-    if ((tool.type || "native") !== callType) {
-      throw new Error("All tools must have the same call type");
-    }
-  }
-
-  if (callType === "xml") {
-    const toolsXml = encodeToolsToXml(tools);
-    const combinedSystem = [systemPrompt, "Call this tool like this:", toolsXml]
-      .join("\n\n")
-      .trim();
-    return { user: userPrompt, system: combinedSystem };
-  } else if (callType === "json") {
-    const toolsJson = encodeToolsToJson(tools);
-    const combinedSystem = [
-      systemPrompt,
-      "Output only JSON.",
-      "Call these tools:",
-      toolsJson,
-    ]
-      .join("\n\n")
-      .trim();
-    return { user: userPrompt, system: combinedSystem };
-  } else {
-    return { user: userPrompt, system: systemPrompt };
-  }
-}
-
 /* ============================================================================
    JSON Schema Validation
    ========================================================================== */
@@ -363,9 +303,9 @@ export function newOpenAiApi(settings: OpenAiSpecificSettings): AiApiCaller {
 }
 
 /**
- * Helper function to build tool call messages.
+ * Helper function to build tool call messages for OpenAI.
  */
-const buildToolMessages = (
+const buildToolMessagesOpenAi = (
   prompt: { tools?: ToolCall[] },
   tools?: ToolDefinition[]
 ): ChatCompletionMessageParam[] => {
@@ -420,9 +360,9 @@ const buildToolMessages = (
 };
 
 /**
- * Helper function to build prompt messages (user and system).
+ * Helper function to build prompt messages (user and system) for OpenAI.
  */
-function buildPromptMessages(prompt: {
+function buildPromptMessagesOpenAi(prompt: {
   user: string;
   system?: string;
 }): ChatCompletionMessageParam[] {
@@ -457,9 +397,9 @@ const callOpenAi = async (
   const { signal, logger = () => {} } = options || {};
 
   // Build tool messages
-  const toolMessages = buildToolMessages(prompt, tools);
+  const toolMessages = buildToolMessagesOpenAi(prompt, tools);
   // Build prompt messages
-  const promptMessages = buildPromptMessages(prompt);
+  const promptMessages = buildPromptMessagesOpenAi(prompt);
 
   // Combine messages - tool messages should come before prompt messages
   const messages: ChatCompletionMessageParam[] = [
@@ -555,6 +495,42 @@ export function newGeminiApi(settings: GeminiSpecificSettings): AiApiCaller {
     callGemini(genAI, { model, max_tokens }, prompt, tools, options);
 }
 
+/**
+ * Helper function to build prompt messages (user and system) for Gemini.
+ */
+function buildPromptMessagesGemini(prompt: {
+  user: string;
+  system?: string;
+}): GenerateContentRequest["contents"] {
+  const messages: GenerateContentRequest["contents"] = [];
+
+  if (prompt.system) {
+    messages.push({ role: "user", parts: [{ text: prompt.system }] });
+  }
+  if (prompt.user) {
+    messages.push({ role: "user", parts: [{ text: prompt.user }] });
+  }
+  return messages;
+}
+
+/**
+ * Helper function to build tool call messages for Gemini.
+ */
+const buildToolMessagesGemini = (prompt: {
+  tools?: ToolCall[];
+}): GenerateContentRequest["contents"] => {
+  const messages: GenerateContentRequest["contents"] = [];
+  if (prompt.tools) {
+    messages.push(
+      ...prompt.tools.map((toolCall) => ({
+        role: "user",
+        parts: [{ text: `${JSON.stringify(toolCall)}` }],
+      }))
+    );
+  }
+  return messages;
+};
+
 const callGemini = async (
   genAI: GoogleGenerativeAI,
   apiSettings: {
@@ -572,26 +548,17 @@ const callGemini = async (
     throw new Error("AbortError: Request aborted by user.");
   }
 
-  let formattedPrompt = prompt;
   const toolType = (tools && tools.length > 0 && tools[0].type) || "native";
-
-  if (toolType !== "native") {
-    formattedPrompt = prepareFormattedToolPrompt(prompt, tools);
-  }
 
   const geminiModel = genAI.getGenerativeModel({ model: apiSettings.model });
 
+  // Build prompt messages
+  const promptMessages = buildPromptMessagesGemini(prompt);
+  // Build tool messages
+  const toolMessages = buildToolMessagesGemini(prompt);
+
   const geminiPrompt: GenerateContentRequest = {
-    contents: [
-      ...(formattedPrompt.system
-        ? [{ role: "user", parts: [{ text: formattedPrompt.system }] }]
-        : []),
-      { role: "user", parts: [{ text: formattedPrompt.user }] },
-      ...(formattedPrompt.tools || []).map((toolCall) => ({
-        role: "user",
-        parts: [{ text: `Tool Call Result: ${JSON.stringify(toolCall)}` }],
-      })),
-    ],
+    contents: [...toolMessages, ...promptMessages],
     tools: toolType === "native" ? tools?.map(convertToGeminiTool) : undefined,
   };
 
@@ -662,6 +629,42 @@ export function newGroqApi(settings: GroqSpecificSettings): AiApiCaller {
   };
 }
 
+/**
+ * Helper function to build prompt messages (user and system) for Groq.
+ */
+function buildPromptMessagesGroq(prompt: {
+  user: string;
+  system?: string;
+}): ChatCompletionCreateParamsNonStreaming["messages"] {
+  const messages: ChatCompletionCreateParamsNonStreaming["messages"] = [];
+
+  if (prompt.system) {
+    messages.push({ content: prompt.system, role: "system" as const });
+  }
+  if (prompt.user) {
+    messages.push({ content: prompt.user, role: "user" as const });
+  }
+  return messages;
+}
+
+/**
+ * Helper function to build tool call messages for Groq.
+ */
+const buildToolMessagesGroq = (prompt: {
+  tools?: ToolCall[];
+}): ChatCompletionCreateParamsNonStreaming["messages"] => {
+  const messages: ChatCompletionCreateParamsNonStreaming["messages"] = [];
+  if (prompt.tools) {
+    messages.push(
+      ...prompt.tools.map((toolCall) => ({
+        content: `${JSON.stringify(toolCall)}`,
+        role: "assistant" as const,
+      }))
+    );
+  }
+  return messages;
+};
+
 const callGroq = async (
   groq: Groq,
   apiSettings: {
@@ -679,28 +682,15 @@ const callGroq = async (
   if (signal?.aborted) {
     throw new Error("AbortError: Request aborted by user.");
   }
-  let formattedPrompt = prompt;
 
-  if (tools && tools.length > 0 && (tools[0].type || "native") !== "native") {
-    formattedPrompt = prepareFormattedToolPrompt(prompt, tools);
-  } else if (
-    prompt.tools &&
-    prompt.tools.length > 0 &&
-    tools &&
-    (tools[0].type || "native") !== "native"
-  ) {
-    formattedPrompt = prepareFormattedToolPrompt(prompt, tools);
-  }
+  // Build prompt messages
+  const promptMessages = buildPromptMessagesGroq(prompt);
+  // Build tool messages
+  const toolMessages = buildToolMessagesGroq(prompt);
 
   const messages: ChatCompletionCreateParamsNonStreaming["messages"] = [
-    ...(formattedPrompt.system
-      ? [{ content: formattedPrompt.system, role: "system" as const }]
-      : []),
-    { content: formattedPrompt.user, role: "user" as const },
-    ...(formattedPrompt.tools || []).map((toolCall) => ({
-      content: `Tool Call Result: ${JSON.stringify(toolCall)}`,
-      role: "assistant" as const,
-    })),
+    ...toolMessages,
+    ...promptMessages,
   ];
 
   const groqPrompt: ChatCompletionCreateParamsNonStreaming = {
@@ -768,6 +758,44 @@ export function newCerebrasApi(
   };
 }
 
+/**
+ * Helper function to build prompt messages (user and system) for Cerebras.
+ */
+function buildPromptMessagesCerebras(prompt: {
+  user: string;
+  system?: string;
+}): CerebrasServiceClient.Chat.Completions.ChatCompletionCreateParamsNonStreaming["messages"] {
+  const messages: CerebrasServiceClient.Chat.Completions.ChatCompletionCreateParamsNonStreaming["messages"] =
+    [];
+
+  if (prompt.system) {
+    messages.push({ role: "system" as const, content: prompt.system });
+  }
+  if (prompt.user) {
+    messages.push({ role: "user" as const, content: prompt.user });
+  }
+  return messages;
+}
+
+/**
+ * Helper function to build tool call messages for Cerebras.
+ */
+const buildToolMessagesCerebras = (prompt: {
+  tools?: ToolCall[];
+}): CerebrasServiceClient.Chat.Completions.ChatCompletionCreateParamsNonStreaming["messages"] => {
+  const messages: CerebrasServiceClient.Chat.Completions.ChatCompletionCreateParamsNonStreaming["messages"] =
+    [];
+  if (prompt.tools) {
+    messages.push(
+      ...prompt.tools.map((toolCall) => ({
+        role: "assistant" as const,
+        content: `${JSON.stringify(toolCall)}`,
+      }))
+    );
+  }
+  return messages;
+};
+
 const callCerebras = async (
   cerebrasApi: CerebrasServiceClient,
   apiSettings: {
@@ -785,30 +813,14 @@ const callCerebras = async (
   if (signal?.aborted) {
     throw new Error("AbortError: Request aborted by user.");
   }
-  let formattedPrompt = prompt;
 
-  if (tools && tools.length > 0 && (tools[0].type || "native") !== "native") {
-    formattedPrompt = prepareFormattedToolPrompt(prompt, tools);
-  } else if (
-    prompt.tools &&
-    prompt.tools.length > 0 &&
-    tools &&
-    (tools[0].type || "native") !== "native"
-  ) {
-    formattedPrompt = prepareFormattedToolPrompt(prompt, tools);
-  }
+  // Build prompt messages
+  const promptMessages = buildPromptMessagesCerebras(prompt);
+  // Build tool messages
+  const toolMessages = buildToolMessagesCerebras(prompt);
 
   const messages: CerebrasServiceClient.Chat.Completions.ChatCompletionCreateParamsNonStreaming["messages"] =
-    [
-      ...(formattedPrompt.system
-        ? [{ role: "system" as const, content: formattedPrompt.system }]
-        : []),
-      { role: "user" as const, content: formattedPrompt.user },
-      ...(formattedPrompt.tools || []).map((toolCall) => ({
-        role: "assistant" as const,
-        content: `Tool Call Result: ${JSON.stringify(toolCall)}`,
-      })),
-    ];
+    [...toolMessages, ...promptMessages];
 
   const cerebrasPrompt: CerebrasServiceClient.Chat.Completions.ChatCompletionCreateParamsNonStreaming =
     {
@@ -868,6 +880,42 @@ export function newClaudeApi(settings: ClaudeSpecificSettings): AiApiCaller {
   };
 }
 
+/**
+ * Helper function to build prompt messages (user and system) for Claude.
+ */
+function buildPromptMessagesClaude(prompt: {
+  user: string;
+  system?: string;
+}): MessageParam[] {
+  const messages: MessageParam[] = [];
+
+  if (prompt.system) {
+    messages.push({ role: "user" as const, content: prompt.system });
+  }
+  if (prompt.user) {
+    messages.push({ role: "user" as const, content: prompt.user });
+  }
+  return messages;
+}
+
+/**
+ * Helper function to build tool call messages for Claude.
+ */
+const buildToolMessagesClaude = (prompt: {
+  tools?: ToolCall[];
+}): MessageParam[] => {
+  const messages: MessageParam[] = [];
+  if (prompt.tools) {
+    messages.push(
+      ...prompt.tools.map((toolCall) => ({
+        role: "user" as const, // In Claude API, tool call result is user message
+        content: `${JSON.stringify(toolCall)}`,
+      }))
+    );
+  }
+  return messages;
+};
+
 const callClaude = async (
   anthropic: Anthropic,
   apiSettings: {
@@ -884,28 +932,15 @@ const callClaude = async (
   if (signal?.aborted) {
     throw new Error("AbortError: Request aborted by user.");
   }
-  let formattedPrompt = prompt;
 
-  if (tools && tools.length > 0 && (tools[0].type || "native") !== "native") {
-    formattedPrompt = prepareFormattedToolPrompt(prompt, tools);
-  } else if (
-    prompt.tools &&
-    prompt.tools.length > 0 &&
-    tools &&
-    (tools[0].type || "native") !== "native"
-  ) {
-    formattedPrompt = prepareFormattedToolPrompt(prompt, tools);
-  }
+  // Build prompt messages
+  const promptMessages = buildPromptMessagesClaude(prompt);
+  // Build tool messages
+  const toolMessages = buildToolMessagesClaude(prompt);
 
   const claudePromptMessages: MessageParam[] = [
-    ...(formattedPrompt.system
-      ? [{ role: "user" as const, content: formattedPrompt.system }]
-      : []),
-    { role: "user" as const, content: formattedPrompt.user },
-    ...(formattedPrompt.tools || []).map((toolCall) => ({
-      role: "user" as const, // In Claude API, tool call result is user message
-      content: `Tool Call Result: ${JSON.stringify(toolCall)}`,
-    })),
+    ...toolMessages,
+    ...promptMessages,
   ];
 
   const claudePrompt: Anthropic.Messages.MessageCreateParamsNonStreaming = {
