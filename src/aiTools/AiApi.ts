@@ -126,6 +126,14 @@ export function encodeToolCallsWithResultsToXml(toolCalls: ToolCall[]): string {
 }
 
 /**
+ * Decodes tool calls from a response string, auto-detecting format (XML or JSON).
+ */
+export const decodeToolCalls = (response: string): ToolCall[] => [
+  ...decodeJsonToolCalls(response),
+  ...decodeXmlToolCalls(response),
+];
+
+/**
  * Decodes XML formatted tool calls from a response string into ToolCall objects.
  */
 export function decodeXmlToolCalls(response: string): ToolCall[] {
@@ -230,10 +238,7 @@ export function decodeJsonToolCalls(response: string): ToolCall[] {
 export function prepareFormattedToolPrompt(
   prompt: { user: string; system?: string; tools?: ToolCall[] },
   tools?: ToolDefinition[]
-): {
-  prompt: { user: string; system: string };
-  decodeToolCalls: (response: string) => ToolCall[];
-} {
+): { user: string; system: string } {
   let userPrompt = prompt.user;
   let systemPrompt = prompt.system || "";
 
@@ -254,10 +259,7 @@ export function prepareFormattedToolPrompt(
   }
 
   if (!tools || tools.length === 0) {
-    return {
-      prompt: { user: userPrompt, system: systemPrompt },
-      decodeToolCalls: () => [],
-    };
+    return { user: userPrompt, system: systemPrompt };
   }
 
   const callType = tools[0].type || "native";
@@ -272,10 +274,7 @@ export function prepareFormattedToolPrompt(
     const combinedSystem = [systemPrompt, "Call this tool like this:", toolsXml]
       .join("\n\n")
       .trim();
-    return {
-      prompt: { user: userPrompt, system: combinedSystem },
-      decodeToolCalls: decodeXmlToolCalls,
-    };
+    return { user: userPrompt, system: combinedSystem };
   } else if (callType === "json") {
     const toolsJson = encodeToolsToJson(tools);
     const combinedSystem = [
@@ -286,15 +285,9 @@ export function prepareFormattedToolPrompt(
     ]
       .join("\n\n")
       .trim();
-    return {
-      prompt: { user: userPrompt, system: combinedSystem },
-      decodeToolCalls: decodeJsonToolCalls,
-    };
+    return { user: userPrompt, system: combinedSystem };
   } else {
-    return {
-      prompt: { user: userPrompt, system: systemPrompt },
-      decodeToolCalls: () => [],
-    };
+    return { user: userPrompt, system: systemPrompt };
   }
 }
 
@@ -382,12 +375,8 @@ export function newOpenAiApi(settings: OpenAiSpecificSettings): AiApiCaller {
 function buildPromptMessages(
   prompt: { user: string; system?: string; tools?: ToolCall[] },
   callType: "native" | "xml" | "json"
-): {
-  messages: ChatCompletionMessageParam[];
-  decodeToolCalls: (s: string) => ToolCall[];
-} {
+): ChatCompletionMessageParam[] {
   const messages: ChatCompletionMessageParam[] = [];
-  let decodeToolCalls = (res: string) => [] as ToolCall[];
 
   if (prompt.tools && prompt.tools.length > 0) {
     if (callType === "native") {
@@ -428,7 +417,6 @@ function buildPromptMessages(
           content: xmlMessage,
         });
       }
-      decodeToolCalls = decodeXmlToolCalls;
     } else if (callType === "json") {
       for (const toolCall of prompt.tools) {
         const jsonMessage = encodeToolCallsWithResultsToJson([toolCall]);
@@ -437,7 +425,6 @@ function buildPromptMessages(
           content: jsonMessage,
         });
       }
-      decodeToolCalls = decodeJsonToolCalls;
     }
   }
 
@@ -455,7 +442,7 @@ function buildPromptMessages(
     });
   }
 
-  return { messages, decodeToolCalls };
+  return messages;
 }
 
 const callOpenAi = async (
@@ -475,7 +462,7 @@ const callOpenAi = async (
     tools && tools.length > 0 ? tools[0].type || "native" : "native";
 
   // Build messages with tool calls (if any) coming first.
-  const { messages, decodeToolCalls } = buildPromptMessages(prompt, callType);
+  const messages = buildPromptMessages(prompt, callType);
 
   if (signal?.aborted) {
     throw new Error("AbortError: Request aborted by user.");
@@ -585,13 +572,10 @@ const callGemini = async (
   }
 
   let formattedPrompt = prompt;
-  let decodeToolCalls = (res: string) => [] as ToolCall[];
   const toolType = (tools && tools.length > 0 && tools[0].type) || "native";
 
   if (toolType !== "native") {
-    const prepared = prepareFormattedToolPrompt(prompt, tools);
-    formattedPrompt = prepared.prompt;
-    decodeToolCalls = prepared.decodeToolCalls;
+    formattedPrompt = prepareFormattedToolPrompt(prompt, tools);
   }
 
   const geminiModel = genAI.getGenerativeModel({ model: apiSettings.model });
@@ -695,21 +679,16 @@ const callGroq = async (
     throw new Error("AbortError: Request aborted by user.");
   }
   let formattedPrompt = prompt;
-  let decodeToolCalls = (res: string) => [] as ToolCall[];
 
   if (tools && tools.length > 0 && (tools[0].type || "native") !== "native") {
-    const prepared = prepareFormattedToolPrompt(prompt, tools);
-    formattedPrompt = prepared.prompt;
-    decodeToolCalls = prepared.decodeToolCalls;
+    formattedPrompt = prepareFormattedToolPrompt(prompt, tools);
   } else if (
     prompt.tools &&
     prompt.tools.length > 0 &&
     tools &&
     (tools[0].type || "native") !== "native"
   ) {
-    const prepared = prepareFormattedToolPrompt(prompt, tools);
-    formattedPrompt = prepared.prompt;
-    decodeToolCalls = prepared.decodeToolCalls;
+    formattedPrompt = prepareFormattedToolPrompt(prompt, tools);
   }
 
   const messages: ChatCompletionCreateParamsNonStreaming["messages"] = [
@@ -806,21 +785,16 @@ const callCerebras = async (
     throw new Error("AbortError: Request aborted by user.");
   }
   let formattedPrompt = prompt;
-  let decodeToolCalls = (res: string) => [] as ToolCall[];
 
   if (tools && tools.length > 0 && (tools[0].type || "native") !== "native") {
-    const prepared = prepareFormattedToolPrompt(prompt, tools);
-    formattedPrompt = prepared.prompt;
-    decodeToolCalls = prepared.decodeToolCalls;
+    formattedPrompt = prepareFormattedToolPrompt(prompt, tools);
   } else if (
     prompt.tools &&
     prompt.tools.length > 0 &&
     tools &&
     (tools[0].type || "native") !== "native"
   ) {
-    const prepared = prepareFormattedToolPrompt(prompt, tools);
-    formattedPrompt = prepared.prompt;
-    decodeToolCalls = prepared.decodeToolCalls;
+    formattedPrompt = prepareFormattedToolPrompt(prompt, tools);
   }
 
   const messages: CerebrasServiceClient.Chat.Completions.ChatCompletionCreateParamsNonStreaming["messages"] =
@@ -910,21 +884,16 @@ const callClaude = async (
     throw new Error("AbortError: Request aborted by user.");
   }
   let formattedPrompt = prompt;
-  let decodeToolCalls = (res: string) => [] as ToolCall[];
 
   if (tools && tools.length > 0 && (tools[0].type || "native") !== "native") {
-    const prepared = prepareFormattedToolPrompt(prompt, tools);
-    formattedPrompt = prepared.prompt;
-    decodeToolCalls = prepared.decodeToolCalls;
+    formattedPrompt = prepareFormattedToolPrompt(prompt, tools);
   } else if (
     prompt.tools &&
     prompt.tools.length > 0 &&
     tools &&
     (tools[0].type || "native") !== "native"
   ) {
-    const prepared = prepareFormattedToolPrompt(prompt, tools);
-    formattedPrompt = prepared.prompt;
-    decodeToolCalls = prepared.decodeToolCalls;
+    formattedPrompt = prepareFormattedToolPrompt(prompt, tools);
   }
 
   const claudePromptMessages: MessageParam[] = [
@@ -992,150 +961,3 @@ function convertFromClaudeToolCalls(claudeToolCalls: any[]): ToolCall[] {
     parameters: claudeToolCall.input,
   }));
 }
-
-/**
- * Enhances an AiApiCaller to handle function calls in a loop.
- */
-export const withFunctionCalling =
-  (apiCaller: AiApiCaller): AiApiCaller =>
-  async (
-    prompt: {
-      user: string;
-      system?: string;
-      tools?: ToolCall[];
-    },
-    tools?: ToolDefinition[],
-    options?: { logger?: Logger; signal?: AbortSignal }
-  ) => {
-    const { logger = () => {}, signal } = options ?? {};
-
-    let currentPrompt = { ...prompt };
-    let currentTools = tools;
-    let finalMessage = "";
-    let finalToolCalls: ToolCall[] = [];
-    let functionCallLoop = true;
-
-    while (functionCallLoop) {
-      if (signal?.aborted) {
-        logger("Request aborted before API call.");
-        return { assistant: finalMessage, tools: finalToolCalls };
-      }
-      const apiResponse = await apiCaller(currentPrompt, currentTools, {
-        logger,
-        signal,
-      });
-      finalMessage = apiResponse.assistant;
-      finalToolCalls = apiResponse.tools;
-      functionCallLoop = false;
-
-      if (apiResponse.tools && apiResponse.tools.length > 0 && tools) {
-        const functionResults: ToolCall[] = [];
-        for (const toolCall of apiResponse.tools) {
-          if (signal?.aborted) {
-            logger("Request aborted during function call processing.");
-            return { assistant: finalMessage, tools: finalToolCalls };
-          }
-          const toolDefinition = tools.find((t) => t.name === toolCall.name);
-          if (toolDefinition && toolDefinition.function) {
-            functionCallLoop = true;
-            logger(
-              `Calling function: ${toolCall.name} with params: ${JSON.stringify(
-                toolCall.parameters
-              )}`
-            );
-
-            if (toolDefinition.parameters && toolCall.parameters) {
-              if (
-                !validateJsonAgainstSchema(
-                  toolCall.parameters,
-                  toolDefinition.parameters
-                )
-              ) {
-                throw new Error(
-                  `Tool call arguments for ${
-                    toolCall.name
-                  } do not match schema: ${JSON.stringify(
-                    toolDefinition.parameters
-                  )}`
-                );
-              }
-            }
-
-            try {
-              const functionResponse = await toolDefinition.function(
-                toolCall.parameters,
-                signal
-              );
-
-              if (toolDefinition.response) {
-                if (
-                  !validateJsonAgainstSchema(
-                    functionResponse,
-                    toolDefinition.response
-                  )
-                ) {
-                  throw new Error(
-                    `Function response for ${
-                      toolCall.name
-                    } does not match schema: ${JSON.stringify(
-                      toolDefinition.response
-                    )}`
-                  );
-                }
-              }
-              logger(
-                `Function ${toolCall.name} returned: ${JSON.stringify(
-                  functionResponse
-                )}`
-              );
-              functionResults.push({
-                ...toolCall,
-                response: functionResponse,
-              });
-            } catch (error: any) {
-              if (error.name === "AbortError") {
-                logger(`Function ${toolCall.name} aborted.`);
-                return { assistant: finalMessage, tools: finalToolCalls };
-              }
-              const errorMsg = `Function ${toolCall.name} failed: ${
-                error.message || error
-              }`;
-              logger(errorMsg, "error");
-              functionResults.push({
-                ...toolCall,
-                response: `Error: ${errorMsg}`,
-              });
-            }
-          } else {
-            functionCallLoop = false;
-            break;
-          }
-        }
-
-        if (functionCallLoop) {
-          const systemMessage = [
-            prompt.system,
-            `Function call results:`,
-            ...functionResults.map(
-              (toolCallResult) =>
-                `- Tool: ${toolCallResult.name}, Parameters: ${JSON.stringify(
-                  toolCallResult.parameters
-                )}, Result: ${JSON.stringify(toolCallResult.response)}`
-            ),
-            `Re-prompting based on function results.`,
-          ]
-            .filter(Boolean)
-            .join("\n");
-
-          currentPrompt = {
-            user: prompt.user,
-            system: systemMessage,
-            tools: functionResults,
-          };
-          currentTools = tools;
-        }
-      }
-    }
-
-    return { assistant: finalMessage, tools: finalToolCalls };
-  };
