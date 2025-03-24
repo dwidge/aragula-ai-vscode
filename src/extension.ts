@@ -3,8 +3,14 @@ import * as fs from "fs/promises";
 import * as path from "path";
 import * as vscode from "vscode";
 import {
+  AiApiCaller,
+  AiApiSettings,
   Json,
   Logger,
+  newCerebrasApi,
+  newClaudeApi,
+  newGeminiApi,
+  newGroqApi,
   newOpenAiApi,
   ToolCall,
   ToolDefinition,
@@ -23,6 +29,21 @@ const availableToolsDefinitions: ToolDefinition[] = [
   writeFileTool,
 ];
 const availableToolNames = availableToolsDefinitions.map((tool) => tool.name);
+
+const availableVendors: string[] = [
+  "openai",
+  "gemini",
+  "groq",
+  "cerebras",
+  "claude",
+];
+
+/**
+ * Settings for a specific AI provider.
+ */
+interface AiProviderSettings extends AiApiSettings {
+  name: string; // Name to identify the provider configuration
+}
 
 export function activate(context: vscode.ExtensionContext) {
   console.log('Extension "aragula-ai" active');
@@ -45,6 +66,10 @@ export function activate(context: vscode.ExtensionContext) {
     const systemPrompts = getSystemPromptsFromStorage(context);
     const userPrompts = getUserPromptsFromStorage(context);
     const enabledToolNames = getEnabledToolNamesFromWorkspace(context, tabId);
+    const providerSettingsList = getProviderSettingsFromStorage(context); // Load provider settings
+    const currentProviderSetting =
+      getCurrentProviderSettingFromWorkspace(context, tabId) ||
+      providerSettingsList[0]; // Get current or default provider
 
     // Load workspace prompts if available, otherwise use defaults
     const workspaceSystemPrompt = getCurrentSystemPromptFromWorkspace(
@@ -75,7 +100,10 @@ export function activate(context: vscode.ExtensionContext) {
         userPrompts,
         userPrompt,
         availableToolNames,
-        enabledToolNames
+        enabledToolNames,
+        providerSettingsList,
+        currentProviderSetting,
+        availableVendors
       );
     }
   };
@@ -146,7 +174,10 @@ async function openChatWindow(
   userPrompts: string[],
   userPrompt: string,
   availableToolNames: string[],
-  enabledToolNames: string[]
+  enabledToolNames: string[],
+  providerSettingsList: AiProviderSettings[],
+  currentProviderSetting: AiProviderSettings | undefined,
+  availableVendors: string[]
 ) {
   const panel = vscode.window.createWebviewPanel(
     "askAIChat",
@@ -188,6 +219,9 @@ async function openChatWindow(
     userPrompts: userPrompts,
     availableTools: availableToolNames,
     enabledTools: enabledToolNames,
+    providerSettingsList: providerSettingsList,
+    currentProviderSetting: currentProviderSetting,
+    availableVendors: availableVendors, // Send available vendors
   });
 
   context.workspaceState.update(`userInput-${tabId}`, "");
@@ -304,9 +338,136 @@ function handleWebviewMessage(
     case "disableTool":
       handleDisableTool(context, panel, message.toolName, tabId);
       break;
+    case "requestProviderSettings":
+      handleRequestProviderSettings(context, panel);
+      break;
+    case "saveProviderSetting": // Changed from saveProviderSettingToLibrary to saveProviderSetting
+      handleSaveProviderSetting(context, panel, message.providerSetting);
+      break;
+    case "updateProviderSetting": // Added handler for updateProviderSetting
+      handleUpdateProviderSetting(
+        context,
+        panel,
+        message.oldProviderSettingName,
+        message.providerSetting
+      );
+      break;
+    case "deleteProviderSettingFromLibrary":
+      handleDeleteProviderSettingFromLibrary(
+        context,
+        panel,
+        message.providerSettingName
+      );
+      break;
+    case "useProviderSettingFromLibrary":
+      handleUseProviderSettingFromLibrary(
+        context,
+        panel,
+        message.providerSettingName,
+        tabId
+      );
+      break;
+    case "requestAvailableVendors": // New case for requesting available vendors
+      handleRequestAvailableVendors(context, panel);
+      break;
     default:
       console.warn("Unknown command from webview:", message.command);
   }
+}
+
+async function handleRequestAvailableVendors(
+  context: vscode.ExtensionContext,
+  panel: vscode.WebviewPanel
+) {
+  panel.webview.postMessage({
+    command: "availableVendors",
+    availableVendors: availableVendors,
+  });
+}
+
+async function handleUpdateProviderSetting(
+  context: vscode.ExtensionContext,
+  panel: vscode.WebviewPanel,
+  oldProviderSettingName: string,
+  providerSetting: AiProviderSettings
+) {
+  await updateProviderSettingInStorage(
+    context,
+    oldProviderSettingName,
+    providerSetting
+  );
+  const updatedProviderSettings = getProviderSettingsFromStorage(context);
+  panel.webview.postMessage({
+    command: "providerSettingsList",
+    providerSettingsList: updatedProviderSettings,
+  });
+  panel.webview.postMessage({ command: "providerSettingsUpdated" }); // Notify settings updated
+}
+
+async function handleUseProviderSettingFromLibrary(
+  context: vscode.ExtensionContext,
+  panel: vscode.WebviewPanel,
+  providerSettingName: string,
+  tabId: string
+) {
+  await useProviderSettingInStorage(context, providerSettingName);
+  const updatedProviderSettings = getProviderSettingsFromStorage(context);
+  const currentProviderSetting = updatedProviderSettings.find(
+    (p) => p.name === providerSettingName
+  );
+  setCurrentProviderSettingToWorkspace(context, tabId, currentProviderSetting);
+
+  panel.webview.postMessage({
+    command: "providerSettingsList",
+    providerSettingsList: updatedProviderSettings,
+    currentProviderSetting: currentProviderSetting,
+  });
+}
+
+async function handleDeleteProviderSettingFromLibrary(
+  context: vscode.ExtensionContext,
+  panel: vscode.WebviewPanel,
+  providerSettingName: string
+) {
+  await deleteProviderSettingFromStorage(context, providerSettingName);
+  const updatedProviderSettings = getProviderSettingsFromStorage(context);
+  panel.webview.postMessage({
+    command: "providerSettingsList",
+    providerSettingsList: updatedProviderSettings,
+  });
+  panel.webview.postMessage({ command: "providerSettingsUpdated" }); // Notify settings updated
+}
+
+async function handleSaveProviderSetting( // Renamed from handleSaveProviderSettingToLibrary to handleSaveProviderSetting
+  context: vscode.ExtensionContext,
+  panel: vscode.WebviewPanel,
+  providerSetting: AiProviderSettings
+) {
+  await saveProviderSettingToStorage(context, providerSetting);
+  const updatedproviderSettings = getProviderSettingsFromStorage(context);
+  panel.webview.postMessage({
+    command: "providerSettingsList",
+    providerSettingsList: updatedproviderSettings,
+  });
+  panel.webview.postMessage({ command: "providerSettingsUpdated" }); // Notify settings updated
+}
+
+async function handleRequestProviderSettings(
+  context: vscode.ExtensionContext,
+  panel: vscode.WebviewPanel
+) {
+  const providerSettingsList = getProviderSettingsFromStorage(context);
+  const currentProviderSetting =
+    getCurrentProviderSettingFromWorkspace(
+      context,
+      panel.title.split(" - ")[1]
+    ) || providerSettingsList[0];
+
+  panel.webview.postMessage({
+    command: "providerSettingsList",
+    providerSettingsList: providerSettingsList,
+    currentProviderSetting: currentProviderSetting,
+  });
 }
 
 async function handleEnableTool(
@@ -514,23 +675,40 @@ async function handleSendMessage(
     system: string;
     fileNames: string[];
     toolNames: string[];
+    providerSetting: AiProviderSettings;
   },
   openedFiles: { [key: string]: string },
   tabId: string,
   log: Logger,
   enabledToolNames: string[]
 ) {
-  const apiKey = getApiKey();
-  if (!apiKey) {
-    log("Api key missing", "error");
+  const providerSetting = message.providerSetting;
+  if (!providerSetting?.apiKey) {
+    log("API key missing from provider settings", "error");
     return;
   }
 
-  const callAiApi = newOpenAiApi({
-    apiKey,
-    model: "gpt-4o-mini",
-    logger: log,
-  });
+  let callAiApi: AiApiCaller;
+  switch (providerSetting.vendor) {
+    case "openai":
+      callAiApi = newOpenAiApi(providerSetting);
+      break;
+    case "gemini":
+      callAiApi = newGeminiApi(providerSetting);
+      break;
+    case "groq":
+      callAiApi = newGroqApi(providerSetting);
+      break;
+    case "cerebras":
+      callAiApi = newCerebrasApi(providerSetting);
+      break;
+    case "claude":
+      callAiApi = newClaudeApi(providerSetting);
+      break;
+    default:
+      log(`Vendor "${providerSetting.vendor}" not supported.`, "error");
+      return;
+  }
 
   panel.webview.postMessage({
     command: "receiveMessage",
@@ -566,7 +744,7 @@ async function handleSendMessage(
         tools: readFileToolResponse,
       },
       enabledTools,
-      abortController.signal
+      { logger: log, signal: abortController.signal }
     );
 
     log("Calling tools: " + response.tools.map((t) => t.name).join(", "));
@@ -693,6 +871,16 @@ function getUserPromptsFromStorage(context: vscode.ExtensionContext): string[] {
   return context.globalState.get<string[]>("userPrompts", []) || []; // New storage for user prompts
 }
 
+/** Retrieves provider settings from global storage */
+function getProviderSettingsFromStorage(
+  context: vscode.ExtensionContext
+): AiProviderSettings[] {
+  return (
+    context.globalState.get<AiProviderSettings[]>("providerSettingsList", []) ||
+    []
+  );
+}
+
 /** Saves system prompt to global storage, MRU at top */
 async function saveSystemPromptToStorage(
   context: vscode.ExtensionContext,
@@ -717,6 +905,47 @@ async function saveUserPromptToStorage(
   }
 }
 
+/** Saves provider setting to global storage */
+async function saveProviderSettingToStorage(
+  context: vscode.ExtensionContext,
+  providerSetting: AiProviderSettings
+): Promise<void> {
+  let providerSettingsList = getProviderSettingsFromStorage(context);
+  const existingIndex = providerSettingsList.findIndex(
+    (p) => p.name === providerSetting.name
+  );
+  if (existingIndex > -1) {
+    providerSettingsList[existingIndex] = providerSetting; // Update existing
+  } else {
+    providerSettingsList.push(providerSetting); // Add new
+  }
+  await context.globalState.update(
+    "providerSettingsList",
+    providerSettingsList
+  );
+}
+
+/** Updates provider setting in global storage */
+async function updateProviderSettingInStorage(
+  context: vscode.ExtensionContext,
+  oldProviderSettingName: string,
+  providerSetting: AiProviderSettings
+): Promise<void> {
+  let providerSettingsList = getProviderSettingsFromStorage(context);
+  const existingIndex = providerSettingsList.findIndex(
+    (p) => p.name === oldProviderSettingName
+  );
+  if (existingIndex > -1) {
+    providerSettingsList[existingIndex] = providerSetting; // Update existing
+  } else {
+    providerSettingsList.push(providerSetting); // Add
+  }
+  await context.globalState.update(
+    "providerSettingsList",
+    providerSettingsList
+  );
+}
+
 /** Use system prompt, move to top in MRU list */
 async function useSystemPromptInStorage(
   context: vscode.ExtensionContext,
@@ -739,6 +968,14 @@ async function useUserPromptInStorage(
   await context.globalState.update("userPrompts", filteredPrompts);
 }
 
+/** Use provider setting, move to top in MRU list (not really MRU but just set current) */
+async function useProviderSettingInStorage(
+  context: vscode.ExtensionContext,
+  providerSettingName: string
+): Promise<void> {
+  // No MRU logic for provider settings for now, just set current in workspace state.
+}
+
 /** Deletes system prompt from global storage */
 async function deleteSystemPromptFromStorage(
   context: vscode.ExtensionContext,
@@ -757,6 +994,21 @@ async function deleteUserPromptFromStorage(
   let prompts = getUserPromptsFromStorage(context);
   const updatedPrompts = prompts.filter((p) => p !== prompt);
   await context.globalState.update("userPrompts", updatedPrompts); // Delete from user prompts storage
+}
+
+/** Deletes provider setting from global storage */
+async function deleteProviderSettingFromStorage(
+  context: vscode.ExtensionContext,
+  providerSettingName: string
+): Promise<void> {
+  let providerSettingsList = getProviderSettingsFromStorage(context);
+  const updatedProviderSettings = providerSettingsList.filter(
+    (p) => p.name !== providerSettingName
+  );
+  await context.globalState.update(
+    "providerSettingsList",
+    updatedProviderSettings
+  );
 }
 
 /** Get current system prompt from workspace state */
@@ -810,6 +1062,28 @@ async function setEnabledToolNamesToWorkspace(
   toolNames: string[]
 ): Promise<void> {
   await context.workspaceState.update(`enabledToolNames-${tabId}`, toolNames);
+}
+
+/** Get current provider setting from workspace state */
+function getCurrentProviderSettingFromWorkspace(
+  context: vscode.ExtensionContext,
+  tabId: string
+): AiProviderSettings | undefined {
+  return context.workspaceState.get<AiProviderSettings>(
+    `currentProviderSetting-${tabId}`
+  );
+}
+
+/** Set current provider setting to workspace state */
+async function setCurrentProviderSettingToWorkspace(
+  context: vscode.ExtensionContext,
+  tabId: string,
+  providerSetting: AiProviderSettings | undefined
+): Promise<void> {
+  await context.workspaceState.update(
+    `currentProviderSetting-${tabId}`,
+    providerSetting
+  );
 }
 
 /** Builds the complete prompt from the open files and user input. */
