@@ -363,72 +363,71 @@ export function newOpenAiApi(settings: OpenAiSpecificSettings): AiApiCaller {
 }
 
 /**
- * Helper function to build chat messages.
- * The messages order will be:
- * 1. Tool call messages (each tool call in its own message),
- * 2. System message (if any),
- * 3. User message.
- *
- * For native mode, each tool call generates two messages (assistant request and tool response).
- * For xml/json modes, each tool call is encoded into a single assistant message.
+ * Helper function to build tool call messages.
  */
-function buildPromptMessages(
-  prompt: { user: string; system?: string; tools?: ToolCall[] },
-  callType: "native" | "xml" | "json"
-): ChatCompletionMessageParam[] {
+const buildToolMessages = (
+  prompt: { tools?: ToolCall[] },
+  tools?: ToolDefinition[]
+): ChatCompletionMessageParam[] => {
   const messages: ChatCompletionMessageParam[] = [];
 
-  if (prompt.tools && prompt.tools.length > 0) {
+  for (const toolCall of prompt.tools ?? []) {
+    const toolDefinition = tools?.find(
+      (toolDef) => toolDef.name === toolCall.name
+    );
+    const callType = toolDefinition?.type || "native";
+
     if (callType === "native") {
-      for (const toolCall of prompt.tools) {
-        if (!toolCall) {
-          continue;
-        }
-        const toolCallId = `tool_call_${toolCall.name}_${Math.random()
-          .toString(36)
-          .substring(7)}`;
-        // Assistant message for tool call request
-        messages.push({
-          role: "assistant",
-          content: "",
-          tool_calls: [
-            {
-              id: toolCallId,
-              type: "function",
-              function: {
-                name: toolCall.name,
-                arguments: JSON.stringify(toolCall.parameters || {}),
-              },
+      const toolCallId = `tool_call_${toolCall.name}_${Math.random()
+        .toString(36)
+        .substring(7)}`;
+      // Assistant message for tool call request
+      messages.push({
+        role: "assistant",
+        content: "",
+        tool_calls: [
+          {
+            id: toolCallId,
+            type: "function",
+            function: {
+              name: toolCall.name,
+              arguments: JSON.stringify(toolCall.parameters || {}),
             },
-          ],
-        });
-        // Tool message for tool call response
-        messages.push({
-          role: "tool",
-          tool_call_id: toolCallId,
-          content: JSON.stringify(toolCall.response) || "No response",
-        });
-      }
+          },
+        ],
+      });
+      // Tool message for tool call response
+      messages.push({
+        role: "tool",
+        tool_call_id: toolCallId,
+        content: JSON.stringify(toolCall.response) || "No response",
+      });
     } else if (callType === "xml") {
-      for (const toolCall of prompt.tools) {
-        const xmlMessage = encodeToolCallsWithResultsToXml([toolCall]);
-        messages.push({
-          role: "assistant",
-          content: xmlMessage,
-        });
-      }
+      const xmlMessage = encodeToolCallsWithResultsToXml([toolCall]);
+      messages.push({
+        role: "assistant",
+        content: xmlMessage,
+      });
     } else if (callType === "json") {
-      for (const toolCall of prompt.tools) {
-        const jsonMessage = encodeToolCallsWithResultsToJson([toolCall]);
-        messages.push({
-          role: "assistant",
-          content: jsonMessage,
-        });
-      }
+      const jsonMessage = encodeToolCallsWithResultsToJson([toolCall]);
+      messages.push({
+        role: "assistant",
+        content: jsonMessage,
+      });
     }
   }
+  return messages;
+};
 
-  // Append system and user messages AFTER tool call messages
+/**
+ * Helper function to build prompt messages (user and system).
+ */
+function buildPromptMessages(prompt: {
+  user: string;
+  system?: string;
+}): ChatCompletionMessageParam[] {
+  const messages: ChatCompletionMessageParam[] = [];
+
   if (prompt.system) {
     messages.push({
       role: "system",
@@ -457,12 +456,16 @@ const callOpenAi = async (
 ): Promise<{ assistant: string; tools: ToolCall[] }> => {
   const { signal, logger = () => {} } = options || {};
 
-  // Determine call type: native, xml, or json.
-  const callType: "native" | "xml" | "json" =
-    tools && tools.length > 0 ? tools[0].type || "native" : "native";
+  // Build tool messages
+  const toolMessages = buildToolMessages(prompt, tools);
+  // Build prompt messages
+  const promptMessages = buildPromptMessages(prompt);
 
-  // Build messages with tool calls (if any) coming first.
-  const messages = buildPromptMessages(prompt, callType);
+  // Combine messages - tool messages should come before prompt messages
+  const messages: ChatCompletionMessageParam[] = [
+    ...toolMessages,
+    ...promptMessages,
+  ];
 
   if (signal?.aborted) {
     throw new Error("AbortError: Request aborted by user.");
@@ -476,15 +479,13 @@ const callOpenAi = async (
     if (tool.type === "xml") {
       messages.push({
         role: "system",
-        content:
-          "Output only xml when calling this tool:\n" + encodeToolToXml(tool),
+        content: "Use this format for this tool:\n" + encodeToolToXml(tool),
       });
     }
     if (tool.type === "json") {
       messages.push({
         role: "system",
-        content:
-          "Output only json when calling this tool:\n" + encodeToolToJson(tool),
+        content: "Use this format for this tool:\n" + encodeToolToJson(tool),
       });
     }
   }
