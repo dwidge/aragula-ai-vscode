@@ -1,4 +1,4 @@
-import { ToolDef } from "./ToolTypes";
+import { ToolDefinition } from "./AiApi";
 import {
   askUser,
   readDir,
@@ -7,7 +7,7 @@ import {
   writeFile,
 } from "./functions";
 
-export const readDirTool: ToolDef = {
+export const readDirTool: ToolDefinition = {
   function: readDir,
   name: "readDir",
   description: "readDir",
@@ -19,7 +19,7 @@ export const readDirTool: ToolDef = {
   },
 };
 
-export const readFileTool: ToolDef = {
+export const readFileTool: ToolDefinition = {
   function: readFile,
   name: "readFile",
   description: "readFile",
@@ -31,7 +31,7 @@ export const readFileTool: ToolDef = {
   },
 };
 
-export const writeFileTool: ToolDef = {
+export const writeFileTool: ToolDefinition = {
   type: "xml",
   function: writeFile,
   name: "writeFile",
@@ -52,7 +52,7 @@ here
   },
 };
 
-const runShellCommandTool: ToolDef = {
+const runShellCommandTool: ToolDefinition = {
   function: runShellCommand,
   name: "runShellCommand",
   description: "runShellCommand",
@@ -65,8 +65,8 @@ const runShellCommandTool: ToolDef = {
   },
 };
 
-const askUserTool: ToolDef = {
-  function: (...v) => (console.log("askUserTool1", ...v), askUser(...v)),
+const askUserTool: ToolDefinition = {
+  function: askUser,
   name: "askUser",
   description: "Prompts the user with a set of options.",
   parameters: {

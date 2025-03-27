@@ -4,6 +4,7 @@ import CerebrasServiceClient from "@cerebras/cerebras_cloud_sdk";
 import { ChatCompletion } from "@cerebras/cerebras_cloud_sdk/resources/index.mjs";
 import { parseXml } from "@dwidge/xml-parser";
 import {
+  FunctionCall,
   GenerateContentRequest,
   GoogleGenerativeAI,
 } from "@google/generative-ai";
@@ -30,6 +31,7 @@ export type Json =
 export type JsonSchema = {
   type: "string" | "number" | "boolean" | "object" | "array" | "null";
   properties?: { [propertyName: string]: JsonSchema };
+  items?: JsonSchema;
   description?: string;
   enum?: string[];
   format?: string;
@@ -106,6 +108,7 @@ export const encodeToolsToXml = (tools: ToolDefinition[]): string =>
   tools.map(encodeToolToXml).join("\n\n");
 
 export const encodeToolToXml = (tool: ToolDefinition): string =>
+  "Use this format for this tool:\n" +
   toXml(
     Object.fromEntries(
       Object.entries(tool.parameters.properties ?? {}).map(([k, v]) => [
@@ -187,13 +190,16 @@ export function encodeToolToJson(tool: ToolDefinition): string {
       params[key] = schema.description || schema.type;
     }
   }
-  return JSON.stringify(
-    {
-      name: tool.name,
-      parameters: params,
-    },
-    null,
-    2
+  return (
+    "Use this format for this tool:\n" +
+    JSON.stringify(
+      {
+        name: tool.name,
+        parameters: params,
+      },
+      null,
+      2
+    )
   );
 }
 
@@ -305,7 +311,7 @@ export function newOpenAiApi(settings: OpenAiSpecificSettings): AiApiCaller {
 /**
  * Helper function to build tool call messages for OpenAI.
  */
-const buildToolMessagesOpenAi = (
+const buildToolCallMessagesOpenAi = (
   prompt: { tools?: ToolCall[] },
   tools?: ToolDefinition[]
 ): ChatCompletionMessageParam[] => {
@@ -384,6 +390,30 @@ function buildPromptMessagesOpenAi(prompt: {
   return messages;
 }
 
+/**
+ * Helper function to build tool def messages for OpenAi.
+ */
+const buildToolDefMessagesOpenAi = (
+  tools?: ToolDefinition[]
+): ChatCompletionMessageParam[] => {
+  const messages: ChatCompletionMessageParam[] = [];
+  for (const tool of tools ?? []) {
+    if (tool.type === "xml") {
+      messages.push({
+        role: "system",
+        content: encodeToolToXml(tool),
+      });
+    }
+    if (tool.type === "json") {
+      messages.push({
+        role: "system",
+        content: encodeToolToJson(tool),
+      });
+    }
+  }
+  return messages;
+};
+
 const callOpenAi = async (
   openaiInstance: OpenAI,
   apiSettings: {
@@ -396,47 +426,22 @@ const callOpenAi = async (
 ): Promise<{ assistant: string; tools: ToolCall[] }> => {
   const { signal, logger = () => {} } = options || {};
 
-  // Build tool messages
-  const toolMessages = buildToolMessagesOpenAi(prompt, tools);
-  // Build prompt messages
-  const promptMessages = buildPromptMessagesOpenAi(prompt);
-
-  // Combine messages - tool messages should come before prompt messages
-  const messages: ChatCompletionMessageParam[] = [
-    ...toolMessages,
-    ...promptMessages,
-  ];
-
   if (signal?.aborted) {
     throw new Error("AbortError: Request aborted by user.");
   }
 
-  let nativeTools: OpenAI.Chat.Completions.ChatCompletionTool[] = [];
-  for (const tool of tools ?? []) {
-    if (tool.type === "native") {
-      nativeTools.push(convertToOpenAiTool(tool));
-    }
-    if (tool.type === "xml") {
-      messages.push({
-        role: "system",
-        content: "Use this format for this tool:\n" + encodeToolToXml(tool),
-      });
-    }
-    if (tool.type === "json") {
-      messages.push({
-        role: "system",
-        content: "Use this format for this tool:\n" + encodeToolToJson(tool),
-      });
-    }
-  }
+  const toolcallMessages = buildToolCallMessagesOpenAi(prompt, tools);
+  const promptMessages = buildPromptMessagesOpenAi(prompt);
+  const tooldefMessages = buildToolDefMessagesOpenAi(tools);
 
-  // Prepare API call parameters.
   const apiCallParams: OpenAI.Chat.Completions.ChatCompletionCreateParamsNonStreaming =
     {
       model: apiSettings.model,
       max_tokens: apiSettings.max_tokens,
-      messages,
-      tools: nativeTools,
+      messages: [...toolcallMessages, ...promptMessages, ...tooldefMessages],
+      tools: tools
+        ?.filter((t) => t.type === "native")
+        ?.map(convertToOpenAiTool),
       tool_choice: "auto",
     };
 
@@ -516,7 +521,7 @@ function buildPromptMessagesGemini(prompt: {
 /**
  * Helper function to build tool call messages for Gemini.
  */
-const buildToolMessagesGemini = (prompt: {
+const buildToolCallMessagesGemini = (prompt: {
   tools?: ToolCall[];
 }): GenerateContentRequest["contents"] => {
   const messages: GenerateContentRequest["contents"] = [];
@@ -527,6 +532,30 @@ const buildToolMessagesGemini = (prompt: {
         parts: [{ text: `${JSON.stringify(toolCall)}` }],
       }))
     );
+  }
+  return messages;
+};
+
+/**
+ * Helper function to build tool def messages for Gemini.
+ */
+const buildToolDefMessagesGemini = (
+  tools?: ToolDefinition[]
+): GenerateContentRequest["contents"] => {
+  const messages: GenerateContentRequest["contents"] = [];
+  for (const tool of tools ?? []) {
+    if (tool.type === "xml") {
+      messages.push({
+        role: "user",
+        parts: [{ text: encodeToolToXml(tool) }],
+      });
+    }
+    if (tool.type === "json") {
+      messages.push({
+        role: "user",
+        parts: [{ text: encodeToolToJson(tool) }],
+      });
+    }
   }
   return messages;
 };
@@ -548,18 +577,16 @@ const callGemini = async (
     throw new Error("AbortError: Request aborted by user.");
   }
 
-  const toolType = (tools && tools.length > 0 && tools[0].type) || "native";
-
   const geminiModel = genAI.getGenerativeModel({ model: apiSettings.model });
 
+  const toolcallMessages = buildToolCallMessagesGemini(prompt);
   // Build prompt messages
   const promptMessages = buildPromptMessagesGemini(prompt);
-  // Build tool messages
-  const toolMessages = buildToolMessagesGemini(prompt);
+  const tooldefMessages = buildToolDefMessagesGemini(tools);
 
   const geminiPrompt: GenerateContentRequest = {
-    contents: [...toolMessages, ...promptMessages],
-    tools: toolType === "native" ? tools?.map(convertToGeminiTool) : undefined,
+    contents: [...toolcallMessages, ...promptMessages, ...tooldefMessages],
+    tools: tools?.filter((t) => t.type === "native")?.map(convertToGeminiTool),
   };
 
   logger(JSON.stringify(geminiPrompt, null, 2), "prompt");
@@ -571,7 +598,7 @@ const callGemini = async (
   logger(JSON.stringify(response, null, 2), "prompt");
 
   let messageContent = "";
-  let geminiToolCalls: any[] = [];
+  let geminiToolCalls: FunctionCall[] = [];
 
   if (
     response.response.candidates &&
@@ -581,16 +608,16 @@ const callGemini = async (
       if ("text" in part) {
         messageContent += part.text;
       } else if ("functionCall" in part) {
-        geminiToolCalls.push(part.functionCall);
+        geminiToolCalls.push(part.functionCall!);
       }
     }
   }
   messageContent = messageContent.trim();
 
-  const toolCalls =
-    toolType === "native"
-      ? convertFromGeminiToolCalls(geminiToolCalls)
-      : decodeToolCalls(messageContent);
+  const toolCalls = [
+    ...convertFromGeminiToolCalls(geminiToolCalls),
+    ...decodeToolCalls(messageContent),
+  ];
 
   return { assistant: messageContent, tools: toolCalls };
 };
