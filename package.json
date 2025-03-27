@@ -95,7 +95,7 @@
     "@anthropic-ai/sdk": "^0.39.0",
     "@cerebras/cerebras_cloud_sdk": "^1.26.0",
     "@dwidge/llm-file-diff": "^0.0.3",
-    "@dwidge/xml-parser": "^0.0.1",
+    "@dwidge/xml-parser": "^0.0.2",
     "@google/generative-ai": "^0.24.0",
     "groq-sdk": "^0.17.0",
     "openai": "^4.53.2",

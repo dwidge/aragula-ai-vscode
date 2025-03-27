@@ -18,8 +18,8 @@ importers:
         specifier: ^0.0.3
         version: 0.0.3
       '@dwidge/xml-parser':
-        specifier: ^0.0.1
-        version: 0.0.1
+        specifier: ^0.0.2
+        version: 0.0.2
       '@google/generative-ai':
         specifier: ^0.24.0
         version: 0.24.0
@@ -138,8 +138,8 @@ packages:
   '@dwidge/llm-file-diff@0.0.3':
     resolution: {integrity: sha512-0ew8zXvEqM2FnwUOMIrSoiPTSfhhgHN2GxM9jv9D1oN+v/XOKEbwwJpXRaIKmo5oKRSSR3c8Nt4AesbrhTTgRQ==}
 
-  '@dwidge/xml-parser@0.0.1':
-    resolution: {integrity: sha512-E2aDVpRdtEvwJ42n8rh3B84E3zFBZs+1tuSUZpy+Q6omQi5zeijRHj3wgItUlsQeZcPusNyaRKCr7Yqf6m+0RA==}
+  '@dwidge/xml-parser@0.0.2':
+    resolution: {integrity: sha512-3bMf77Tmiaf8oFe2M/c+c+Sa+VPOYpEv23l9pJXnLdFPsK5CXHk15OEj27/4DPcIn7B4SIQeVo/XT5qnskWLqQ==}
 
   '@esbuild/aix-ppc64@0.21.5':
     resolution: {integrity: sha512-1SDgH6ZSPTlggy1yI6+Dbkiz8xzpHJEVAlF/AM1tHPLsf5STom9rwtjE4hKAF20FfXXNTFqEYXyJNWh1GiZedQ==}
@@ -2292,7 +2292,7 @@ snapshots:
     dependencies:
       zod: 3.23.8
 
-  '@dwidge/xml-parser@0.0.1': {}
+  '@dwidge/xml-parser@0.0.2': {}
 
   '@esbuild/aix-ppc64@0.21.5':
     optional: true

@@ -32,7 +32,7 @@ export const readFileTool: ToolDefinition = {
 };
 
 export const writeFileTool: ToolDefinition = {
-  type: "xml",
+  type: "native",
   function: writeFile,
   name: "writeFile",
   description: "writeFile",

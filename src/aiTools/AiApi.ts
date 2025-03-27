@@ -5,6 +5,7 @@ import { ChatCompletion } from "@cerebras/cerebras_cloud_sdk/resources/index.mjs
 import { parseXml } from "@dwidge/xml-parser";
 import {
   FunctionCall,
+  FunctionDeclaration,
   GenerateContentRequest,
   GoogleGenerativeAI,
 } from "@google/generative-ai";
@@ -571,7 +572,6 @@ const callGemini = async (
   options?: { signal?: AbortSignal; logger?: Logger }
 ): Promise<{ assistant: string; tools: ToolCall[] }> => {
   const { signal, logger = () => {} } = options || {};
-  logger("Calling Gemini API...");
 
   if (signal?.aborted) {
     throw new Error("AbortError: Request aborted by user.");
@@ -586,7 +586,13 @@ const callGemini = async (
 
   const geminiPrompt: GenerateContentRequest = {
     contents: [...toolcallMessages, ...promptMessages, ...tooldefMessages],
-    tools: tools?.filter((t) => t.type === "native")?.map(convertToGeminiTool),
+    tools: [
+      {
+        functionDeclarations: tools
+          ?.filter((t) => t.type === "native")
+          ?.map(convertToGeminiTool),
+      },
+    ],
   };
 
   logger(JSON.stringify(geminiPrompt, null, 2), "prompt");
@@ -614,7 +620,7 @@ const callGemini = async (
   }
   messageContent = messageContent.trim();
 
-  const toolCalls = [
+  const toolCalls: ToolCall[] = [
     ...convertFromGeminiToolCalls(geminiToolCalls),
     ...decodeToolCalls(messageContent),
   ];
@@ -622,15 +628,11 @@ const callGemini = async (
   return { assistant: messageContent, tools: toolCalls };
 };
 
-function convertToGeminiTool(tool: ToolDefinition): any {
+function convertToGeminiTool(tool: ToolDefinition): FunctionDeclaration {
   return {
     name: tool.name,
     description: tool.description,
-    parameters: {
-      type: "OBJECT",
-      properties: tool.parameters.properties || {},
-      required: tool.parameters.required || [],
-    },
+    parameters: tool.parameters as any,
   };
 }
 

@@ -737,6 +737,7 @@ async function handleSendMessage(
       message.toolNames
     );
 
+    log("calling " + providerSetting.vendor, "system");
     const response = await callAiApi(
       {
         user: message.user,
@@ -746,8 +747,8 @@ async function handleSendMessage(
       enabledTools,
       { logger: log, signal: abortController.signal }
     );
-
-    log("Calling tools: " + response.tools.map((t) => t.name).join(", "));
+    log(response.assistant, "assistant");
+    log(response.tools.map((t) => t.name).join(", "), "tools");
 
     const toolCallResults: {
       name: string;
