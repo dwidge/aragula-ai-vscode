@@ -8,6 +8,7 @@ import {
 } from "./functions";
 
 export const readDirTool: ToolDefinition = {
+  type: "native",
   function: readDir,
   name: "readDir",
   description: "readDir",
@@ -20,6 +21,7 @@ export const readDirTool: ToolDefinition = {
 };
 
 export const readFileTool: ToolDefinition = {
+  type: "backtick",
   function: readFile,
   name: "readFile",
   description: "readFile",
@@ -32,27 +34,24 @@ export const readFileTool: ToolDefinition = {
 };
 
 export const writeFileTool: ToolDefinition = {
-  type: "native",
+  type: "backtick",
   function: writeFile,
   name: "writeFile",
-  description: "writeFile",
+  description: "Write contents of a file to a path",
   parameters: {
     type: "object",
     properties: {
-      path: { type: "string" },
+      path: { type: "string", example: "./path/to/file.ext" },
       content: {
         type: "string",
-        description: `
-multiline
-content
-here
-`,
+        description: `\nmultiline\ncontent\nhere\n`,
       },
     },
   },
 };
 
 const runShellCommandTool: ToolDefinition = {
+  type: "xml",
   function: runShellCommand,
   name: "runShellCommand",
   description: "runShellCommand",
@@ -66,6 +65,7 @@ const runShellCommandTool: ToolDefinition = {
 };
 
 const askUserTool: ToolDefinition = {
+  type: "xml",
   function: askUser,
   name: "askUser",
   description: "Prompts the user with a set of options.",

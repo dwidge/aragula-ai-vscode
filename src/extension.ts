@@ -730,6 +730,7 @@ async function handleSendMessage(
       name: "readFile",
       parameters: { path: k },
       response: { content: v },
+      type: "backtick",
     }));
     console.log("enabledToolNames in handleSendMessage:", message.toolNames);
     const enabledTools: ToolDefinition[] = filterToolsByName(

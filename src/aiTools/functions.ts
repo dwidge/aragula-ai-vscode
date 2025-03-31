@@ -1,4 +1,5 @@
 import * as fs from "fs/promises";
+import * as Path from "path";
 import * as vscode from "vscode";
 import { z } from "zod";
 import { runAndGetShellOutput } from "../runAndGetShellOutput";
@@ -55,6 +56,8 @@ export async function writeFile(
     .parse(args);
   try {
     const absolutePath = workspaceRelativePathToAbsolutePath(path);
+    const dir = Path.dirname(absolutePath);
+    await fs.mkdir(dir, { recursive: true });
     await fs.writeFile(absolutePath, content);
     vscode.window.showInformationMessage(`writeFile: ${path}`);
     return { success: `${content.length} bytes written to ${path}` };
