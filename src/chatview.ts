@@ -197,24 +197,68 @@ export default (tabId: string) => `
         margin-bottom: 5px;
         overflow-x: auto;
         position: relative;
+        display: flex; /* Enable flex layout for badge and collapse button alignment */
+        flex-direction: column; /* Stack badge and collapse button on top of content */
+      }
+      .message-header {
+        display: grid; /* Changed to grid layout */
+        grid-template-columns: 1fr auto auto; /* Layout with 3 columns */
+        align-items: start; /* Align items to start */
+        margin-bottom: 5px; /* Space between header and content */
+        cursor: pointer; /* Make entire header clickable */
+      }
+      .message-preview {
+        overflow: hidden; /* Hide overflowing text */
+        text-overflow: ellipsis; /* Ellipsis for overflow */
+        white-space: nowrap; /* Prevent text wrapping */
+        margin-right: 10px; /* Add some spacing to the right */
+      }
+      /* Hide message preview when expanded */
+      .message:has(.collapsible-content:not(.collapsed)) .message-header .message-preview {
+        display: none;
       }
       .message-type-badge {
-        position: absolute;
-        top: 5px;
-        right: 5px;
         padding: 2px 5px;
         border-radius: 3px;
         font-size: 0.7em;
         background-color: rgba(0, 0, 0, 0.2);
         color: white;
+        margin-left: auto; /* Push badge to the right */
+      }
+      .collapse-button {
+        background: none;
+        border: none;
+        color: var(--text-color);
+        cursor: pointer;
+        font-size: 0.8em;
+        opacity: 0.5; /* Reduced opacity for less emphasis */
+        padding: 0 5px; /* Added padding for better click area */
+        margin-left: 5px; /* Gap between badge and button */
+      }
+      .collapse-button:hover {
+        opacity: 1; /* Full opacity on hover */
       }
       .message {
         word-wrap: break-word;
       }
+      .collapsible-content {
+        overflow: hidden;
+        transition: max-height 0.3s ease-out;
+      }
+      .collapsible-content.collapsed {
+        max-height: 0;
+        padding-top: 0;
+        padding-bottom: 0;
+        margin-bottom: 0;
+        overflow: hidden; /* Ensure hidden content doesn't cause scroll */
+      }
+
+
       .user-message { background-color: var(--user-message-background); }
       .assistant-message { background-color: var(--assistant-message-background); }
       .system-message { background-color: var(--system-message-background); }
       .prompt-message { background-color: var(--prompt-message-background); }
+      .tool-message { background-color: var(--prompt-message-background); } /* Style for tool messages */
       .log-message { background-color: var(--log-message-background); }
       .error-message { background-color: var(--error-message-background); }
       .warning-message { background-color: var(--warning-message-background); }
@@ -539,6 +583,7 @@ export default (tabId: string) => `
        * @property {string} text
        * @property {string} sender
        * @property {string} [messageType] - Type of message for styling (user, assistant, log, etc.)
+       * @property {boolean} [isCollapsed] - If the message content is collapsed
        */
       /** @type {ChatMessage[]} */
       let chatHistory = [];
@@ -689,16 +734,42 @@ export default (tabId: string) => `
        * Creates and appends a message element to the messages container.
        * @param {ChatMessage} msg - Chat message object.
        */
-      function renderMessage({ id, text, sender, messageType = 'log' }) {
+      function renderMessage({ id, text, sender, messageType = 'log', isCollapsed = false }) {
         const el = document.createElement('pre');
-        el.textContent = text;
         el.classList.add('message'); // General message styling
         el.classList.add(\`\${messageType}-message\`); // Message type specific styling (background color)
+        if (['prompt', 'tool'].includes(messageType)) {
+          el.classList.add('tool-message'); // Apply tool message style if type is prompt or tool
+        }
+
+        const headerDiv = document.createElement('div');
+        headerDiv.classList.add('message-header');
+        headerDiv.onclick = () => toggleMessageCollapse(id); // Make header clickable
+
+        const previewSpan = document.createElement('span');
+        previewSpan.classList.add('message-preview');
+        const [firstLine] = text.split('\\n'); // Get only the first line
+        previewSpan.textContent = firstLine;
+        headerDiv.appendChild(previewSpan);
 
         const badge = document.createElement('span');
         badge.classList.add('message-type-badge');
         badge.textContent = messageType;
-        el.appendChild(badge);
+        headerDiv.appendChild(badge);
+
+        const collapseButton = document.createElement('button');
+        collapseButton.classList.add('collapse-button');
+        collapseButton.textContent = isCollapsed ? '▲' : '▼';
+        headerDiv.appendChild(collapseButton);
+        el.appendChild(headerDiv);
+
+
+        const contentDiv = document.createElement('div');
+        contentDiv.classList.add('collapsible-content');
+        contentDiv.classList.toggle('collapsed', isCollapsed);
+        contentDiv.textContent = text;
+        el.appendChild(contentDiv);
+
 
         if (id) el.id = \`message-\${id}\`;
         messagesContainer.appendChild(el);
@@ -717,7 +788,8 @@ export default (tabId: string) => `
           id: Date.now().toString(),
           text,
           sender,
-          messageType
+          messageType,
+          isCollapsed: ['prompt', 'tool'].includes(messageType) // Collapse prompt and tool messages by default
         };
         chatHistory.push(message);
         saveState();
@@ -742,6 +814,20 @@ export default (tabId: string) => `
           renderChatHistory();
         }
       }
+
+      /**
+       * Toggles the collapsed state of a message and re-renders the chat history.
+       * @param {string} messageId - ID of the message to toggle.
+       */
+      function toggleMessageCollapse(messageId) {
+        const msg = chatHistory.find(m => m.id === messageId);
+        if (msg) {
+          msg.isCollapsed = !msg.isCollapsed;
+          saveState();
+          renderChatHistory();
+        }
+      }
+
 
       /**
        * Clears chat history from memory and localStorage, then re-renders.
@@ -1494,6 +1580,7 @@ export default (tabId: string) => `
       window.clearProviderFormErrors = clearProviderFormErrors;
       window.handleAddProviderSetting = handleAddProviderSetting;
       window.handleUpdateProviderSetting = handleUpdateProviderSetting;
+      window.toggleMessageCollapse = toggleMessageCollapse;
     </script>
   </body>
 </html>
