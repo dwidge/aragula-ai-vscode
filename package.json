@@ -2,7 +2,7 @@
   "name": "aragula-ai-vscode",
   "displayName": "aragula-ai",
   "description": "Chat with files in vscode",
-  "version": "0.0.8",
+  "version": "0.0.9",
   "publisher": "dwidge",
   "repository": {
     "url": "https://github.com/dwidge/aragula-ai-vscode.git"
@@ -67,13 +67,13 @@
     "watch:esbuild": "node esbuild.js --watch",
     "watch:tsc": "tsc --noEmit --watch --project tsconfig.json",
     "package": "pnpm run check-types && pnpm run lint && node esbuild.js --production",
+    "package:vsce": "vsce package --no-dependencies",
     "compile-tests": "tsc -p . --outDir out",
     "watch-tests": "tsc -p . -w --outDir out",
     "pretest": "pnpm run compile-tests && pnpm run compile && pnpm run lint",
     "check-types": "tsc --noEmit",
     "lint": "eslint src --ext ts",
-    "test": "vscode-test",
-    "package-vsce": "vsce package --no-dependencies"
+    "test": "vscode-test"
   },
   "devDependencies": {
     "@types/mocha": "^10.0.7",
