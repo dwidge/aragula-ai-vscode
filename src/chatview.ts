@@ -574,8 +574,8 @@ export default (tabId: string) => `
         chatHistory: \`chatMessages-\${tabId}\`,
         userInput: \`userInput-\${tabId}\`,
         openFiles: \`openFiles-\${tabId}\`,
-        enabledTools: \`enabledTools-\${tabId}\`, // Key for enabled tools
-        currentProviderSettingName: \`currentProviderSettingName-\${tabId}\` // Key for current provider setting name
+        enabledTools: 'enabledTools', // Key for enabled tools
+        currentProviderSettingName: 'currentProviderSettingName' // Key for current provider setting name
       };
 
       // DOM elements
@@ -661,9 +661,9 @@ export default (tabId: string) => `
       function saveState() {
         saveToLocalStorage(STORAGE_KEYS.chatHistory, chatHistory);
         saveToLocalStorage(STORAGE_KEYS.openFiles, openFiles);
-        saveToLocalStorage(STORAGE_KEYS.enabledTools, enabledTools); // Save enabled tools to localStorage
+        saveToLocalStorage(STORAGE_KEYS.enabledTools, enabledTools); // Save enabled tools to localStorage - GLOBAL
         if (currentProviderSetting) {
-          localStorage.setItem(STORAGE_KEYS.currentProviderSettingName, currentProviderSetting.name);
+          localStorage.setItem(STORAGE_KEYS.currentProviderSettingName, currentProviderSetting.name); // GLOBAL
         }
       }
 
@@ -1247,7 +1247,6 @@ export default (tabId: string) => `
         providerApiKeyInput.value = '';
         providerBaseURLInput.value = '';
         providerModelInput.value = '';
-        providerMaxTokensInput.value = '';
         providerVendorInput.value = ''; // Reset dropdown too
         clearProviderFormErrors();
         providerFormChanged = false; // Reset form changed flag when adding new
@@ -1336,6 +1335,9 @@ export default (tabId: string) => `
         vscode.postMessage({ command: "requestUserPrompts" }); // Request latest user prompts from extension - might be redundant now as initPrompts sends them
         vscode.postMessage({ command: "requestProviderSettings" }); // Request provider settings
         vscode.postMessage({ command: "requestAvailableVendors" }); // Request available vendors
+        vscode.postMessage({ command: "requestEnabledTools" }); // Request enabled tools on load
+        vscode.postMessage({ command: "requestCurrentProviderSetting" }); // Request current provider setting on load
+
 
         document.addEventListener('click', function(event) {
           if (systemPromptsPopupVisible && !systemPromptsPopupEl.contains(event.target) && event.target !== document.getElementById('systemPromptInput') && event.target !== systemPromptLoadButton) {
@@ -1425,7 +1427,6 @@ export default (tabId: string) => `
             userPrompts = message.userPrompts || [];
             availableTools = message.availableTools || []; // Initialize available tools
             enabledTools = message.enabledTools || []; // Initialize enabled tools
-            providerSettingsList = message.providerSettingsList || []; // Initialize provider settings list
             currentProviderSetting = message.currentProviderSetting; // Initialize current provider setting
             availableVendors = message.availableVendors || []; // Initialize available vendors
             systemPromptEl.value = currentSystemPrompt;
@@ -1453,6 +1454,14 @@ export default (tabId: string) => `
           case "availableVendors":
             availableVendors = message.availableVendors;
             renderVendorDropdown();
+            break;
+          case "sendEnabledTools": // Receive enabled tools from extension on load
+            enabledTools = message.enabledTools;
+            renderEnabledTools();
+            break;
+          case "sendCurrentProviderSetting": // Receive current provider setting from extension on load
+            currentProviderSetting = message.currentProviderSetting;
+            renderSelectedProvider();
             break;
           default:
             console.warn("Unknown command:", message.command);
