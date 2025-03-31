@@ -275,7 +275,7 @@ function handleWebviewMessage(
   enabledToolNames: string[]
 ) {
   const log: Logger = (msg: string, type: string = "log") => {
-    vscode.window.showInformationMessage(msg);
+    // vscode.window.showInformationMessage(msg);
     panel.webview.postMessage({
       command: "logMessage",
       text: msg,
