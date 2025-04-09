@@ -18,6 +18,7 @@ import {
 import { filterToolsByName } from "./aiTools/filterToolsByName";
 import { readDirTool, readFileTool, writeFileTool } from "./aiTools/tools";
 import chatview from "./chatview";
+import { generateCommitMessage } from "./generateCommitMessage";
 
 // Track existing chat panels using tabId as key
 const chatPanels = new Map<string, vscode.WebviewPanel>();
@@ -122,6 +123,14 @@ export function activate(context: vscode.ExtensionContext) {
     vscode.commands.registerCommand(
       "aragula-ai.askAIEditor",
       async (single: vscode.Uri, options: any) => addFiles([single])
+    )
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand(
+      "aragula-ai.generateCommitMessage",
+      (sourceControl: vscode.SourceControl) =>
+        generateCommitMessage(context, sourceControl)
     )
   );
 }
@@ -922,7 +931,7 @@ function getUserPromptsFromStorage(context: vscode.ExtensionContext): string[] {
 }
 
 /** Retrieves provider settings from global storage */
-function getProviderSettingsFromStorage(
+export function getProviderSettingsFromStorage(
   context: vscode.ExtensionContext
 ): AiProviderSettings[] {
   return (
@@ -938,7 +947,7 @@ function getEnabledToolNamesFromGlobalState(
 }
 
 /** Retrieves current provider setting name from global state */
-function getCurrentProviderSettingFromGlobalState(
+export function getCurrentProviderSettingFromGlobalState(
   context: vscode.ExtensionContext
 ): AiProviderSettings | undefined {
   const providerSettingName = context.globalState.get<string>(

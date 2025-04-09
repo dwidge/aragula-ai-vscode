@@ -41,6 +41,11 @@
         "command": "aragula-ai.askAIEditor",
         "title": "Ask AI",
         "category": "AI"
+      },
+      {
+        "command": "aragula-ai.generateCommitMessage",
+        "shortTitle": "✨",
+        "title": "Generate Commit Message"
       }
     ],
     "menus": {
@@ -55,6 +60,12 @@
         {
           "command": "aragula-ai.askAIEditor",
           "when": "resourceLangId != 'binary'",
+          "group": "navigation"
+        }
+      ],
+      "scm/title": [
+        {
+          "command": "aragula-ai.generateCommitMessage",
           "group": "navigation"
         }
       ]
