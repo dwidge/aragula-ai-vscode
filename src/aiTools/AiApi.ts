@@ -101,6 +101,7 @@ export type Logger = (message: string, type?: string) => void;
  * Settings for the AI API caller.
  */
 export interface AiApiSettings {
+  name: string;
   apiKey: string;
   baseURL?: string;
   model: string;

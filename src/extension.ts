@@ -62,16 +62,6 @@ const availableVendors: string[] = [
   "claude",
 ];
 
-/**
- * Settings for a specific AI provider.
- */
-interface AiProviderSettings extends AiApiSettings {
-  name: string; // Name to identify the provider configuration
-}
-
-const ENABLED_TOOLS_STORAGE_KEY = "enabledTools"; // Global storage key for enabled tools
-const CURRENT_PROVIDER_SETTING_STORAGE_KEY = "currentProviderSettingName"; // Global storage key for current provider setting name
-
 export function activate(context: vscode.ExtensionContext) {
   console.log('Extension "aragula-ai" active');
 
@@ -210,8 +200,8 @@ async function openChatWindow(
   userPrompt: string,
   availableToolNames: string[],
   enabledToolNames: string[],
-  providerSettingsList: AiProviderSettings[],
-  currentProviderSetting: AiProviderSettings | undefined,
+  providerSettingsList: AiApiSettings[],
+  currentProviderSetting: AiApiSettings | undefined,
   availableVendors: string[]
 ) {
   const panel = vscode.window.createWebviewPanel(
@@ -462,7 +452,7 @@ async function handleUpdateProviderSetting(
   context: vscode.ExtensionContext,
   panel: vscode.WebviewPanel,
   oldProviderSettingName: string,
-  providerSetting: AiProviderSettings
+  providerSetting: AiApiSettings
 ) {
   await updateProviderSettingInStorage(
     context,
@@ -517,7 +507,7 @@ async function handleDeleteProviderSettingFromLibrary(
 async function handleSaveProviderSetting( // Renamed from handleSaveProviderSettingToLibrary to handleSaveProviderSetting
   context: vscode.ExtensionContext,
   panel: vscode.WebviewPanel,
-  providerSetting: AiProviderSettings
+  providerSetting: AiApiSettings
 ) {
   await saveProviderSettingToStorage(context, providerSetting);
   const updatedproviderSettings = getProviderSettingsFromStorage(context);
@@ -755,7 +745,7 @@ async function handleSendMessage(
     system: string;
     fileNames: string[];
     toolNames: string[];
-    providerSetting: AiProviderSettings;
+    providerSetting: AiApiSettings;
   },
   openedFiles: { [key: string]: string },
   tabId: string,
