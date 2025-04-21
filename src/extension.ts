@@ -1,5 +1,6 @@
 import { extractFilesFromAIResponse } from "@dwidge/llm-file-diff";
 import * as fs from "fs/promises";
+import { sleep } from "openai/core.mjs";
 import * as path from "path";
 import * as vscode from "vscode";
 import {
@@ -16,6 +17,8 @@ import {
   ToolDefinition,
 } from "./aiTools/AiApi";
 import { filterToolsByName } from "./aiTools/filterToolsByName";
+import { formatCodeWithVscode } from "./aiTools/formatCodeWithVscode";
+import { removeJsJsxComments } from "./aiTools/removeJsJsxComments";
 import { readDirTool, readFileTool, writeFileTool } from "./aiTools/tools";
 import chatview from "./chatview";
 import { generateCommitMessage } from "./generateCommitMessage";
@@ -23,6 +26,8 @@ import {
   deleteProviderSettingFromStorage,
   deleteSystemPromptFromStorage,
   deleteUserPromptFromStorage,
+  getAutoFormatFromWorkspace,
+  getAutoRemoveCommentsFromWorkspace,
   getCurrentProviderSettingFromGlobalState,
   getCurrentSystemPromptFromWorkspace,
   getCurrentUserPromptFromWorkspace,
@@ -34,6 +39,8 @@ import {
   saveProviderSettingToStorage,
   saveSystemPromptToStorage,
   saveUserPromptToStorage,
+  setAutoFormatToWorkspace,
+  setAutoRemoveCommentsToWorkspace,
   setCurrentSystemPromptToWorkspace,
   setCurrentUserPromptToWorkspace,
   setEnabledToolNamesToGlobalState,
@@ -102,6 +109,10 @@ export function activate(context: vscode.ExtensionContext) {
     );
     const userPrompt = workspaceUserPrompt ?? userPrompts[0] ?? "";
 
+    const autoRemoveComments =
+      getAutoRemoveCommentsFromWorkspace(context, tabId) ?? false;
+    const autoFormat = getAutoFormatFromWorkspace(context, tabId) ?? false;
+
     if (existingPanel) {
       // If panel exists, reuse it and add files
       existingPanel.reveal(vscode.ViewColumn.One); // Bring existing panel to front
@@ -120,7 +131,9 @@ export function activate(context: vscode.ExtensionContext) {
         enabledToolNames,
         providerSettingsList,
         currentProviderSetting,
-        availableVendors
+        availableVendors,
+        autoRemoveComments,
+        autoFormat
       );
     }
   };
@@ -202,7 +215,9 @@ async function openChatWindow(
   enabledToolNames: string[],
   providerSettingsList: AiApiSettings[],
   currentProviderSetting: AiApiSettings | undefined,
-  availableVendors: string[]
+  availableVendors: string[],
+  autoRemoveComments: boolean,
+  autoFormat: boolean
 ) {
   const panel = vscode.window.createWebviewPanel(
     "askAIChat",
@@ -223,14 +238,7 @@ async function openChatWindow(
 
   panel.webview.onDidReceiveMessage(
     (message) =>
-      handleWebviewMessage(
-        context,
-        panel,
-        message,
-        openedFiles,
-        tabId,
-        enabledToolNames
-      ),
+      handleWebviewMessage(context, panel, message, openedFiles, tabId),
     undefined,
     context.subscriptions
   );
@@ -246,7 +254,9 @@ async function openChatWindow(
     enabledTools: enabledToolNames,
     providerSettingsList: providerSettingsList,
     currentProviderSetting: currentProviderSetting,
-    availableVendors: availableVendors, // Send available vendors
+    availableVendors: availableVendors,
+    autoRemoveComments: autoRemoveComments,
+    autoFormat: autoFormat,
   });
   // Send current enabled tools and provider setting
   panel.webview.postMessage({
@@ -293,8 +303,7 @@ function handleWebviewMessage(
   panel: vscode.WebviewPanel,
   message: any,
   openedFiles: { [key: string]: string },
-  tabId: string,
-  enabledToolNames: string[]
+  tabId: string
 ) {
   const log: Logger = (msg: string, type: string = "log") => {
     // vscode.window.showInformationMessage(msg);
@@ -308,15 +317,7 @@ function handleWebviewMessage(
 
   switch (message.command) {
     case "sendMessage":
-      handleSendMessage(
-        context,
-        panel,
-        message,
-        openedFiles,
-        tabId,
-        log,
-        enabledToolNames
-      );
+      handleSendMessage(context, panel, message, openedFiles, tabId, log);
       break;
     case "setSystemPrompt":
       handleSetSystemPrompt(context, panel, message.systemPrompt, tabId); // Use new handler
@@ -367,18 +368,18 @@ function handleWebviewMessage(
       handleUseUserPromptFromLibrary(context, panel, message.prompt);
       break;
     case "enableTool":
-      handleEnableTool(context, panel, message.toolName); // Removed tabId
+      handleEnableTool(context, panel, message.toolName);
       break;
     case "disableTool":
-      handleDisableTool(context, panel, message.toolName); // Removed tabId
+      handleDisableTool(context, panel, message.toolName);
       break;
     case "requestProviderSettings":
       handleRequestProviderSettings(context, panel);
       break;
-    case "saveProviderSetting": // Changed from saveProviderSettingToLibrary to saveProviderSetting
+    case "saveProviderSetting":
       handleSaveProviderSetting(context, panel, message.providerSetting);
       break;
-    case "updateProviderSetting": // Added handler for updateProviderSetting
+    case "updateProviderSetting":
       handleUpdateProviderSetting(
         context,
         panel,
@@ -401,17 +402,87 @@ function handleWebviewMessage(
         tabId
       );
       break;
-    case "requestAvailableVendors": // New case for requesting available vendors
+    case "requestAvailableVendors":
       handleRequestAvailableVendors(context, panel);
       break;
-    case "requestEnabledTools": // Request enabled tools
+    case "requestEnabledTools":
       handleRequestEnabledTools(context, panel);
       break;
-    case "requestCurrentProviderSetting": // Request current provider setting
+    case "requestCurrentProviderSetting":
       handleRequestCurrentProviderSetting(context, panel);
+      break;
+    case "removeCommentsInFiles":
+      handleRemoveCommentsInFiles(message.filePaths, log);
+      break;
+    case "formatFilesInFiles":
+      handleFormatFilesInFiles(message.filePaths, log);
+      break;
+    case "setAutoRemoveComments":
+      setAutoRemoveCommentsToWorkspace(context, tabId, message.checked);
+      break;
+    case "setAutoFormat":
+      setAutoFormatToWorkspace(context, tabId, message.checked);
       break;
     default:
       console.warn("Unknown command from webview:", message.command);
+  }
+}
+
+async function handleRemoveCommentsInFiles(filePaths: string[], log: Logger) {
+  const workspaceFolders = vscode.workspace.workspaceFolders;
+  if (!workspaceFolders || workspaceFolders.length === 0) {
+    log("No workspace folder open.", "error");
+    return;
+  }
+  const workspaceRoot = workspaceFolders[0].uri.fsPath;
+
+  for (const filePath of filePaths) {
+    const fullPath = path.join(workspaceRoot, filePath);
+    try {
+      const originalContent = await fs.readFile(fullPath, "utf8");
+      const cleanedContent = removeJsJsxComments(originalContent);
+
+      if (originalContent !== cleanedContent) {
+        await fs.writeFile(fullPath, cleanedContent, "utf8");
+        log(`Removed comments in ${filePath}`, "info");
+      } else {
+        log(`No comments to remove in ${filePath}`, "info");
+      }
+    } catch (error: any) {
+      log(
+        `Error processing file ${filePath} for comment removal: ${error.message}`,
+        "error"
+      );
+    }
+  }
+}
+
+async function handleFormatFilesInFiles(filePaths: string[], log: Logger) {
+  const workspaceFolders = vscode.workspace.workspaceFolders;
+  if (!workspaceFolders || workspaceFolders.length === 0) {
+    log("No workspace folder open.", "error");
+    return;
+  }
+  const workspaceRoot = workspaceFolders[0].uri.fsPath;
+
+  for (const filePath of filePaths) {
+    const fullPath = path.join(workspaceRoot, filePath);
+    try {
+      const originalContent = await fs.readFile(fullPath, "utf8");
+      const formattedContent = await formatCodeWithVscode(
+        fullPath,
+        originalContent
+      );
+
+      if (originalContent !== formattedContent) {
+        await fs.writeFile(fullPath, formattedContent, "utf8");
+        log(`Formatted file: ${filePath}`, "info");
+      } else {
+        log(`File ${filePath} is already formatted.`, "info");
+      }
+    } catch (error: any) {
+      log(`Error formatting file ${filePath}: ${error.message}`, "error");
+    }
   }
 }
 
@@ -713,12 +784,17 @@ async function handleAddFiles(
   openedFiles: { [key: string]: string }
 ) {
   const addedFiles: string[] = [];
+  const workspaceFolders = vscode.workspace.workspaceFolders;
+  if (!workspaceFolders || workspaceFolders.length === 0) {
+    vscode.window.showErrorMessage("No workspace folder open.");
+    return [];
+  }
+  const workspaceRoot = workspaceFolders[0].uri.fsPath;
+
   for (const filePath of filePaths) {
     if (!openedFiles[filePath]) {
       try {
-        const fileUri = vscode.Uri.file(
-          path.join(vscode.workspace.workspaceFolders![0].uri.fsPath, filePath)
-        );
+        const fileUri = vscode.Uri.file(path.join(workspaceRoot, filePath));
         const content = await fs.readFile(fileUri.fsPath, "utf8");
         openedFiles[filePath] = content;
         addedFiles.push(filePath);
@@ -746,11 +822,12 @@ async function handleSendMessage(
     fileNames: string[];
     toolNames: string[];
     providerSetting: AiApiSettings;
+    autoRemoveComments: boolean;
+    autoFormat: boolean;
   },
   openedFiles: { [key: string]: string },
   tabId: string,
-  log: Logger,
-  enabledToolNames: string[]
+  log: Logger
 ) {
   const providerSetting = message.providerSetting;
   if (!providerSetting?.apiKey) {
@@ -808,7 +885,7 @@ async function handleSendMessage(
       message.toolNames
     );
 
-    log("calling " + providerSetting.vendor, "system");
+    log("Calling " + providerSetting.vendor, "system");
     const response = await callAiApi(
       {
         user: message.user,
@@ -818,8 +895,13 @@ async function handleSendMessage(
       enabledTools,
       { logger: log, signal: abortController.signal }
     );
-    log(response.assistant, "assistant");
     log(response.tools.map((t) => t.name).join(", "), "tools");
+    panel.webview.postMessage({
+      command: "updateMessage",
+      messageId,
+      text: response.assistant,
+      sender: "assistant",
+    });
 
     const toolCallResults: {
       name: string;
@@ -850,6 +932,20 @@ async function handleSendMessage(
 
     for (const toolResult of toolCallResults) {
       log(JSON.stringify(toolResult), "tool");
+    }
+    await sleep(1000);
+
+    if (message.fileNames.length > 0) {
+      if (message.autoRemoveComments) {
+        log("Auto-removing comments from modified files...", "info");
+        await handleRemoveCommentsInFiles(message.fileNames, log);
+        await sleep(1000);
+      }
+
+      if (message.autoFormat) {
+        log("Auto-formatting modified files...", "info");
+        await handleFormatFilesInFiles(message.fileNames, log);
+      }
     }
 
     panel.webview.postMessage({

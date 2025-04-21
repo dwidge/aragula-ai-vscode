@@ -4,6 +4,8 @@ import { AiApiSettings } from "./aiTools/AiApi";
 export const ENABLED_TOOLS_STORAGE_KEY = "enabledTools"; // Global storage key for enabled tools
 export const CURRENT_PROVIDER_SETTING_STORAGE_KEY =
   "currentProviderSettingName"; // Global storage key for current provider setting name
+export const AUTO_REMOVE_COMMENTS_STORAGE_KEY = "autoRemoveComments";
+export const AUTO_FORMAT_STORAGE_KEY = "autoFormat";
 
 /** Retrieves the API key from configuration. */
 function getApiKey(): string | null {
@@ -222,4 +224,48 @@ export async function setCurrentUserPromptToWorkspace(
   prompt: string
 ): Promise<void> {
   await context.workspaceState.update(`workspaceUserPrompt-${tabId}`, prompt);
+}
+
+/** Get autoRemoveComments state from workspace state */
+export function getAutoRemoveCommentsFromWorkspace(
+  context: vscode.ExtensionContext,
+  tabId: string
+): boolean | undefined {
+  return context.workspaceState.get<boolean>(
+    `${AUTO_REMOVE_COMMENTS_STORAGE_KEY}-${tabId}`
+  );
+}
+
+/** Set autoRemoveComments state to workspace state */
+export async function setAutoRemoveCommentsToWorkspace(
+  context: vscode.ExtensionContext,
+  tabId: string,
+  state: boolean
+): Promise<void> {
+  await context.workspaceState.update(
+    `${AUTO_REMOVE_COMMENTS_STORAGE_KEY}-${tabId}`,
+    state
+  );
+}
+
+/** Get autoFormat state from workspace state */
+export function getAutoFormatFromWorkspace(
+  context: vscode.ExtensionContext,
+  tabId: string
+): boolean | undefined {
+  return context.workspaceState.get<boolean>(
+    `${AUTO_FORMAT_STORAGE_KEY}-${tabId}`
+  );
+}
+
+/** Set autoFormat state to workspace state */
+export async function setAutoFormatToWorkspace(
+  context: vscode.ExtensionContext,
+  tabId: string,
+  state: boolean
+): Promise<void> {
+  await context.workspaceState.update(
+    `${AUTO_FORMAT_STORAGE_KEY}-${tabId}`,
+    state
+  );
 }

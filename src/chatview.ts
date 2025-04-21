@@ -175,6 +175,7 @@ export default (tabId: string) => `
       .button-row {
         display: flex;
         gap: 10px;
+        flex-wrap: wrap; /* Allow buttons to wrap */
       }
       button {
         padding: 10px 15px;
@@ -457,6 +458,16 @@ export default (tabId: string) => `
         background-color: var(--button-background); /* Or a more suitable color */
       }
 
+      .auto-checkbox {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        font-size: 0.9em;
+      }
+      .auto-checkbox input[type="checkbox"] {
+        margin: 0;
+      }
+
 
     </style>
   </head>
@@ -568,6 +579,16 @@ export default (tabId: string) => `
           <button id="addFilesButton" onclick="addFilesDialog()">Add Files</button>
           <button id="addToolButton" onclick="toggleToolPopup()">Add Tool</button>
           <button id="providerSettingsButton" onclick="toggleProviderSettingsPopup()">Providers</button>
+          <div class="auto-checkbox">
+            <input type="checkbox" id="autoRemoveCommentsCheckbox">
+            <label for="autoRemoveCommentsCheckbox">Auto Remove Comments</label>
+          </div>
+          <button id="removeCommentsButton" onclick="handleRemoveComments()">Remove Comments</button>
+          <div class="auto-checkbox">
+            <input type="checkbox" id="autoFormatCheckbox">
+            <label for="autoFormatCheckbox">Auto Format</label>
+          </div>
+          <button id="formatButton" onclick="handleFormat()">Format</button>
         </div>
       </div>
       <div id="messages-container"></div>
@@ -581,7 +602,7 @@ export default (tabId: string) => `
        * @typedef {Object} ChatMessage
        * @property {string} id
        * @property {string} text
-       * @property {string} sender
+       * @property {string} [sender] - Sender of the message (user, assistant, etc.)
        * @property {string} [messageType] - Type of message for styling (user, assistant, log, etc.)
        * @property {boolean} [isCollapsed] - If the message content is collapsed
        */
@@ -613,14 +634,19 @@ export default (tabId: string) => `
       /** @type {string} */
       let currentUserPrompt = ""; // Placeholder, will be initialized by message
       let providerFormChanged = false; // Flag to track if provider form has changed since last save/load
-
+      /** @type {boolean} */
+      let autoRemoveComments = true; // Will be initialized by message
+      /** @type {boolean} */
+      let autoFormat = true; // Will be initialized by message
 
       const STORAGE_KEYS = {
         chatHistory: \`chatMessages-\${tabId}\`,
         userInput: \`userInput-\${tabId}\`,
         openFiles: \`openFiles-\${tabId}\`,
         enabledTools: 'enabledTools', // Key for enabled tools
-        currentProviderSettingName: 'currentProviderSettingName' // Key for current provider setting name
+        currentProviderSettingName: 'currentProviderSettingName', // Key for current provider setting name
+        autoRemoveComments: \`autoRemoveComments-\${tabId}\`, // Key for auto remove comments checkbox state
+        autoFormat: \`autoFormat-\${tabId}\` // Key for auto format checkbox state
       };
 
       // DOM elements
@@ -656,6 +682,10 @@ export default (tabId: string) => `
       const providerVendorError = document.getElementById('provider-vendor-error');
       const providerApiKeyError = document.getElementById('provider-apiKey-error');
       const providerModelError = document.getElementById('provider-model-error');
+      const removeCommentsButton = document.getElementById('removeCommentsButton');
+      const formatButton = document.getElementById('formatButton');
+      const autoRemoveCommentsCheckbox = document.getElementById('autoRemoveCommentsCheckbox');
+      const autoFormatCheckbox = document.getElementById('autoFormatCheckbox');
 
 
       /**
@@ -670,7 +700,7 @@ export default (tabId: string) => `
 
 
       /**
-       * Loads state from localStorage: chat history and open files.
+       * Loads state from localStorage: chat history, open files, and checkbox states.
        */
       function loadState() {
         chatHistory = loadFromLocalStorage(STORAGE_KEYS.chatHistory, []);
@@ -682,6 +712,10 @@ export default (tabId: string) => `
         } else if (providerSettingsList.length > 0) {
           currentProviderSetting = providerSettingsList[0]; // Default to first if available and none selected
         }
+
+        // Load checkbox states
+        autoRemoveCommentsCheckbox.checked = localStorage.getItem(STORAGE_KEYS.autoRemoveComments) !== 'false';
+        autoFormatCheckbox.checked = localStorage.getItem(STORAGE_KEYS.autoFormat) !== 'false';
       }
 
       /**
@@ -701,7 +735,7 @@ export default (tabId: string) => `
       }
 
       /**
-       * Saves state to localStorage: chat history and open files.
+       * Saves state to localStorage: chat history, open files, enabled tools, current provider, and checkbox states.
        */
       function saveState() {
         saveToLocalStorage(STORAGE_KEYS.chatHistory, chatHistory);
@@ -710,6 +744,9 @@ export default (tabId: string) => `
         if (currentProviderSetting) {
           localStorage.setItem(STORAGE_KEYS.currentProviderSettingName, currentProviderSetting.name); // GLOBAL
         }
+        // Save checkbox states
+        localStorage.setItem(STORAGE_KEYS.autoRemoveComments, autoRemoveCommentsCheckbox.checked ? 'true' : 'false');
+        localStorage.setItem(STORAGE_KEYS.autoFormat, autoFormatCheckbox.checked ? 'true' : 'false');
       }
 
       /**
@@ -1029,17 +1066,47 @@ export default (tabId: string) => `
         sendButton.disabled = true;
         loader.style.display = "inline-block";
         buttonText.textContent = "";
+
+        // Get checkbox states
+        const autoRemoveComments = autoRemoveCommentsCheckbox.checked;
+        const autoFormat = autoFormatCheckbox.checked;
+
         const messageId = addChatMessage(user, "user");
         vscode.postMessage({
           command: "sendMessage",
-          user: user, // changed from text: text to user: user
-          system: system, // changed from systemPrompt: systemPrompt to system: system
-          fileNames: openFiles, // add fileNames
-          toolNames: enabledTools, // add toolNames
-          providerSetting: currentProviderSetting, // send current provider setting
-          messageId
+          user: user,
+          system: system,
+          fileNames: openFiles,
+          toolNames: enabledTools,
+          providerSetting: currentProviderSetting,
+          messageId,
+          autoRemoveComments: autoRemoveComments, // Add checkbox state
+          autoFormat: autoFormat // Add checkbox state
         });
       }
+
+      /**
+       * Handles removing comments from selected files.
+       */
+      function handleRemoveComments() {
+          if (openFiles.length === 0) {
+              alert("Please add files first.");
+              return;
+          }
+          vscode.postMessage({ command: "removeCommentsInFiles", filePaths: openFiles });
+      }
+
+      /**
+       * Handles formatting selected files.
+       */
+      function handleFormat() {
+          if (openFiles.length === 0) {
+              alert("Please add files first.");
+              return;
+          }
+          vscode.postMessage({ command: "formatFilesInFiles", filePaths: openFiles });
+      }
+
 
       /**
        * Displays a temporary loading message in the chat.
@@ -1408,7 +1475,7 @@ export default (tabId: string) => `
       window.addEventListener("load", () => {
         userInputEl.value = localStorage.getItem(STORAGE_KEYS.userInput) || "";
         // systemPromptEl.value = localStorage.getItem(STORAGE_KEYS.systemPrompt) || ""; // No longer loading systemPrompt from localStorage
-        loadState();
+        loadState(); // Load checkbox states here
         renderChatHistory();
         renderSelectedFiles();
         renderEnabledTools(); // Render enabled tools on load
@@ -1451,6 +1518,11 @@ export default (tabId: string) => `
       systemPromptEl.addEventListener("input", (e) => {
         updateSystemPrompt(e.target.value);
       });
+
+      // Save checkbox states on change
+      autoRemoveCommentsCheckbox.addEventListener('change', saveState);
+      autoFormatCheckbox.addEventListener('change', saveState);
+
 
       // Provider form input change listeners for debounced save
       providerNameInput.addEventListener('input', () => { providerFormChanged = true; updateProviderSettingDebounced(); });
@@ -1515,14 +1587,21 @@ export default (tabId: string) => `
             enabledTools = message.enabledTools || []; // Initialize enabled tools
             currentProviderSetting = message.currentProviderSetting; // Initialize current provider setting
             availableVendors = message.availableVendors || []; // Initialize available vendors
+            autoRemoveComments = message.autoRemoveComments ?? true; // Initialize auto remove comments
+            autoFormat = message.autoFormat ?? true; // Initialize auto format
+
             systemPromptEl.value = currentSystemPrompt;
             userInputEl.value = currentUserPrompt;
+            autoRemoveCommentsCheckbox.checked = autoRemoveComments; // Set checkbox state from received message
+            autoFormatCheckbox.checked = autoFormat; // Set checkbox state from received message
+
             renderSystemPromptsList();
             renderUserPromptsList();
             renderEnabledTools(); // Render enabled tools on init
             renderSelectedProvider(); // Render selected provider on init
             renderProviderSettingsPopupList(); // Render provider settings popup list on init
             renderVendorDropdown(); // Render vendor dropdown on init
+            loadState(); // Load checkbox states after initPrompts
             break;
           case "updateEnabledTools":
             enabledTools = message.enabledTools;
@@ -1581,6 +1660,8 @@ export default (tabId: string) => `
       window.handleAddProviderSetting = handleAddProviderSetting;
       window.handleUpdateProviderSetting = handleUpdateProviderSetting;
       window.toggleMessageCollapse = toggleMessageCollapse;
+      window.handleRemoveComments = handleRemoveComments; // Expose new function
+      window.handleFormat = handleFormat; // Expose new function
     </script>
   </body>
 </html>
