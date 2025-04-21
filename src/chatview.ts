@@ -535,6 +535,10 @@ export default (tabId: string) => `
           <input type="number" id="provider-maxTokens" class="form-input" placeholder="Max Tokens" />
           <div class="error-message-inline" id="provider-maxTokens-error"></div>
 
+          <label for="provider-temperature">Temperature (optional, 0-2):</label>
+          <input type="number" id="provider-temperature" class="form-input" placeholder="Temperature (e.g., 0.7)" step="0.1" min="0" max="2" />
+          <div class="error-message-inline" id="provider-temperature-error"></div>
+
           <div class="provider-form-buttons">
             <button onclick="handleSaveProviderSettings()">Save</button>
             <button onclick="handleCancelProviderSettings()">Cancel</button>
@@ -678,10 +682,12 @@ export default (tabId: string) => `
       const providerBaseURLInput = document.getElementById('provider-baseURL');
       const providerModelInput = document.getElementById('provider-model');
       const providerMaxTokensInput = document.getElementById('provider-maxTokens');
+      const providerTemperatureInput = document.getElementById('provider-temperature'); // New input for temperature
       const providerNameError = document.getElementById('provider-name-error');
       const providerVendorError = document.getElementById('provider-vendor-error');
       const providerApiKeyError = document.getElementById('provider-apiKey-error');
       const providerModelError = document.getElementById('provider-model-error');
+      const providerTemperatureError = document.getElementById('provider-temperature-error'); // New error for temperature
       const removeCommentsButton = document.getElementById('removeCommentsButton');
       const formatButton = document.getElementById('formatButton');
       const autoRemoveCommentsCheckbox = document.getElementById('autoRemoveCommentsCheckbox');
@@ -696,6 +702,7 @@ export default (tabId: string) => `
        * @property {string} [baseURL]
        * @property {string} model
        * @property {number} [max_tokens]
+       * @property {number} [temperature]
        */
 
 
@@ -1376,6 +1383,7 @@ export default (tabId: string) => `
           providerBaseURLInput.value = providerSetting.baseURL || '';
           providerModelInput.value = providerSetting.model;
           providerMaxTokensInput.value = providerSetting.max_tokens !== undefined ? String(providerSetting.max_tokens) : '';
+          providerTemperatureInput.value = providerSetting.temperature !== undefined ? String(providerSetting.temperature) : ''; // Load temperature
           clearProviderFormErrors();
         }
         providerFormChanged = false; // Reset form changed flag when loading
@@ -1401,6 +1409,8 @@ export default (tabId: string) => `
         providerBaseURLInput.value = '';
         providerModelInput.value = '';
         providerVendorInput.value = ''; // Reset dropdown too
+        providerMaxTokensInput.value = '';
+        providerTemperatureInput.value = ''; // Clear temperature
         clearProviderFormErrors();
         providerFormChanged = false; // Reset form changed flag when adding new
       }
@@ -1411,6 +1421,7 @@ export default (tabId: string) => `
           providerVendorError.style.display = 'none';
           providerApiKeyError.style.display = 'none';
           providerModelError.style.display = 'none';
+          providerTemperatureError.style.display = 'none'; // Clear temperature error
       }
 
 
@@ -1422,6 +1433,7 @@ export default (tabId: string) => `
           baseURL: providerBaseURLInput.value.trim() || undefined,
           model: providerModelInput.value.trim(),
           max_tokens: providerMaxTokensInput.value.trim() ? parseInt(providerMaxTokensInput.value.trim(), 10) : undefined,
+          temperature: providerTemperatureInput.value.trim() ? parseFloat(providerTemperatureInput.value.trim()) : undefined, // Parse temperature as float
         };
 
         clearProviderFormErrors();
@@ -1451,6 +1463,11 @@ export default (tabId: string) => `
           providerModelError.textContent = 'Model is required';
           providerModelError.style.display = 'block';
           isValid = false;
+        }
+        if (providerSetting.temperature !== undefined && (isNaN(providerSetting.temperature) || providerSetting.temperature < 0 || providerSetting.temperature > 2)) {
+            providerTemperatureError.textContent = 'Temperature must be a number between 0 and 2';
+            providerTemperatureError.style.display = 'block';
+            isValid = false;
         }
 
         if (!isValid) {
@@ -1531,6 +1548,7 @@ export default (tabId: string) => `
       providerBaseURLInput.addEventListener('input', () => { providerFormChanged = true; updateProviderSettingDebounced(); });
       providerModelInput.addEventListener('input', () => { providerFormChanged = true; updateProviderSettingDebounced(); });
       providerMaxTokensInput.addEventListener('input', () => { providerFormChanged = true; updateProviderSettingDebounced(); });
+      providerTemperatureInput.addEventListener('input', () => { providerFormChanged = true; updateProviderSettingDebounced(); }); // New input listener for temperature
 
 
       // Handle messages from the extension

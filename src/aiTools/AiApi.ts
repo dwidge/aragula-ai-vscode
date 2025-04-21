@@ -106,6 +106,7 @@ export interface AiApiSettings {
   baseURL?: string;
   model: string;
   max_tokens?: number;
+  temperature?: number;
   vendor: "openai" | "gemini" | "groq" | "cerebras" | "claude" | string;
 }
 
@@ -159,12 +160,12 @@ export function validateJsonAgainstSchema(
 interface OpenAiSpecificSettings extends AiApiSettings {}
 
 export function newOpenAiApi(settings: OpenAiSpecificSettings): AiApiCaller {
-  const { apiKey, baseURL, model, max_tokens } = settings;
+  const { apiKey, baseURL, model, max_tokens, temperature } = settings;
 
   return async (prompt, tools, options) =>
     callOpenAi(
       new OpenAI({ apiKey, baseURL }),
-      { model, max_tokens },
+      { model, max_tokens, temperature },
       prompt,
       tools,
       options
@@ -290,6 +291,7 @@ const callOpenAi = async (
   apiSettings: {
     model: string;
     max_tokens?: number;
+    temperature?: number;
   },
   prompt: { user: string; system?: string; tools?: ToolCall[] },
   tools?: ToolDefinition[],
@@ -309,6 +311,7 @@ const callOpenAi = async (
     {
       model: apiSettings.model,
       max_tokens: apiSettings.max_tokens,
+      temperature: apiSettings.temperature,
       messages: [...toolcallMessages, ...promptMessages, ...tooldefMessages],
       tools: tools
         ?.filter((t) => t.type === "native")
@@ -363,11 +366,17 @@ function convertFromOpenAiToolCall(
 interface GeminiSpecificSettings extends AiApiSettings {}
 
 export function newGeminiApi(settings: GeminiSpecificSettings): AiApiCaller {
-  const { apiKey, baseURL, model, max_tokens } = settings;
+  const { apiKey, baseURL, model, max_tokens, temperature } = settings;
   const genAI = new GoogleGenAI({ apiKey });
 
   return async (prompt, tools, options) =>
-    callGemini(genAI, { model, max_tokens }, prompt, tools, options);
+    callGemini(
+      genAI,
+      { model, max_tokens, temperature },
+      prompt,
+      tools,
+      options
+    );
 }
 
 /**
@@ -451,6 +460,7 @@ const callGemini = async (
   apiSettings: {
     model: string;
     max_tokens?: number;
+    temperature?: number;
   },
   prompt: { user: string; system?: string; tools?: ToolCall[] },
   tools?: ToolDefinition[],
@@ -476,6 +486,7 @@ const callGemini = async (
     config: {
       systemInstruction: prompt.system,
       maxOutputTokens: apiSettings.max_tokens,
+      temperature: apiSettings.temperature,
       tools: toolsNative?.length
         ? [
             {
@@ -539,11 +550,17 @@ function convertFromGeminiToolCalls(geminiToolCalls: any[]): ToolCall[] {
 interface GroqSpecificSettings extends AiApiSettings {}
 
 export function newGroqApi(settings: GroqSpecificSettings): AiApiCaller {
-  const { apiKey, baseURL, model, max_tokens } = settings;
+  const { apiKey, baseURL, model, max_tokens, temperature } = settings;
   const groq = new Groq({ apiKey: apiKey });
 
   return async (prompt, tools, options) => {
-    return callGroq(groq, { model, max_tokens }, prompt, tools, options);
+    return callGroq(
+      groq,
+      { model, max_tokens, temperature },
+      prompt,
+      tools,
+      options
+    );
   };
 }
 
@@ -588,6 +605,7 @@ const callGroq = async (
   apiSettings: {
     model: string;
     max_tokens?: number;
+    temperature?: number;
   },
   prompt: { user: string; system?: string; tools?: ToolCall[] },
   tools?: ToolDefinition[],
@@ -613,6 +631,7 @@ const callGroq = async (
   const groqPrompt: ChatCompletionCreateParamsNonStreaming = {
     model: apiSettings.model,
     max_tokens: apiSettings.max_tokens,
+    temperature: apiSettings.temperature,
     messages,
     tools:
       tools && (tools[0].type || "native") === "native"
@@ -657,7 +676,7 @@ interface CerebrasSpecificSettings extends AiApiSettings {}
 export function newCerebrasApi(
   settings: CerebrasSpecificSettings
 ): AiApiCaller {
-  const { apiKey, baseURL, model, max_tokens } = settings;
+  const { apiKey, baseURL, model, max_tokens, temperature } = settings;
   const cerebrasApi = new CerebrasServiceClient({
     apiKey: apiKey,
     baseURL: baseURL,
@@ -666,7 +685,7 @@ export function newCerebrasApi(
   return async (prompt, tools, options) => {
     return callCerebras(
       cerebrasApi,
-      { model, max_tokens },
+      { model, max_tokens, temperature },
       prompt,
       tools,
       options
@@ -717,6 +736,7 @@ const callCerebras = async (
   apiSettings: {
     model: string;
     max_tokens?: number;
+    temperature?: number;
   },
   prompt: { user: string; system?: string; tools?: ToolCall[] },
   tools?: ToolDefinition[],
@@ -741,6 +761,7 @@ const callCerebras = async (
     {
       model: apiSettings.model,
       max_tokens: apiSettings.max_tokens,
+      temperature: apiSettings.temperature,
       messages,
       tool_choice:
         tools && (tools[0].type || "native") === "native" ? "auto" : "none",
@@ -786,11 +807,17 @@ function convertFromCerebrasToolCalls(cerebrasToolCalls: any): ToolCall[] {
 interface ClaudeSpecificSettings extends AiApiSettings {}
 
 export function newClaudeApi(settings: ClaudeSpecificSettings): AiApiCaller {
-  const { apiKey, baseURL, model, max_tokens } = settings;
+  const { apiKey, baseURL, model, max_tokens, temperature } = settings;
   const anthropic = new Anthropic({ apiKey });
 
   return async (prompt, tools, options) => {
-    return callClaude(anthropic, { model, max_tokens }, prompt, tools, options);
+    return callClaude(
+      anthropic,
+      { model, max_tokens, temperature },
+      prompt,
+      tools,
+      options
+    );
   };
 }
 
@@ -835,6 +862,7 @@ const callClaude = async (
   apiSettings: {
     model: string;
     max_tokens?: number;
+    temperature?: number;
   },
   prompt: { user: string; system?: string; tools?: ToolCall[] },
   tools?: ToolDefinition[],
@@ -859,6 +887,7 @@ const callClaude = async (
   const claudePrompt: Anthropic.Messages.MessageCreateParamsNonStreaming = {
     model: apiSettings.model,
     max_tokens: apiSettings.max_tokens ?? 8192,
+    temperature: apiSettings.temperature,
     messages: claudePromptMessages,
     tools:
       tools && (tools[0].type || "native") === "native"
