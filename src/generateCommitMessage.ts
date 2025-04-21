@@ -12,7 +12,7 @@ import { getCommitMessages, getDiffs } from "./diff";
 import {
   getCurrentProviderSettingFromGlobalState,
   getProviderSettingsFromStorage,
-} from "./extension";
+} from "./storage";
 
 export const generateCommitMessage = async (
   context: vscode.ExtensionContext,
