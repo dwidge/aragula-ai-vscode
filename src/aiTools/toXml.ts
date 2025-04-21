@@ -5,7 +5,7 @@ import { Json } from "./AiApi";
  */
 function escapeXml(unsafe: any): string {
   if (typeof unsafe !== "string") {
-    return String(unsafe); // Convert non-string to string
+    return String(unsafe);
   }
   return unsafe.replace(/[<>&'"]/g, function (c) {
     switch (c) {
@@ -58,7 +58,6 @@ export function toXml(data: Json, tagName?: string): string {
       .join("\n")}\n</${tagName}>`;
   }
 
-  // Fallback for other types (e.g., function, symbol) - handle as string representation
   return tagName
     ? `<${tagName}>${escapeXml(String(data))}</${tagName}>`
     : escapeXml(String(data));

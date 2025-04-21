@@ -6,8 +6,6 @@ import { runAndGetShellOutput } from "../runAndGetShellOutput";
 import { workspaceRelativePathToAbsolutePath } from "../workspaceRelativePathToAbsolutePath";
 import { ToolContext } from "./ToolTypes";
 
-/* ========================== File & Shell Operations ========================== */
-
 /**
  * Reads the directory at the given path.
  */
@@ -19,7 +17,7 @@ export async function readDir(
   try {
     const absolutePath = workspaceRelativePathToAbsolutePath(path);
     const files = await fs.readdir(absolutePath);
-    // vscode.window.showInformationMessage(`readDir: ${path}`);
+
     return files;
   } catch (error) {
     return handleFileError(error, `readDir: ${path}`);
@@ -37,7 +35,7 @@ export async function readFile(
   try {
     const absolutePath = workspaceRelativePathToAbsolutePath(path);
     const content = await fs.readFile(absolutePath, "utf8");
-    // vscode.window.showInformationMessage(`readFile: ${path}`);
+
     return content;
   } catch (error) {
     return handleFileError(error, `readFile: ${path}`);
@@ -59,7 +57,7 @@ export async function writeFile(
     const dir = Path.dirname(absolutePath);
     await fs.mkdir(dir, { recursive: true });
     await fs.writeFile(absolutePath, content);
-    // vscode.window.showInformationMessage(`writeFile: ${path}`);
+
     return { success: `${content.length} bytes written to ${path}` };
   } catch (error) {
     return handleFileError(error, `writeFile: ${path}`);

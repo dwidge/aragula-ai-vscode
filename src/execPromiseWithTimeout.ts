@@ -19,12 +19,6 @@ export async function execPromiseWithTimeout(
         }
       }
     );
-
-    // Uncomment the following lines if you want to enforce a timeout
-    // setTimeout(() => {
-    //   process.kill();
-    //   reject(new Error("Command timed out"));
-    // }, timeout);
   });
 
   return execPromiseWithTimeout;

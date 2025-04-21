@@ -14,7 +14,6 @@ type XmlToolCommand = {
 const parseToolCommands = (xml: string): XmlToolCommand[] => {
   const commands: XmlToolCommand[] = [];
 
-  // Find all top-level tool tags
   const toolTags = ["readDir", "readFile", "writeFile", "runShellCommand"];
 
   const parseParameters = (
@@ -23,7 +22,6 @@ const parseToolCommands = (xml: string): XmlToolCommand[] => {
   ): Record<string, string> => {
     const params: Record<string, string> = {};
 
-    // Parse known parameters based on tag type
     switch (tagName) {
       case "readDir":
         params.directory = extractTagContent(content, "directory");

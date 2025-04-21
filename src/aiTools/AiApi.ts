@@ -109,10 +109,6 @@ export interface AiApiSettings {
   vendor: "openai" | "gemini" | "groq" | "cerebras" | "claude" | string;
 }
 
-/* ============================================================================
-   JSON Schema Validation
-   ========================================================================== */
-
 /**
  * Validates a JSON object against a JSON schema.
  */
@@ -160,11 +156,6 @@ export function validateJsonAgainstSchema(
   return false;
 }
 
-/* ============================================================================
-   Vendor-Specific API Implementations
-   ========================================================================== */
-
-/* ----------------------- OpenAI Implementation ----------------------- */
 interface OpenAiSpecificSettings extends AiApiSettings {}
 
 export function newOpenAiApi(settings: OpenAiSpecificSettings): AiApiCaller {
@@ -195,7 +186,7 @@ const buildToolCallMessagesOpenAi = (prompt: {
       const toolCallId = `tool_call_${toolCall.name}_${Math.random()
         .toString(36)
         .substring(7)}`;
-      // Assistant message for tool call request
+
       messages.push({
         role: "assistant",
         content: "",
@@ -210,7 +201,7 @@ const buildToolCallMessagesOpenAi = (prompt: {
           },
         ],
       });
-      // Tool message for tool call response
+
       messages.push({
         role: "tool",
         tool_call_id: toolCallId,
@@ -369,7 +360,6 @@ function convertFromOpenAiToolCall(
   };
 }
 
-/* ----------------------- Gemini Implementation ----------------------- */
 interface GeminiSpecificSettings extends AiApiSettings {}
 
 export function newGeminiApi(settings: GeminiSpecificSettings): AiApiCaller {
@@ -473,7 +463,7 @@ const callGemini = async (
   }
 
   const toolcallMessages = buildToolCallMessagesGemini(prompt);
-  // Build prompt messages
+
   const promptMessages = buildPromptMessagesGemini({ user: prompt.user });
   const tooldefMessages = buildToolDefMessagesGemini(tools);
   const toolsNative = tools
@@ -546,7 +536,6 @@ function convertFromGeminiToolCalls(geminiToolCalls: any[]): ToolCall[] {
   }));
 }
 
-/* ----------------------- Groq Implementation ----------------------- */
 interface GroqSpecificSettings extends AiApiSettings {}
 
 export function newGroqApi(settings: GroqSpecificSettings): AiApiCaller {
@@ -612,9 +601,8 @@ const callGroq = async (
     throw new Error("AbortError: Request aborted by user.");
   }
 
-  // Build prompt messages
   const promptMessages = buildPromptMessagesGroq(prompt);
-  // Build tool messages
+
   const toolMessages = buildToolMessagesGroq(prompt);
 
   const messages: ChatCompletionCreateParamsNonStreaming["messages"] = [
@@ -664,7 +652,6 @@ function convertFromGroqToolCalls(groqToolCalls: any): ToolCall[] {
   }));
 }
 
-/* ----------------------- Cerebras Implementation ----------------------- */
 interface CerebrasSpecificSettings extends AiApiSettings {}
 
 export function newCerebrasApi(
@@ -743,9 +730,8 @@ const callCerebras = async (
     throw new Error("AbortError: Request aborted by user.");
   }
 
-  // Build prompt messages
   const promptMessages = buildPromptMessagesCerebras(prompt);
-  // Build tool messages
+
   const toolMessages = buildToolMessagesCerebras(prompt);
 
   const messages: CerebrasServiceClient.Chat.Completions.ChatCompletionCreateParamsNonStreaming["messages"] =
@@ -797,7 +783,6 @@ function convertFromCerebrasToolCalls(cerebrasToolCalls: any): ToolCall[] {
   }));
 }
 
-/* ----------------------- Claude Implementation ----------------------- */
 interface ClaudeSpecificSettings extends AiApiSettings {}
 
 export function newClaudeApi(settings: ClaudeSpecificSettings): AiApiCaller {
@@ -837,7 +822,7 @@ const buildToolMessagesClaude = (prompt: {
   if (prompt.tools) {
     messages.push(
       ...prompt.tools.map((toolCall) => ({
-        role: "user" as const, // In Claude API, tool call result is user message
+        role: "user" as const,
         content: `${JSON.stringify(toolCall)}`,
       }))
     );
@@ -862,9 +847,8 @@ const callClaude = async (
     throw new Error("AbortError: Request aborted by user.");
   }
 
-  // Build prompt messages
   const promptMessages = buildPromptMessagesClaude(prompt);
-  // Build tool messages
+
   const toolMessages = buildToolMessagesClaude(prompt);
 
   const claudePromptMessages: MessageParam[] = [

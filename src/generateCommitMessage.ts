@@ -19,7 +19,7 @@ export const generateCommitMessage = async (
   sourceControl: vscode.SourceControl
 ) => {
   const log: Logger = (msg: string, type: string = "log") => {
-    vscode.window.showInformationMessage(msg); // Simple logger for commit message gen
+    vscode.window.showInformationMessage(msg);
   };
 
   if (!sourceControl.rootUri) {
@@ -27,10 +27,10 @@ export const generateCommitMessage = async (
     return;
   }
 
-  const providerSettingsList = getProviderSettingsFromStorage(context); // Load provider settings
+  const providerSettingsList = getProviderSettingsFromStorage(context);
   const currentProviderSetting =
-    getCurrentProviderSettingFromGlobalState(context) || // Load from global state
-    providerSettingsList[0]; // Get current or default provider
+    getCurrentProviderSettingFromGlobalState(context) ||
+    providerSettingsList[0];
   if (!currentProviderSetting) {
     log(
       "No AI provider settings configured. Please add provider settings.",
@@ -104,10 +104,10 @@ export const generateCommitMessage = async (
           {
             user: userPrompt,
             system: systemPrompt,
-            tools: [], // No tools needed for commit message generation
+            tools: [],
           },
-          [], // No tools needed
-          { logger: log, signal: new AbortController().signal } // No cancellation for now
+          [],
+          { logger: log, signal: new AbortController().signal }
         );
 
         let commitMessage = response.assistant.trim();
@@ -125,7 +125,7 @@ export const generateCommitMessage = async (
           log(`Commit message API call failed: ${error.message}`, "error");
         }
       }
-      progress.report({ increment: 100 }); // Indicate completion
+      progress.report({ increment: 100 });
     }
   );
 };

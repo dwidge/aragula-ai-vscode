@@ -117,11 +117,11 @@ export async function getCommitMessages(
     const shellPath =
       os.platform() === "win32"
         ? "C:\\Program Files\\Git\\bin\\bash.exe"
-        : undefined; // Adjust path if needed
+        : undefined;
 
     const options = {
       cwd: rootUri.fsPath,
-      shell: shellPath, // Use Git Bash on Windows to resolve 'git' command
+      shell: shellPath,
     };
 
     const { stdout, stderr } = await execAsync(

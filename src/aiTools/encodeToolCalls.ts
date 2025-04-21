@@ -2,10 +2,6 @@ import { ToolDefinition, ToolCall, JsonSchema } from "./AiApi";
 import { toXml } from "./toXml";
 import assert from "assert";
 
-/* ============================================================================
-   Common Functions for Formatted Tool Calls (XML, JSON, and Backtick)
-   ========================================================================== */
-
 /**
  * Encodes an array of tools into an XML string.
  */

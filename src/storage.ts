@@ -1,9 +1,9 @@
 import * as vscode from "vscode";
 import { AiApiSettings } from "./aiTools/AiApi";
 
-export const ENABLED_TOOLS_STORAGE_KEY = "enabledTools"; // Global storage key for enabled tools
+export const ENABLED_TOOLS_STORAGE_KEY = "enabledTools";
 export const CURRENT_PROVIDER_SETTING_STORAGE_KEY =
-  "currentProviderSettingName"; // Global storage key for current provider setting name
+  "currentProviderSettingName";
 export const AUTO_REMOVE_COMMENTS_STORAGE_KEY = "autoRemoveComments";
 export const AUTO_FORMAT_STORAGE_KEY = "autoFormat";
 
@@ -16,6 +16,7 @@ function getApiKey(): string | null {
   }
   return apiKey;
 }
+
 /** Retrieves the default system prompt from configuration. */
 export function getSystemPrompt(): string | undefined {
   const prompt = vscode.workspace
@@ -23,20 +24,22 @@ export function getSystemPrompt(): string | undefined {
     .get("systemPrompt");
   return typeof prompt === "string" ? prompt : undefined;
 }
+
 /** Retrieves system prompts from global storage, MRU order */
 export function getSystemPromptsFromStorage(
   context: vscode.ExtensionContext
 ): string[] {
   return context.globalState.get<string[]>("systemPrompts", []) || [];
 }
+
 /** Retrieves user prompts from global storage, MRU order */
 export function getUserPromptsFromStorage(
   context: vscode.ExtensionContext
 ): string[] {
-  return context.globalState.get<string[]>("userPrompts", []) || []; // New storage for user prompts
+  return context.globalState.get<string[]>("userPrompts", []) || [];
 }
-/** Retrieves provider settings from global storage */
 
+/** Retrieves provider settings from global storage */
 export function getProviderSettingsFromStorage(
   context: vscode.ExtensionContext
 ): AiApiSettings[] {
@@ -44,14 +47,15 @@ export function getProviderSettingsFromStorage(
     context.globalState.get<AiApiSettings[]>("providerSettingsList", []) || []
   );
 }
+
 /** Retrieves enabled tool names from global state */
 export function getEnabledToolNamesFromGlobalState(
   context: vscode.ExtensionContext
 ): string[] {
   return context.globalState.get<string[]>(ENABLED_TOOLS_STORAGE_KEY, []) || [];
 }
-/** Retrieves current provider setting name from global state */
 
+/** Retrieves current provider setting name from global state */
 export function getCurrentProviderSettingFromGlobalState(
   context: vscode.ExtensionContext
 ): AiApiSettings | undefined {
@@ -65,6 +69,7 @@ export function getCurrentProviderSettingFromGlobalState(
   }
   return undefined;
 }
+
 /** Saves system prompt to global storage, MRU at top */
 export async function saveSystemPromptToStorage(
   context: vscode.ExtensionContext,
@@ -72,10 +77,11 @@ export async function saveSystemPromptToStorage(
 ): Promise<void> {
   let prompts = getSystemPromptsFromStorage(context);
   if (!prompts.includes(prompt)) {
-    prompts.unshift(prompt); // Add to the beginning for MRU
+    prompts.unshift(prompt);
     await context.globalState.update("systemPrompts", prompts);
   }
 }
+
 /** Saves user prompt to global storage, MRU at top */
 export async function saveUserPromptToStorage(
   context: vscode.ExtensionContext,
@@ -83,10 +89,11 @@ export async function saveUserPromptToStorage(
 ): Promise<void> {
   let prompts = getUserPromptsFromStorage(context);
   if (!prompts.includes(prompt)) {
-    prompts.unshift(prompt); // Add to the beginning for MRU
-    await context.globalState.update("userPrompts", prompts); // Save to user prompts storage
+    prompts.unshift(prompt);
+    await context.globalState.update("userPrompts", prompts);
   }
 }
+
 /** Saves provider setting to global storage */
 export async function saveProviderSettingToStorage(
   context: vscode.ExtensionContext,
@@ -97,15 +104,16 @@ export async function saveProviderSettingToStorage(
     (p) => p.name === providerSetting.name
   );
   if (existingIndex > -1) {
-    providerSettingsList[existingIndex] = providerSetting; // Update existing
+    providerSettingsList[existingIndex] = providerSetting;
   } else {
-    providerSettingsList.push(providerSetting); // Add new
+    providerSettingsList.push(providerSetting);
   }
   await context.globalState.update(
     "providerSettingsList",
     providerSettingsList
   );
 }
+
 /** Updates provider setting in global storage */
 export async function updateProviderSettingInStorage(
   context: vscode.ExtensionContext,
@@ -117,15 +125,16 @@ export async function updateProviderSettingInStorage(
     (p) => p.name === oldProviderSettingName
   );
   if (existingIndex > -1) {
-    providerSettingsList[existingIndex] = providerSetting; // Update existing
+    providerSettingsList[existingIndex] = providerSetting;
   } else {
-    providerSettingsList.push(providerSetting); // Add
+    providerSettingsList.push(providerSetting);
   }
   await context.globalState.update(
     "providerSettingsList",
     providerSettingsList
   );
 }
+
 /** Saves enabled tool names to global state */
 export async function setEnabledToolNamesToGlobalState(
   context: vscode.ExtensionContext,
@@ -133,6 +142,7 @@ export async function setEnabledToolNamesToGlobalState(
 ): Promise<void> {
   await context.globalState.update(ENABLED_TOOLS_STORAGE_KEY, toolNames);
 }
+
 /** Saves current provider setting name to global state */
 export async function useProviderSettingInGlobalState(
   context: vscode.ExtensionContext,
@@ -143,26 +153,29 @@ export async function useProviderSettingInGlobalState(
     providerSettingName
   );
 }
+
 /** Use system prompt, move to top in MRU list */
 export async function useSystemPromptInStorage(
   context: vscode.ExtensionContext,
   prompt: string
 ): Promise<void> {
   let prompts = getSystemPromptsFromStorage(context);
-  const filteredPrompts = prompts.filter((p) => p !== prompt); // Remove existing
-  filteredPrompts.unshift(prompt); // Add to the beginning for MRU
+  const filteredPrompts = prompts.filter((p) => p !== prompt);
+  filteredPrompts.unshift(prompt);
   await context.globalState.update("systemPrompts", filteredPrompts);
 }
+
 /** Use user prompt, move to top in MRU list */
 export async function useUserPromptInStorage(
   context: vscode.ExtensionContext,
   prompt: string
 ): Promise<void> {
   let prompts = getUserPromptsFromStorage(context);
-  const filteredPrompts = prompts.filter((p) => p !== prompt); // Remove existing
-  filteredPrompts.unshift(prompt); // Add to the beginning for MRU
+  const filteredPrompts = prompts.filter((p) => p !== prompt);
+  filteredPrompts.unshift(prompt);
   await context.globalState.update("userPrompts", filteredPrompts);
 }
+
 /** Deletes system prompt from global storage */
 export async function deleteSystemPromptFromStorage(
   context: vscode.ExtensionContext,
@@ -172,6 +185,7 @@ export async function deleteSystemPromptFromStorage(
   const updatedPrompts = prompts.filter((p) => p !== prompt);
   await context.globalState.update("systemPrompts", updatedPrompts);
 }
+
 /** Deletes user prompt from global storage */
 export async function deleteUserPromptFromStorage(
   context: vscode.ExtensionContext,
@@ -179,8 +193,9 @@ export async function deleteUserPromptFromStorage(
 ): Promise<void> {
   let prompts = getUserPromptsFromStorage(context);
   const updatedPrompts = prompts.filter((p) => p !== prompt);
-  await context.globalState.update("userPrompts", updatedPrompts); // Delete from user prompts storage
+  await context.globalState.update("userPrompts", updatedPrompts);
 }
+
 /** Deletes provider setting from global storage */
 export async function deleteProviderSettingFromStorage(
   context: vscode.ExtensionContext,
@@ -195,6 +210,7 @@ export async function deleteProviderSettingFromStorage(
     updatedProviderSettings
   );
 }
+
 /** Get current system prompt from workspace state */
 export function getCurrentSystemPromptFromWorkspace(
   context: vscode.ExtensionContext,
@@ -202,6 +218,7 @@ export function getCurrentSystemPromptFromWorkspace(
 ): string | undefined {
   return context.workspaceState.get<string>(`workspaceSystemPrompt-${tabId}`);
 }
+
 /** Set current system prompt to workspace state */
 export async function setCurrentSystemPromptToWorkspace(
   context: vscode.ExtensionContext,
@@ -210,6 +227,7 @@ export async function setCurrentSystemPromptToWorkspace(
 ): Promise<void> {
   await context.workspaceState.update(`workspaceSystemPrompt-${tabId}`, prompt);
 }
+
 /** Get current user prompt from workspace state */
 export function getCurrentUserPromptFromWorkspace(
   context: vscode.ExtensionContext,
@@ -217,6 +235,7 @@ export function getCurrentUserPromptFromWorkspace(
 ): string | undefined {
   return context.workspaceState.get<string>(`workspaceUserPrompt-${tabId}`);
 }
+
 /** Set current user prompt to workspace state */
 export async function setCurrentUserPromptToWorkspace(
   context: vscode.ExtensionContext,

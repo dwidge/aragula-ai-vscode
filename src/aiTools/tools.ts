@@ -82,8 +82,6 @@ export const allTools = {
   readDir: readDirTool,
   readFile: readFileTool,
   writeFile: writeFileTool,
-  // runShellCommand: runShellCommandTool,
-  // askUser: askUserTool,
 };
 export type ToolName = keyof typeof allTools;
 export const allToolNames = Object.keys(allTools) as ToolName[];
