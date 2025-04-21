@@ -45,7 +45,7 @@
       {
         "command": "aragula-ai.generateCommitMessage",
         "shortTitle": "✨",
-        "title": "Generate Commit Message"
+        "title": "✨"
       }
     ],
     "menus": {
