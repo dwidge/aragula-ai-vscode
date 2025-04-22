@@ -72,7 +72,7 @@ export function activate(context: vscode.ExtensionContext) {
   console.log('Extension "aragula-ai" active');
 
   const addFiles = async (multi: vscode.Uri[]) => {
-    const openFiles = await readOpenFiles(multi);
+    const openFilePaths = await readOpenFilePaths(multi);
     let tabId = Date.now().toString();
     let existingPanel: vscode.WebviewPanel | undefined = undefined;
 
@@ -112,11 +112,11 @@ export function activate(context: vscode.ExtensionContext) {
 
     if (existingPanel) {
       existingPanel.reveal(vscode.ViewColumn.One);
-      sendFilesToExistingChat(existingPanel, openFiles);
+      sendFilesToExistingChat(existingPanel, openFilePaths);
     } else {
       await openChatWindow(
         context,
-        openFiles,
+        openFilePaths,
         tabId,
         systemPrompt,
         systemPrompts,
@@ -156,39 +156,36 @@ export function activate(context: vscode.ExtensionContext) {
   );
 }
 
-/** Send files to an existing chat panel */
+/** Send file paths to an existing chat panel */
 function sendFilesToExistingChat(
   panel: vscode.WebviewPanel,
-  openFiles: { [key: string]: string }
+  filePaths: string[]
 ) {
-  const filePaths = Object.keys(openFiles).map((filePath) => filePath);
   panel.webview.postMessage({
     command: "addFilesFromDialog",
     filePaths: filePaths,
   });
 }
 
-/** Reads the content of open files given their URIs. */
-async function readOpenFiles(
-  uris: vscode.Uri[]
-): Promise<{ [key: string]: string }> {
-  const openFiles: { [key: string]: string } = {};
+/** Reads the relative paths of open files given their URIs. */
+async function readOpenFilePaths(uris: vscode.Uri[]): Promise<string[]> {
+  const openFilePaths: string[] = [];
   if (!uris) {
-    return openFiles;
+    return openFilePaths;
   }
 
   for (const uri of uris) {
     if (uri.fsPath) {
       try {
-        const content = await fs.readFile(uri.fsPath, "utf8");
+        await fs.access(uri.fsPath);
         const relativePath = vscode.workspace.asRelativePath(uri);
-        openFiles[relativePath] = content;
+        openFilePaths.push(relativePath);
       } catch {
-        vscode.window.showErrorMessage(`Failed to read file: ${uri.fsPath}`);
+        vscode.window.showErrorMessage(`Failed to access file: ${uri.fsPath}`);
       }
     }
   }
-  return openFiles;
+  return openFilePaths;
 }
 
 interface ActiveRequest {
@@ -200,7 +197,7 @@ const activeRequests: Map<string, ActiveRequest> = new Map();
 /** Opens a new chat webview and sets up message handling. */
 async function openChatWindow(
   context: vscode.ExtensionContext,
-  openedFiles: { [key: string]: string },
+  openedFilePaths: string[],
   tabId: string,
   systemPrompt: string | undefined,
   systemPrompts: string[],
@@ -228,11 +225,11 @@ async function openChatWindow(
   });
 
   panel.webview.html = chatview(tabId);
-  sendInitialSystemMessage(panel, openedFiles);
+  sendInitialSystemMessage(panel, openedFilePaths);
 
   panel.webview.onDidReceiveMessage(
     (message) =>
-      handleWebviewMessage(context, panel, message, openedFiles, tabId),
+      handleWebviewMessage(context, panel, message, openedFilePaths, tabId),
     undefined,
     context.subscriptions
   );
@@ -265,29 +262,15 @@ async function openChatWindow(
   context.workspaceState.update(`responseText-${tabId}`, "");
 }
 
-/** Sends an initial system message with the list of open files. */
+/** Sends an initial system message with the list of open file paths. */
 function sendInitialSystemMessage(
   panel: vscode.WebviewPanel,
-  openedFiles: { [key: string]: string }
+  openedFilePaths: string[]
 ) {
   panel.webview.postMessage({
     command: "setOpenFiles",
-    files: Object.keys(openedFiles),
+    files: openedFilePaths,
   });
-  const initialMessage = generateInitialMessage(openedFiles);
-  if (initialMessage) {
-    panel.webview.postMessage({
-      command: "receiveMessage",
-      text: initialMessage,
-      sender: "system",
-    });
-  }
-}
-
-function generateInitialMessage(openedFiles: {
-  [key: string]: string;
-}): string {
-  return "using:\n" + Object.keys(openedFiles).join("\n");
 }
 
 /** Dispatches webview messages to the appropriate handler. */
@@ -295,7 +278,7 @@ function handleWebviewMessage(
   context: vscode.ExtensionContext,
   panel: vscode.WebviewPanel,
   message: any,
-  openedFiles: { [key: string]: string },
+  openedFilePaths: string[],
   tabId: string
 ) {
   const log: Logger = (msg: string, type: string = "log") => {
@@ -309,7 +292,7 @@ function handleWebviewMessage(
 
   switch (message.command) {
     case "sendMessage":
-      handleSendMessage(context, panel, message, openedFiles, tabId, log);
+      handleSendMessage(context, panel, message, openedFilePaths, tabId, log);
       break;
     case "setSystemPrompt":
       handleSetSystemPrompt(context, panel, message.systemPrompt, tabId);
@@ -324,16 +307,16 @@ function handleWebviewMessage(
       cancelActiveRequest(message.messageId, log);
       break;
     case "removeFile":
-      handleRemoveFile(panel, message.filePath, openedFiles);
+      handleRemoveFile(panel, message.filePath, openedFilePaths);
       break;
     case "addFiles":
-      handleAddFiles(panel, message.filePaths, openedFiles);
+      handleAddFiles(panel, message.filePaths, openedFilePaths);
       break;
     case "requestAddFiles":
       requestAddFilesDialog(panel);
       break;
     case "addFilesFromDialog":
-      handleAddFilesFromDialog(panel, message.filePaths, openedFiles);
+      handleAddFilesFromDialog(panel, message.filePaths, openedFilePaths);
       break;
     case "saveSystemPromptToLibrary":
       handleSaveSystemPromptToLibrary(context, panel, message.prompt);
@@ -421,15 +404,8 @@ function handleWebviewMessage(
 }
 
 async function handleRemoveCommentsInFiles(filePaths: string[], log: Logger) {
-  const workspaceFolders = vscode.workspace.workspaceFolders;
-  if (!workspaceFolders || workspaceFolders.length === 0) {
-    log("No workspace folder open.", "error");
-    return;
-  }
-  const workspaceRoot = workspaceFolders[0].uri.fsPath;
-
   for (const filePath of filePaths) {
-    const fullPath = path.join(workspaceRoot, filePath);
+    const fullPath = getWorkspaceAbsolutePath(filePath);
     try {
       const originalContent = await readFileSafe(fullPath);
 
@@ -458,17 +434,9 @@ async function handleRemoveCommentsInFiles(filePaths: string[], log: Logger) {
 }
 
 async function handleFormatFilesInFiles(filePaths: string[], log: Logger) {
-  const workspaceFolders = vscode.workspace.workspaceFolders;
-  if (!workspaceFolders || workspaceFolders.length === 0) {
-    log("No workspace folder open.", "error");
-    return;
-  }
-  const workspaceRoot = workspaceFolders[0].uri.fsPath;
-
   for (const filePath of filePaths) {
-    const fullPath = path.join(workspaceRoot, filePath);
     try {
-      await formatCodeWithVscode(fullPath);
+      await formatCodeWithVscode(getWorkspaceAbsolutePath(filePath));
       log(`Formatted file: ${filePath}`, "info");
     } catch (error: any) {
       log(`Error formatting file ${filePath}: ${error.message}`, "error");
@@ -736,9 +704,9 @@ async function handleDeleteUserPromptFromLibrary(
 async function handleAddFilesFromDialog(
   panel: vscode.WebviewPanel,
   filePaths: string[],
-  openedFiles: { [key: string]: string }
+  openedFilePaths: string[]
 ) {
-  await handleAddFiles(panel, filePaths, openedFiles);
+  await handleAddFiles(panel, filePaths, openedFilePaths);
 }
 
 async function requestAddFilesDialog(panel: vscode.WebviewPanel) {
@@ -759,34 +727,36 @@ async function requestAddFilesDialog(panel: vscode.WebviewPanel) {
 function handleRemoveFile(
   panel: vscode.WebviewPanel,
   filePath: string,
-  openedFiles: { [key: string]: string }
+  openedFilePaths: string[]
 ) {
-  delete openedFiles[filePath];
   panel.webview.postMessage({
     command: "setOpenFiles",
-    files: Object.keys(openedFiles),
+    files: openedFilePaths.filter((f) => f !== filePath),
   });
 }
+
+const getWorkspaceRoot = () => {
+  const w = vscode.workspace.workspaceFolders?.[0].uri.fsPath;
+  if (!w) {
+    throw new Error("getWorkspaceRootE1: No workspace open");
+  }
+  return w;
+};
+const getWorkspaceAbsolutePath = (relativePath: string) =>
+  path.join(getWorkspaceRoot(), relativePath);
 
 async function handleAddFiles(
   panel: vscode.WebviewPanel,
   filePaths: string[],
-  openedFiles: { [key: string]: string }
+  openedFilePaths: string[]
 ) {
   const addedFiles: string[] = [];
-  const workspaceFolders = vscode.workspace.workspaceFolders;
-  if (!workspaceFolders || workspaceFolders.length === 0) {
-    vscode.window.showErrorMessage("No workspace folder open.");
-    return [];
-  }
-  const workspaceRoot = workspaceFolders[0].uri.fsPath;
 
   for (const filePath of filePaths) {
-    if (!openedFiles[filePath]) {
+    if (!openedFilePaths.includes(filePath)) {
       try {
-        const fileUri = vscode.Uri.file(path.join(workspaceRoot, filePath));
-        const content = await fs.readFile(fileUri.fsPath, "utf8");
-        openedFiles[filePath] = content;
+        await fs.access(getWorkspaceAbsolutePath(filePath));
+        openedFilePaths.push(filePath);
         addedFiles.push(filePath);
       } catch (error) {
         vscode.window.showErrorMessage(`Failed to read file: ${filePath}`);
@@ -796,7 +766,7 @@ async function handleAddFiles(
   }
   panel.webview.postMessage({
     command: "setOpenFiles",
-    files: Object.keys(openedFiles),
+    files: openedFilePaths,
   });
   console.log("addedFiles1", addedFiles);
   return addedFiles;
@@ -815,7 +785,7 @@ async function handleSendMessage(
     autoRemoveComments: boolean;
     autoFormat: boolean;
   },
-  openedFiles: { [key: string]: string },
+  openedFilePaths: string[],
   tabId: string,
   log: Logger
 ) {
@@ -861,13 +831,14 @@ async function handleSendMessage(
   panel.webview.postMessage({ command: "startLoading", messageId });
 
   try {
-    const fullFiles = message.fileNames.map((k) => [k, openedFiles[k]]);
-    const readFileToolResponse: ToolCall[] = fullFiles.map(([k, v]) => ({
-      name: "readFile",
-      parameters: { path: k },
-      response: { content: v },
-      type: "backtick",
-    }));
+    const readFileToolResponse: ToolCall[] = await Promise.all(
+      message.fileNames.map(async (k) => ({
+        name: "readFile",
+        parameters: { path: k },
+        response: { content: await readFileSafe(getWorkspaceAbsolutePath(k)) },
+        type: "backtick",
+      }))
+    );
     console.log("enabledToolNames in handleSendMessage:", message.toolNames);
     const enabledTools: ToolDefinition[] = filterToolsByName(
       availableToolsDefinitions,
