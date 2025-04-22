@@ -84,7 +84,8 @@
     "pretest": "pnpm run compile-tests && pnpm run compile && pnpm run lint",
     "check-types": "tsc --noEmit",
     "lint": "eslint src --ext ts",
-    "test": "vscode-test"
+    "test": "vscode-test",
+    "node:test": "pnpm run compile-tests && node --test ./out/aiTools/*.test.js"
   },
   "devDependencies": {
     "@types/mocha": "^10.0.7",
