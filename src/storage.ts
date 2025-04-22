@@ -6,6 +6,7 @@ export const CURRENT_PROVIDER_SETTING_STORAGE_KEY =
   "currentProviderSettingName";
 export const AUTO_REMOVE_COMMENTS_STORAGE_KEY = "autoRemoveComments";
 export const AUTO_FORMAT_STORAGE_KEY = "autoFormat";
+export const AUTO_FIX_ERRORS_STORAGE_KEY = "autoFixErrors";
 
 /** Retrieves the API key from configuration. */
 function getApiKey(): string | null {
@@ -285,6 +286,28 @@ export async function setAutoFormatToWorkspace(
 ): Promise<void> {
   await context.workspaceState.update(
     `${AUTO_FORMAT_STORAGE_KEY}-${tabId}`,
+    state
+  );
+}
+
+/** Get autoFixErrors state from workspace state */
+export function getAutoFixErrorsFromWorkspace(
+  context: vscode.ExtensionContext,
+  tabId: string
+): boolean | undefined {
+  return context.workspaceState.get<boolean>(
+    `${AUTO_FIX_ERRORS_STORAGE_KEY}-${tabId}`
+  );
+}
+
+/** Set autoFixErrors state to workspace state */
+export async function setAutoFixErrorsToWorkspace(
+  context: vscode.ExtensionContext,
+  tabId: string,
+  state: boolean
+): Promise<void> {
+  await context.workspaceState.update(
+    `${AUTO_FIX_ERRORS_STORAGE_KEY}-${tabId}`,
     state
   );
 }

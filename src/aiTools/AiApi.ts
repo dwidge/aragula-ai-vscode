@@ -939,3 +939,20 @@ function convertFromClaudeToolCalls(claudeToolCalls: any[]): ToolCall[] {
     parameters: claudeToolCall.input,
   }));
 }
+
+export const newAiApi = (providerSetting: AiApiSettings): AiApiCaller => {
+  switch (providerSetting.vendor) {
+    case "openai":
+      return newOpenAiApi(providerSetting);
+    case "gemini":
+      return newGeminiApi(providerSetting);
+    case "groq":
+      return newGroqApi(providerSetting);
+    case "cerebras":
+      return newCerebrasApi(providerSetting);
+    case "claude":
+      return newClaudeApi(providerSetting);
+    default:
+      throw new Error(`Vendor "${providerSetting.vendor}" not supported.`);
+  }
+};

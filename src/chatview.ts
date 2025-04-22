@@ -593,6 +593,11 @@ export default (tabId: string) => `
             <label for="autoFormatCheckbox">Auto Format</label>
           </div>
           <button id="formatButton" onclick="handleFormat()">Format</button>
+          <div class="auto-checkbox">
+            <input type="checkbox" id="autoFixErrorsCheckbox">
+            <label for="autoFixErrorsCheckbox">Auto Fix Errors</label>
+          </div>
+          <button id="fixErrorsButton" onclick="handleFixErrors()">Fix Errors</button>
         </div>
       </div>
       <div id="messages-container"></div>
@@ -642,6 +647,8 @@ export default (tabId: string) => `
       let autoRemoveComments = true; // Will be initialized by message
       /** @type {boolean} */
       let autoFormat = true; // Will be initialized by message
+      /** @type {boolean} */
+      let autoFixErrors = true; // Will be initialized by message
 
       const STORAGE_KEYS = {
         chatHistory: \`chatMessages-\${tabId}\`,
@@ -650,7 +657,8 @@ export default (tabId: string) => `
         enabledTools: 'enabledTools', // Key for enabled tools
         currentProviderSettingName: 'currentProviderSettingName', // Key for current provider setting name
         autoRemoveComments: \`autoRemoveComments-\${tabId}\`, // Key for auto remove comments checkbox state
-        autoFormat: \`autoFormat-\${tabId}\` // Key for auto format checkbox state
+        autoFormat: \`autoFormat-\${tabId}\`, // Key for auto format checkbox state
+        autoFixErrors: \`autoFixErrors-\${tabId}\` // Key for auto fix errors checkbox state
       };
 
       // DOM elements
@@ -690,8 +698,10 @@ export default (tabId: string) => `
       const providerTemperatureError = document.getElementById('provider-temperature-error'); // New error for temperature
       const removeCommentsButton = document.getElementById('removeCommentsButton');
       const formatButton = document.getElementById('formatButton');
+      const fixErrorsButton = document.getElementById('fixErrorsButton'); // New button for fix errors
       const autoRemoveCommentsCheckbox = document.getElementById('autoRemoveCommentsCheckbox');
       const autoFormatCheckbox = document.getElementById('autoFormatCheckbox');
+      const autoFixErrorsCheckbox = document.getElementById('autoFixErrorsCheckbox'); // New checkbox for auto fix errors
 
 
       /**
@@ -723,6 +733,7 @@ export default (tabId: string) => `
         // Load checkbox states
         autoRemoveCommentsCheckbox.checked = localStorage.getItem(STORAGE_KEYS.autoRemoveComments) !== 'false';
         autoFormatCheckbox.checked = localStorage.getItem(STORAGE_KEYS.autoFormat) !== 'false';
+        autoFixErrorsCheckbox.checked = localStorage.getItem(STORAGE_KEYS.autoFixErrors) !== 'false'; // Load auto fix errors state
       }
 
       /**
@@ -754,6 +765,7 @@ export default (tabId: string) => `
         // Save checkbox states
         localStorage.setItem(STORAGE_KEYS.autoRemoveComments, autoRemoveCommentsCheckbox.checked ? 'true' : 'false');
         localStorage.setItem(STORAGE_KEYS.autoFormat, autoFormatCheckbox.checked ? 'true' : 'false');
+        localStorage.setItem(STORAGE_KEYS.autoFixErrors, autoFixErrorsCheckbox.checked ? 'true' : 'false'); // Save auto fix errors state
       }
 
       /**
@@ -1077,6 +1089,7 @@ export default (tabId: string) => `
         // Get checkbox states
         const autoRemoveComments = autoRemoveCommentsCheckbox.checked;
         const autoFormat = autoFormatCheckbox.checked;
+        const autoFixErrors = autoFixErrorsCheckbox.checked; // Get auto fix errors state
 
         const messageId = addChatMessage(user, "user");
         vscode.postMessage({
@@ -1088,7 +1101,8 @@ export default (tabId: string) => `
           providerSetting: currentProviderSetting,
           messageId,
           autoRemoveComments: autoRemoveComments, // Add checkbox state
-          autoFormat: autoFormat // Add checkbox state
+          autoFormat: autoFormat, // Add checkbox state
+          autoFixErrors: autoFixErrors // Add auto fix errors state
         });
       }
 
@@ -1112,6 +1126,21 @@ export default (tabId: string) => `
               return;
           }
           vscode.postMessage({ command: "formatFilesInFiles", filePaths: openFiles });
+      }
+
+      /**
+       * Handles fixing errors in selected files.
+       */
+      function handleFixErrors() {
+          if (openFiles.length === 0) {
+              alert("Please add files first.");
+              return;
+          }
+          if (!currentProviderSetting) {
+              alert("Please select an AI Provider in 'Providers' popup.");
+              return;
+          }
+          vscode.postMessage({ command: "checkErrorsInFiles", filePaths: openFiles, providerSetting: currentProviderSetting });
       }
 
 
@@ -1537,8 +1566,18 @@ export default (tabId: string) => `
       });
 
       // Save checkbox states on change
-      autoRemoveCommentsCheckbox.addEventListener('change', saveState);
-      autoFormatCheckbox.addEventListener('change', saveState);
+      autoRemoveCommentsCheckbox.addEventListener('change', () => {
+          saveState();
+          vscode.postMessage({ command: "setAutoRemoveComments", checked: autoRemoveCommentsCheckbox.checked });
+      });
+      autoFormatCheckbox.addEventListener('change', () => {
+          saveState();
+          vscode.postMessage({ command: "setAutoFormat", checked: autoFormatCheckbox.checked });
+      });
+      autoFixErrorsCheckbox.addEventListener('change', () => { // New event listener for auto fix errors
+          saveState();
+          vscode.postMessage({ command: "setAutoFixErrors", checked: autoFixErrorsCheckbox.checked });
+      });
 
 
       // Provider form input change listeners for debounced save
@@ -1607,11 +1646,13 @@ export default (tabId: string) => `
             availableVendors = message.availableVendors || []; // Initialize available vendors
             autoRemoveComments = message.autoRemoveComments ?? true; // Initialize auto remove comments
             autoFormat = message.autoFormat ?? true; // Initialize auto format
+            autoFixErrors = message.autoFixErrors ?? true; // Initialize auto fix errors
 
             systemPromptEl.value = currentSystemPrompt;
             userInputEl.value = currentUserPrompt;
             autoRemoveCommentsCheckbox.checked = autoRemoveComments; // Set checkbox state from received message
             autoFormatCheckbox.checked = autoFormat; // Set checkbox state from received message
+            autoFixErrorsCheckbox.checked = autoFixErrors; // Set auto fix errors checkbox state
 
             renderSystemPromptsList();
             renderUserPromptsList();
@@ -1680,6 +1721,7 @@ export default (tabId: string) => `
       window.toggleMessageCollapse = toggleMessageCollapse;
       window.handleRemoveComments = handleRemoveComments; // Expose new function
       window.handleFormat = handleFormat; // Expose new function
+      window.handleFixErrors = handleFixErrors; // Expose new function
     </script>
   </body>
 </html>

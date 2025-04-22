@@ -4,21 +4,19 @@ import { sleep } from "openai/core.mjs";
 import * as path from "path";
 import * as vscode from "vscode";
 import {
-  AiApiCaller,
   AiApiSettings,
   Json,
   Logger,
-  newCerebrasApi,
-  newClaudeApi,
-  newGeminiApi,
-  newGroqApi,
-  newOpenAiApi,
+  newAiApi,
   ToolCall,
   ToolDefinition,
 } from "./aiTools/AiApi";
 import { readFileSafe, writeFileSafe } from "./aiTools/file";
 import { filterToolsByName } from "./aiTools/filterToolsByName";
-import { formatCodeWithVscode } from "./aiTools/formatCodeWithVscode";
+import {
+  formatCodeWithVscode,
+  getCodeErrorsWithVscode,
+} from "./aiTools/formatCodeWithVscode";
 import { removeJsJsxComments } from "./aiTools/removeJsJsxComments";
 import { readDirTool, readFileTool, writeFileTool } from "./aiTools/tools";
 import chatview from "./chatview";
@@ -27,6 +25,7 @@ import {
   deleteProviderSettingFromStorage,
   deleteSystemPromptFromStorage,
   deleteUserPromptFromStorage,
+  getAutoFixErrorsFromWorkspace,
   getAutoFormatFromWorkspace,
   getAutoRemoveCommentsFromWorkspace,
   getCurrentProviderSettingFromGlobalState,
@@ -40,6 +39,7 @@ import {
   saveProviderSettingToStorage,
   saveSystemPromptToStorage,
   saveUserPromptToStorage,
+  setAutoFixErrorsToWorkspace,
   setAutoFormatToWorkspace,
   setAutoRemoveCommentsToWorkspace,
   setCurrentSystemPromptToWorkspace,
@@ -109,6 +109,8 @@ export function activate(context: vscode.ExtensionContext) {
     const autoRemoveComments =
       getAutoRemoveCommentsFromWorkspace(context, tabId) ?? false;
     const autoFormat = getAutoFormatFromWorkspace(context, tabId) ?? false;
+    const autoFixErrors =
+      getAutoFixErrorsFromWorkspace(context, tabId) ?? false;
 
     if (existingPanel) {
       existingPanel.reveal(vscode.ViewColumn.One);
@@ -128,7 +130,8 @@ export function activate(context: vscode.ExtensionContext) {
         currentProviderSetting,
         availableVendors,
         autoRemoveComments,
-        autoFormat
+        autoFormat,
+        autoFixErrors
       );
     }
   };
@@ -209,7 +212,8 @@ async function openChatWindow(
   currentProviderSetting: AiApiSettings | undefined,
   availableVendors: string[],
   autoRemoveComments: boolean,
-  autoFormat: boolean
+  autoFormat: boolean,
+  autoFixErrors: boolean
 ) {
   const panel = vscode.window.createWebviewPanel(
     "askAIChat",
@@ -247,6 +251,7 @@ async function openChatWindow(
     availableVendors: availableVendors,
     autoRemoveComments: autoRemoveComments,
     autoFormat: autoFormat,
+    autoFixErrors: autoFixErrors,
   });
 
   panel.webview.postMessage({
@@ -293,6 +298,9 @@ function handleWebviewMessage(
   switch (message.command) {
     case "sendMessage":
       handleSendMessage(context, panel, message, openedFilePaths, tabId, log);
+      break;
+    case "checkErrorsInFiles":
+      checkAndFixErrors(message.filePaths, message.providerSetting, log);
       break;
     case "setSystemPrompt":
       handleSetSystemPrompt(context, panel, message.systemPrompt, tabId);
@@ -397,6 +405,9 @@ function handleWebviewMessage(
       break;
     case "setAutoFormat":
       setAutoFormatToWorkspace(context, tabId, message.checked);
+      break;
+    case "setAutoFixErrors":
+      setAutoFixErrorsToWorkspace(context, tabId, message.checked);
       break;
     default:
       console.warn("Unknown command from webview:", message.command);
@@ -772,6 +783,105 @@ async function handleAddFiles(
   return addedFiles;
 }
 
+/**
+ * Checks for errors in files, constructs a prompt with errors and file content,
+ * calls the AI to fix them, and applies the changes.
+ */
+const checkAndFixErrors = async (
+  filePaths: string[],
+  providerSetting: AiApiSettings,
+  log: Logger
+) => {
+  log("Checking for errors...", "info");
+  let allErrors: {
+    filePath: string;
+    line: number;
+    message: string;
+  }[] = [];
+  for (const filePath of filePaths) {
+    try {
+      const errors = await getCodeErrorsWithVscode(
+        getWorkspaceAbsolutePath(filePath)
+      );
+      allErrors.push(...errors.map((err) => ({ filePath, ...err })));
+    } catch (error: any) {
+      log(`Error checking errors in ${filePath}: ${error.message}`, "error");
+    }
+  }
+
+  if (allErrors.length === 0) {
+    log("No errors found.", "info");
+    return;
+  }
+
+  log(`Found ${allErrors.length} errors. Attempting to fix...`, "warning");
+
+  const system =
+    "You are an AI assistant specialized in fixing code errors based on provided diagnostics. You will receive a list of errors and the corresponding file contents. Your task is to provide the corrected file contents in the specified format.";
+  let user =
+    "Please fix the following errors in the provided files.\n\nErrors:\n";
+  allErrors.forEach((err) => {
+    user += `- file: ${err.filePath}, line: ${err.line}: ${err.message}\n`;
+  });
+
+  const abortController = new AbortController();
+  const readFileToolResponse: ToolCall[] = await readFiles(filePaths);
+  const enabledTools: ToolDefinition[] = [writeFileTool];
+  const response = await newAiApi(providerSetting)(
+    {
+      user: user,
+      system: system,
+      tools: readFileToolResponse,
+    },
+    enabledTools,
+    { logger: log, signal: abortController.signal }
+  );
+  await executeToolCalls(response.tools, enabledTools);
+};
+
+const readFiles = async (relativePaths: string[]): Promise<ToolCall[]> =>
+  Promise.all(
+    relativePaths.map(async (k) => ({
+      name: "readFile",
+      parameters: { path: k },
+      response: { content: await readFileSafe(getWorkspaceAbsolutePath(k)) },
+      type: "backtick",
+    }))
+  );
+
+type ToolCallResult = {
+  name: string;
+  parameters?: Json;
+  response?: Json;
+  error?: string;
+};
+
+const executeToolCalls = async (
+  toolCalls: ToolCall[],
+  availableTools: ToolDefinition[]
+): Promise<ToolCallResult[]> =>
+  Promise.all(
+    toolCalls.map(async (tool) => {
+      try {
+        const toolFunction = availableTools.find((t) => t.name === tool.name);
+        if (!toolFunction) {
+          throw new Error(`Unknown tool: ${tool.name}`);
+        }
+        if (toolFunction.function) {
+          const toolResult: any = await toolFunction.function(
+            {},
+            tool.parameters
+          );
+          return { ...tool, response: toolResult };
+        } else {
+          return tool;
+        }
+      } catch (error: any) {
+        return { ...tool, error: error.message || "Tool execution failed" };
+      }
+    })
+  );
+
 /** Handles a sendMessage request from the webview. */
 async function handleSendMessage(
   context: vscode.ExtensionContext,
@@ -784,38 +894,13 @@ async function handleSendMessage(
     providerSetting: AiApiSettings;
     autoRemoveComments: boolean;
     autoFormat: boolean;
+    autoFixErrors: boolean;
   },
   openedFilePaths: string[],
   tabId: string,
   log: Logger
 ) {
   const providerSetting = message.providerSetting;
-  if (!providerSetting?.apiKey) {
-    log("API key missing from provider settings", "error");
-    return;
-  }
-
-  let callAiApi: AiApiCaller;
-  switch (providerSetting.vendor) {
-    case "openai":
-      callAiApi = newOpenAiApi(providerSetting);
-      break;
-    case "gemini":
-      callAiApi = newGeminiApi(providerSetting);
-      break;
-    case "groq":
-      callAiApi = newGroqApi(providerSetting);
-      break;
-    case "cerebras":
-      callAiApi = newCerebrasApi(providerSetting);
-      break;
-    case "claude":
-      callAiApi = newClaudeApi(providerSetting);
-      break;
-    default:
-      log(`Vendor "${providerSetting.vendor}" not supported.`, "error");
-      return;
-  }
 
   panel.webview.postMessage({
     command: "receiveMessage",
@@ -831,14 +916,7 @@ async function handleSendMessage(
   panel.webview.postMessage({ command: "startLoading", messageId });
 
   try {
-    const readFileToolResponse: ToolCall[] = await Promise.all(
-      message.fileNames.map(async (k) => ({
-        name: "readFile",
-        parameters: { path: k },
-        response: { content: await readFileSafe(getWorkspaceAbsolutePath(k)) },
-        type: "backtick",
-      }))
-    );
+    const readFileToolResponse: ToolCall[] = await readFiles(message.fileNames);
     console.log("enabledToolNames in handleSendMessage:", message.toolNames);
     const enabledTools: ToolDefinition[] = filterToolsByName(
       availableToolsDefinitions,
@@ -846,7 +924,7 @@ async function handleSendMessage(
     );
 
     log("Calling " + providerSetting.vendor, "system");
-    const response = await callAiApi(
+    const response = await newAiApi(providerSetting)(
       {
         user: message.user,
         system: message.system,
@@ -868,27 +946,7 @@ async function handleSendMessage(
       parameters?: Json;
       response?: Json;
       error?: string;
-    }[] = await Promise.all(
-      response.tools.map(async (tool) => {
-        try {
-          const toolFunction = enabledTools.find((t) => t.name === tool.name);
-          if (!toolFunction) {
-            throw new Error(`Unknown tool: ${tool.name}`);
-          }
-          if (toolFunction.function) {
-            const toolResult: any = await toolFunction.function(
-              {},
-              tool.parameters
-            );
-            return { ...tool, response: toolResult };
-          } else {
-            return tool;
-          }
-        } catch (error: any) {
-          return { ...tool, error: error.message || "Tool execution failed" };
-        }
-      })
-    );
+    }[] = await executeToolCalls(response.tools, enabledTools);
 
     for (const toolResult of toolCallResults) {
       log(JSON.stringify(toolResult), "tool");
@@ -905,6 +963,11 @@ async function handleSendMessage(
       if (message.autoFormat) {
         log("Auto-formatting modified files...", "info");
         await handleFormatFilesInFiles(message.fileNames, log);
+        await sleep(500);
+      }
+
+      if (message.autoFixErrors) {
+        await checkAndFixErrors(message.fileNames, providerSetting, log);
       }
     }
 
