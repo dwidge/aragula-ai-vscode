@@ -1,4 +1,5 @@
 import * as vscode from "vscode";
+import { readFileSafe, writeFileSafe } from "./file";
 
 /**
  * Represents a simple text edit operation.
@@ -54,95 +55,96 @@ function positionToOffset(
  * @param content The original string content.
  * @param edits An array of SimpleTextEdit objects.
  * @returns The content string after applying all edits.
+ * @throws Error if an edit range is invalid.
  */
 function applyEdits(content: string, edits: SimpleTextEdit[]): string {
   let result = content;
 
   const sortedEdits = [...edits].sort((a, b) => {
-    if (b.range.end.line !== a.range.end.line) {
-      return b.range.end.line - a.range.end.line;
+    const endComparison = b.range.end.line - a.range.end.line;
+    if (endComparison !== 0) {
+      return endComparison;
     }
-    if (b.range.end.character !== a.range.end.character) {
-      return b.range.end.character - a.range.end.character;
+    const endCharComparison = b.range.end.character - a.range.end.character;
+    if (endCharComparison !== 0) {
+      return endCharComparison;
     }
-    if (b.range.start.line !== a.range.start.line) {
-      return b.range.start.line - a.range.start.line;
+    const startComparison = b.range.start.line - a.range.start.line;
+    if (startComparison !== 0) {
+      return startComparison;
     }
     return b.range.start.character - a.range.start.character;
   });
 
   for (const edit of sortedEdits) {
-    try {
-      const startOffset = positionToOffset(result, edit.range.start);
-      const endOffset = positionToOffset(result, edit.range.end);
+    const startOffset = positionToOffset(result, edit.range.start);
+    const endOffset = positionToOffset(result, edit.range.end);
 
-      if (
-        startOffset > result.length ||
-        endOffset > result.length ||
-        startOffset > endOffset
-      ) {
-        console.warn(
-          `Skipping invalid edit: Range [${startOffset}, ${endOffset}] out of bounds for content length ${result.length}. Edit:`,
-          edit
-        );
-        continue;
-      }
-
-      result =
-        result.substring(0, startOffset) +
-        edit.newText +
-        result.substring(endOffset);
-    } catch (e) {
-      console.error(`Error applying single edit: ${e}. Edit:`, edit);
+    if (
+      startOffset > result.length ||
+      endOffset > result.length ||
+      startOffset > endOffset
+    ) {
+      throw new Error(
+        `Invalid edit range provided by formatter: [${edit.range.start.line}:${edit.range.start.character}] to [${edit.range.end.line}:${edit.range.end.character}] (Offsets: ${startOffset} to ${endOffset}) in content length ${result.length}.`
+      );
     }
+
+    result =
+      result.substring(0, startOffset) +
+      edit.newText +
+      result.substring(endOffset);
   }
 
   return result;
 }
 
 /**
- * Formats the given file content using VS Code's registered formatters
+ * Formats the given file using VS Code's registered formatters
  * based on the file path (to determine language and formatter).
  *
+ * Adds a few newlines to the start of the content before formatting as a potential workaround
+ * for formatters that don't throw on error.
+ *
  * @param filePath The absolute path to the file (used to determine language/formatter).
- *                 The file doesn't necessarily need to exist on disk if content is provided.
- * @param fileContent The content of the file to format.
- * @returns A Promise resolving to the formatted content, or the original content if formatting fails.
+ *                 The file doesn't necessarily need to exist on disk if content is provided,
+ *                 but the path is needed for VS Code to select the correct formatter.
+ * @returns A Promise.
+ * @throws Error if formatting fails (e.g., no formatter found, formatter returns no edits, or applying edits fails).
  */
-export const formatCodeWithVscode = async (
-  filePath: string,
-  fileContent: string
-): Promise<string> => {
-  const uri = vscode.Uri.file(filePath);
-
+export const formatCodeWithVscode = async (filePath: string): Promise<void> => {
+  const originalContent = await readFileSafe(filePath);
+  const contentWithNewlines = "\n\n\n" + originalContent;
+  await writeFileSafe(filePath, contentWithNewlines);
   try {
-    console.log(`Attempting to format: ${uri.fsPath}`);
-
-    const formattingOptions: vscode.FormattingOptions = {
-      insertSpaces: true,
-      tabSize: 4,
-    };
-
-    const edits = await vscode.commands.executeCommand<vscode.TextEdit[]>(
-      "vscode.executeFormatDocumentProvider",
-      uri,
-      formattingOptions
-    );
-
-    if (!edits || edits.length === 0) {
-      console.log(
-        `No formatting changes needed or no formatter found for: ${uri.fsPath}`
-      );
-      return fileContent;
+    const edits = await vscode.commands.executeCommand<
+      vscode.TextEdit[] | null
+    >("vscode.executeFormatDocumentProvider", vscode.Uri.file(filePath));
+    if (!edits) {
+      throw new Error(`formatCodeWithVscodeE1`);
     }
 
-    console.log(`Applying ${edits.length} formatting edits for: ${uri.fsPath}`);
+    const formattedContent = applyEdits(contentWithNewlines, edits);
+    if (formattedContent === contentWithNewlines) {
+      throw new Error(`formatCodeWithVscodeE2`);
+    }
 
-    const formattedContent = applyEdits(fileContent, edits);
-    return formattedContent;
+    await writeFileSafe(filePath, formattedContent);
   } catch (error) {
-    console.error(`Failed to format file ${filePath}:`, error);
-
-    return fileContent;
+    await writeFileSafe(filePath, originalContent);
+    throw new Error(`Failed to format file: ${filePath}: ${error}`);
   }
+};
+
+export const getCodeErrorsWithVscode = async (
+  filePath: string
+): Promise<string[]> => {
+  const diagnostics = vscode.languages.getDiagnostics(
+    vscode.Uri.file(filePath)
+  );
+  console.log(`diagnostics1: ${filePath}`, diagnostics);
+  const errors = diagnostics.filter(
+    (d) => d.severity === vscode.DiagnosticSeverity.Error
+  );
+  return errors.map((e) => e.message);
 };

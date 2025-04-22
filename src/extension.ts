@@ -16,6 +16,7 @@ import {
   ToolCall,
   ToolDefinition,
 } from "./aiTools/AiApi";
+import { readFileSafe, writeFileSafe } from "./aiTools/file";
 import { filterToolsByName } from "./aiTools/filterToolsByName";
 import { formatCodeWithVscode } from "./aiTools/formatCodeWithVscode";
 import { removeJsJsxComments } from "./aiTools/removeJsJsxComments";
@@ -430,12 +431,20 @@ async function handleRemoveCommentsInFiles(filePaths: string[], log: Logger) {
   for (const filePath of filePaths) {
     const fullPath = path.join(workspaceRoot, filePath);
     try {
-      const originalContent = await fs.readFile(fullPath, "utf8");
-      const cleanedContent = removeJsJsxComments(originalContent);
+      const originalContent = await readFileSafe(fullPath);
 
+      const cleanedContent = removeJsJsxComments(originalContent);
       if (originalContent !== cleanedContent) {
-        await fs.writeFile(fullPath, cleanedContent, "utf8");
-        log(`Removed comments in ${filePath}`, "info");
+        await writeFileSafe(fullPath, cleanedContent);
+        try {
+          await formatCodeWithVscode(fullPath);
+          log(`Removed comments and formatted ${filePath}`, "info");
+        } catch (error: any) {
+          await writeFileSafe(fullPath, originalContent);
+          throw new Error(
+            `Failed to format ${filePath} after removing comments: ${error.message}`
+          );
+        }
       } else {
         log(`No comments to remove in ${filePath}`, "info");
       }
@@ -459,18 +468,8 @@ async function handleFormatFilesInFiles(filePaths: string[], log: Logger) {
   for (const filePath of filePaths) {
     const fullPath = path.join(workspaceRoot, filePath);
     try {
-      const originalContent = await fs.readFile(fullPath, "utf8");
-      const formattedContent = await formatCodeWithVscode(
-        fullPath,
-        originalContent
-      );
-
-      if (originalContent !== formattedContent) {
-        await fs.writeFile(fullPath, formattedContent, "utf8");
-        log(`Formatted file: ${filePath}`, "info");
-      } else {
-        log(`File ${filePath} is already formatted.`, "info");
-      }
+      await formatCodeWithVscode(fullPath);
+      log(`Formatted file: ${filePath}`, "info");
     } catch (error: any) {
       log(`Error formatting file ${filePath}: ${error.message}`, "error");
     }
