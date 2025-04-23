@@ -112,7 +112,7 @@ const execAsync = promisify(exec);
 export async function getCommitMessages(
   rootUri: vscode.Uri,
   limit: number = 5
-): Promise<string> {
+): Promise<string[]> {
   try {
     const shellPath =
       os.platform() === "win32"
@@ -130,7 +130,7 @@ export async function getCommitMessages(
     );
     if (stderr) {
       console.error("Error running git log:", stderr);
-      return "";
+      return [];
     }
 
     const commitLines = stdout.trim().split("\n");
@@ -145,9 +145,9 @@ export async function getCommitMessages(
       }
     }
 
-    return formattedMessages.join("\n\n");
+    return formattedMessages;
   } catch (error) {
     console.error("Failed to execute git log:", error);
-    return "";
+    return [];
   }
 }
