@@ -4,7 +4,7 @@ import { getCommitMessages, getDiffs } from "./diff";
 import {
   getCurrentProviderSettingFromGlobalState,
   getProviderSettingsFromStorage,
-} from "./storage";
+} from "./settings";
 
 export const generateCommitMessage = async (
   context: vscode.ExtensionContext,

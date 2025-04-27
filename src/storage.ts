@@ -1,313 +1,126 @@
 import * as vscode from "vscode";
-import { AiApiSettings } from "./aiTools/AiApi";
 
-export const ENABLED_TOOLS_STORAGE_KEY = "enabledTools";
-export const CURRENT_PROVIDER_SETTING_STORAGE_KEY =
-  "currentProviderSettingName";
-export const AUTO_REMOVE_COMMENTS_STORAGE_KEY = "autoRemoveComments";
-export const AUTO_FORMAT_STORAGE_KEY = "autoFormat";
-export const AUTO_FIX_ERRORS_STORAGE_KEY = "autoFixErrors";
-
-/** Retrieves the API key from configuration. */
-function getApiKey(): string | null {
-  const apiKey = vscode.workspace.getConfiguration("aragula-ai").get("apiKey");
-  if (typeof apiKey !== "string") {
-    vscode.window.showErrorMessage("API key is not configured properly.");
-    return null;
-  }
-  return apiKey;
-}
-
-/** Retrieves the default system prompt from configuration. */
-export function getSystemPrompt(): string | undefined {
-  const prompt = vscode.workspace
-    .getConfiguration("aragula-ai")
-    .get("systemPrompt");
-  return typeof prompt === "string" ? prompt : undefined;
-}
-
-/** Retrieves system prompts from global storage, MRU order */
-export function getSystemPromptsFromStorage(
-  context: vscode.ExtensionContext
-): string[] {
-  return context.globalState.get<string[]>("systemPrompts", []) || [];
-}
-
-/** Retrieves user prompts from global storage, MRU order */
-export function getUserPromptsFromStorage(
-  context: vscode.ExtensionContext
-): string[] {
-  return context.globalState.get<string[]>("userPrompts", []) || [];
-}
-
-/** Retrieves provider settings from global storage */
-export function getProviderSettingsFromStorage(
-  context: vscode.ExtensionContext
-): AiApiSettings[] {
-  return (
-    context.globalState.get<AiApiSettings[]>("providerSettingsList", []) || []
-  );
-}
-
-/** Retrieves enabled tool names from global state */
-export function getEnabledToolNamesFromGlobalState(
-  context: vscode.ExtensionContext
-): string[] {
-  return context.globalState.get<string[]>(ENABLED_TOOLS_STORAGE_KEY, []) || [];
-}
-
-/** Retrieves current provider setting name from global state */
-export function getCurrentProviderSettingFromGlobalState(
-  context: vscode.ExtensionContext
-): AiApiSettings | undefined {
-  const providerSettingName = context.globalState.get<string>(
-    CURRENT_PROVIDER_SETTING_STORAGE_KEY
-  );
-  if (providerSettingName) {
-    return getProviderSettingsFromStorage(context).find(
-      (p) => p.name === providerSettingName
-    );
-  }
-  return undefined;
-}
-
-/** Saves system prompt to global storage, MRU at top */
-export async function saveSystemPromptToStorage(
+/** Retrieves a value from global state. */
+export function getGlobalState<T>(
   context: vscode.ExtensionContext,
-  prompt: string
+  key: string,
+  defaultValue: T
+): T {
+  return context.globalState.get<T>(key, defaultValue);
+}
+
+/** Sets a value in global state. */
+export async function setGlobalState<T>(
+  context: vscode.ExtensionContext,
+  key: string,
+  value: T
 ): Promise<void> {
-  let prompts = getSystemPromptsFromStorage(context);
-  if (!prompts.includes(prompt)) {
-    prompts.unshift(prompt);
-    await context.globalState.update("systemPrompts", prompts);
+  await context.globalState.update(key, value);
+}
+
+/** Retrieves a string array from global state, maintaining MRU order. */
+export function getGlobalStateStringArray(
+  context: vscode.ExtensionContext,
+  key: string
+): string[] {
+  return getGlobalState<string[]>(context, key, []);
+}
+
+/** Saves a string to a global state array, adding to front if not exists. */
+export async function saveToGlobalStateStringArray(
+  context: vscode.ExtensionContext,
+  key: string,
+  item: string
+): Promise<void> {
+  let items = getGlobalStateStringArray(context, key);
+  if (!items.includes(item)) {
+    items.unshift(item);
+    await setGlobalState(context, key, items);
   }
 }
 
-/** Saves user prompt to global storage, MRU at top */
-export async function saveUserPromptToStorage(
+/** Uses a string from a global state array, moving it to the front (MRU). */
+export async function useInGlobalStateStringArray(
   context: vscode.ExtensionContext,
-  prompt: string
+  key: string,
+  item: string
 ): Promise<void> {
-  let prompts = getUserPromptsFromStorage(context);
-  if (!prompts.includes(prompt)) {
-    prompts.unshift(prompt);
-    await context.globalState.update("userPrompts", prompts);
-  }
+  let items = getGlobalStateStringArray(context, key);
+  const filteredItems = items.filter((p) => p !== item);
+  filteredItems.unshift(item);
+  await setGlobalState(context, key, filteredItems);
 }
 
-/** Saves provider setting to global storage */
-export async function saveProviderSettingToStorage(
+/** Deletes a string from a global state array. */
+export async function deleteFromGlobalStateStringArray(
   context: vscode.ExtensionContext,
-  providerSetting: AiApiSettings
+  key: string,
+  item: string
 ): Promise<void> {
-  let providerSettingsList = getProviderSettingsFromStorage(context);
-  const existingIndex = providerSettingsList.findIndex(
-    (p) => p.name === providerSetting.name
-  );
+  let items = getGlobalStateStringArray(context, key);
+  const updatedItems = items.filter((p) => p !== item);
+  await setGlobalState(context, key, updatedItems);
+}
+
+/** Retrieves an array of objects with a 'name' property from global state. */
+export function getGlobalStateObjects<T extends { name: string }>(
+  context: vscode.ExtensionContext,
+  key: string
+): T[] {
+  return getGlobalState<T[]>(context, key, []);
+}
+
+/** Saves or updates an object with a 'name' property in a global state array.
+ * If oldName is provided, it finds and replaces the object with oldName.
+ * Otherwise, it finds and replaces by obj.name or adds if not found.
+ */
+export async function saveGlobalStateObject<T extends { name: string }>(
+  context: vscode.ExtensionContext,
+  key: string,
+  obj: T,
+  oldName?: string
+): Promise<void> {
+  let objects = getGlobalStateObjects<T>(context, key);
+  const nameToFind = oldName ?? obj.name;
+  const existingIndex = objects.findIndex((o) => o.name === nameToFind);
+
   if (existingIndex > -1) {
-    providerSettingsList[existingIndex] = providerSetting;
+    objects[existingIndex] = obj;
   } else {
-    providerSettingsList.push(providerSetting);
+    objects.push(obj);
   }
-  await context.globalState.update(
-    "providerSettingsList",
-    providerSettingsList
-  );
+  await setGlobalState(context, key, objects);
 }
 
-/** Updates provider setting in global storage */
-export async function updateProviderSettingInStorage(
+/** Deletes an object with a specific name from a global state array. */
+export async function deleteGlobalStateObject<T extends { name: string }>(
   context: vscode.ExtensionContext,
-  oldProviderSettingName: string,
-  providerSetting: AiApiSettings
+  key: string,
+  name: string
 ): Promise<void> {
-  let providerSettingsList = getProviderSettingsFromStorage(context);
-  const existingIndex = providerSettingsList.findIndex(
-    (p) => p.name === oldProviderSettingName
-  );
-  if (existingIndex > -1) {
-    providerSettingsList[existingIndex] = providerSetting;
-  } else {
-    providerSettingsList.push(providerSetting);
-  }
-  await context.globalState.update(
-    "providerSettingsList",
-    providerSettingsList
-  );
+  let objects = getGlobalStateObjects<T>(context, key);
+  const updatedObjects = objects.filter((o) => o.name !== name);
+  await setGlobalState(context, key, updatedObjects);
 }
 
-/** Saves enabled tool names to global state */
-export async function setEnabledToolNamesToGlobalState(
+/** Retrieves a value from workspace state using a key prefix and tabId. */
+export function getWorkspaceState<T>(
   context: vscode.ExtensionContext,
-  toolNames: string[]
-): Promise<void> {
-  await context.globalState.update(ENABLED_TOOLS_STORAGE_KEY, toolNames);
-}
-
-/** Saves current provider setting name to global state */
-export async function useProviderSettingInGlobalState(
-  context: vscode.ExtensionContext,
-  providerSettingName: string
-): Promise<void> {
-  await context.globalState.update(
-    CURRENT_PROVIDER_SETTING_STORAGE_KEY,
-    providerSettingName
-  );
-}
-
-/** Use system prompt, move to top in MRU list */
-export async function useSystemPromptInStorage(
-  context: vscode.ExtensionContext,
-  prompt: string
-): Promise<void> {
-  let prompts = getSystemPromptsFromStorage(context);
-  const filteredPrompts = prompts.filter((p) => p !== prompt);
-  filteredPrompts.unshift(prompt);
-  await context.globalState.update("systemPrompts", filteredPrompts);
-}
-
-/** Use user prompt, move to top in MRU list */
-export async function useUserPromptInStorage(
-  context: vscode.ExtensionContext,
-  prompt: string
-): Promise<void> {
-  let prompts = getUserPromptsFromStorage(context);
-  const filteredPrompts = prompts.filter((p) => p !== prompt);
-  filteredPrompts.unshift(prompt);
-  await context.globalState.update("userPrompts", filteredPrompts);
-}
-
-/** Deletes system prompt from global storage */
-export async function deleteSystemPromptFromStorage(
-  context: vscode.ExtensionContext,
-  prompt: string
-): Promise<void> {
-  let prompts = getSystemPromptsFromStorage(context);
-  const updatedPrompts = prompts.filter((p) => p !== prompt);
-  await context.globalState.update("systemPrompts", updatedPrompts);
-}
-
-/** Deletes user prompt from global storage */
-export async function deleteUserPromptFromStorage(
-  context: vscode.ExtensionContext,
-  prompt: string
-): Promise<void> {
-  let prompts = getUserPromptsFromStorage(context);
-  const updatedPrompts = prompts.filter((p) => p !== prompt);
-  await context.globalState.update("userPrompts", updatedPrompts);
-}
-
-/** Deletes provider setting from global storage */
-export async function deleteProviderSettingFromStorage(
-  context: vscode.ExtensionContext,
-  providerSettingName: string
-): Promise<void> {
-  let providerSettingsList = getProviderSettingsFromStorage(context);
-  const updatedProviderSettings = providerSettingsList.filter(
-    (p) => p.name !== providerSettingName
-  );
-  await context.globalState.update(
-    "providerSettingsList",
-    updatedProviderSettings
-  );
-}
-
-/** Get current system prompt from workspace state */
-export function getCurrentSystemPromptFromWorkspace(
-  context: vscode.ExtensionContext,
-  tabId: string
-): string | undefined {
-  return context.workspaceState.get<string>(`workspaceSystemPrompt-${tabId}`);
-}
-
-/** Set current system prompt to workspace state */
-export async function setCurrentSystemPromptToWorkspace(
-  context: vscode.ExtensionContext,
+  keyPrefix: string,
   tabId: string,
-  prompt: string
-): Promise<void> {
-  await context.workspaceState.update(`workspaceSystemPrompt-${tabId}`, prompt);
+  defaultValue: T
+): T {
+  const key = `${keyPrefix}-${tabId}`;
+  return context.workspaceState.get<T>(key, defaultValue);
 }
 
-/** Get current user prompt from workspace state */
-export function getCurrentUserPromptFromWorkspace(
+/** Sets a value in workspace state using a key prefix and tabId. */
+export async function setWorkspaceState<T>(
   context: vscode.ExtensionContext,
-  tabId: string
-): string | undefined {
-  return context.workspaceState.get<string>(`workspaceUserPrompt-${tabId}`);
-}
-
-/** Set current user prompt to workspace state */
-export async function setCurrentUserPromptToWorkspace(
-  context: vscode.ExtensionContext,
+  keyPrefix: string,
   tabId: string,
-  prompt: string
+  value: T
 ): Promise<void> {
-  await context.workspaceState.update(`workspaceUserPrompt-${tabId}`, prompt);
-}
-
-/** Get autoRemoveComments state from workspace state */
-export function getAutoRemoveCommentsFromWorkspace(
-  context: vscode.ExtensionContext,
-  tabId: string
-): boolean | undefined {
-  return context.workspaceState.get<boolean>(
-    `${AUTO_REMOVE_COMMENTS_STORAGE_KEY}-${tabId}`
-  );
-}
-
-/** Set autoRemoveComments state to workspace state */
-export async function setAutoRemoveCommentsToWorkspace(
-  context: vscode.ExtensionContext,
-  tabId: string,
-  state: boolean
-): Promise<void> {
-  await context.workspaceState.update(
-    `${AUTO_REMOVE_COMMENTS_STORAGE_KEY}-${tabId}`,
-    state
-  );
-}
-
-/** Get autoFormat state from workspace state */
-export function getAutoFormatFromWorkspace(
-  context: vscode.ExtensionContext,
-  tabId: string
-): boolean | undefined {
-  return context.workspaceState.get<boolean>(
-    `${AUTO_FORMAT_STORAGE_KEY}-${tabId}`
-  );
-}
-
-/** Set autoFormat state to workspace state */
-export async function setAutoFormatToWorkspace(
-  context: vscode.ExtensionContext,
-  tabId: string,
-  state: boolean
-): Promise<void> {
-  await context.workspaceState.update(
-    `${AUTO_FORMAT_STORAGE_KEY}-${tabId}`,
-    state
-  );
-}
-
-/** Get autoFixErrors state from workspace state */
-export function getAutoFixErrorsFromWorkspace(
-  context: vscode.ExtensionContext,
-  tabId: string
-): boolean | undefined {
-  return context.workspaceState.get<boolean>(
-    `${AUTO_FIX_ERRORS_STORAGE_KEY}-${tabId}`
-  );
-}
-
-/** Set autoFixErrors state to workspace state */
-export async function setAutoFixErrorsToWorkspace(
-  context: vscode.ExtensionContext,
-  tabId: string,
-  state: boolean
-): Promise<void> {
-  await context.workspaceState.update(
-    `${AUTO_FIX_ERRORS_STORAGE_KEY}-${tabId}`,
-    state
-  );
+  const key = `${keyPrefix}-${tabId}`;
+  await context.workspaceState.update(key, value);
 }
