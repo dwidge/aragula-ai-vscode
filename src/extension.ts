@@ -17,7 +17,10 @@ import {
   formatCodeWithVscode,
   getCodeErrorsWithVscode,
 } from "./aiTools/formatCodeWithVscode";
-import { removeJsJsxComments } from "./aiTools/removeJsJsxComments";
+import {
+  keepOnlyJsDocAndRemoveEmptyLinesReplacer,
+  removeJsJsxComments,
+} from "./aiTools/removeJsJsxComments";
 import { readDirTool, readFileTool, writeFileTool } from "./aiTools/tools";
 import chatview from "./chatview";
 import { generateCommitMessage } from "./generateCommitMessage";
@@ -420,7 +423,10 @@ async function handleRemoveCommentsInFiles(filePaths: string[], log: Logger) {
     try {
       const originalContent = await readFileSafe(fullPath);
 
-      const cleanedContent = removeJsJsxComments(originalContent);
+      const cleanedContent = removeJsJsxComments(
+        originalContent,
+        keepOnlyJsDocAndRemoveEmptyLinesReplacer
+      );
       if (originalContent !== cleanedContent) {
         await writeFileSafe(fullPath, cleanedContent);
         try {
