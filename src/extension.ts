@@ -257,7 +257,7 @@ function handleWebviewMessage(
 
   switch (message.command) {
     case "sendMessage":
-      handleSendMessage(context, panel, message, openedFilePaths, tabId, log);
+      handleSendMessage(context, panel, message, tabId, log);
       break;
     case "checkErrorsInFiles":
       checkAndFixErrors(message.filePaths, message.providerSetting, log);

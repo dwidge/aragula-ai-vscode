@@ -1,17 +1,15 @@
-import { sleep } from "openai/core.mjs";
 import * as vscode from "vscode";
 import {
   AiApiSettings,
-  Json,
   Logger,
+  newAiApi,
   ToolCall,
   ToolDefinition,
-  newAiApi,
 } from "./aiTools/AiApi";
 import { filterToolsByName } from "./aiTools/filterToolsByName";
 import { availableToolsDefinitions } from "./availableToolNames";
 import { checkAndFixErrors } from "./checkAndFixErrors";
-import { executeToolCalls } from "./executeToolCalls";
+import { executeToolCalls, ToolCallResult } from "./executeToolCalls";
 import { handleFormatFilesInFiles } from "./handleFormatFilesInFiles";
 import { handleRemoveCommentsInFiles } from "./handleRemoveCommentsInFiles";
 import { readFiles } from "./readFiles";
@@ -28,6 +26,7 @@ export function cancelActiveRequest(messageId: string, log: Logger) {
   if (activeRequest) {
     activeRequest.abortController.abort();
     log(`Cancelling request with ID: ${messageId}`, "info");
+    activeRequests.delete(messageId);
   }
 }
 
@@ -45,9 +44,9 @@ export async function handleSendMessage(
     autoFormat: boolean;
     autoFixErrors: boolean;
   },
-  openedFilePaths: string[],
   tabId: string,
-  log: Logger
+  log: Logger,
+  signal?: AbortSignal
 ) {
   const providerSetting = message.providerSetting;
 
@@ -60,29 +59,11 @@ export async function handleSendMessage(
   setCurrentUserPromptToWorkspace(context, tabId, message.user);
 
   const messageId = Date.now().toString();
-  const abortController = new AbortController();
-  activeRequests.set(messageId, { abortController });
   panel.webview.postMessage({ command: "startLoading", messageId });
 
   try {
-    const readFileToolResponse: ToolCall[] = await readFiles(message.fileNames);
-    console.log("enabledToolNames in handleSendMessage:", message.toolNames);
-    const enabledTools: ToolDefinition[] = filterToolsByName(
-      availableToolsDefinitions,
-      message.toolNames
-    );
+    const response = await performAiRequest(message, log, signal);
 
-    log("Calling " + providerSetting.vendor, "system");
-    const response = await newAiApi(providerSetting)(
-      {
-        user: message.user,
-        system: message.system,
-        tools: readFileToolResponse,
-      },
-      enabledTools,
-      { logger: log, signal: abortController.signal }
-    );
-    log(response.tools.map((t) => t.name).join(", "), "tools");
     panel.webview.postMessage({
       command: "updateMessage",
       messageId,
@@ -90,34 +71,27 @@ export async function handleSendMessage(
       sender: "assistant",
     });
 
-    const toolCallResults: {
-      name: string;
-      parameters?: Json;
-      response?: Json;
-      error?: string;
-    }[] = await executeToolCalls(response.tools, enabledTools);
+    const enabledToolDefinitions = filterToolsByName(
+      availableToolsDefinitions,
+      message.toolNames
+    );
+    const toolCallResults = await executeToolCalls(
+      response.tools,
+      enabledToolDefinitions,
+      log
+    );
+    const modifiedFileNames = getModifiedFileNames(toolCallResults);
+    const modifiedFiles = await cleanupFiles(
+      log,
+      providerSetting,
+      modifiedFileNames,
+      message.autoRemoveComments,
+      message.autoFormat,
+      message.autoFixErrors
+    );
 
-    for (const toolResult of toolCallResults) {
-      log(JSON.stringify(toolResult), "tool");
-    }
-    await sleep(1000);
-
-    if (message.fileNames.length > 0) {
-      if (message.autoRemoveComments) {
-        log("Auto-removing comments from modified files...", "info");
-        await handleRemoveCommentsInFiles(message.fileNames, log);
-        await sleep(1000);
-      }
-
-      if (message.autoFormat) {
-        log("Auto-formatting modified files...", "info");
-        await handleFormatFilesInFiles(message.fileNames, log);
-        await sleep(500);
-      }
-
-      if (message.autoFixErrors) {
-        await checkAndFixErrors(message.fileNames, providerSetting, log);
-      }
+    if (message.autoFixErrors) {
+      await checkAndFixErrors(modifiedFiles, providerSetting, log);
     }
 
     panel.webview.postMessage({
@@ -147,7 +121,80 @@ export async function handleSendMessage(
         messageType: "error",
       });
     }
-  } finally {
-    activeRequests.delete(messageId);
   }
 }
+
+export async function performAiRequest(
+  message: {
+    user: string;
+    system: string;
+    fileNames: string[];
+    toolNames: string[];
+    providerSetting: AiApiSettings;
+  },
+  log: Logger,
+  signal?: AbortSignal
+): Promise<{ assistant: string; tools: ToolCall[] }> {
+  log("enabledToolNames\n\n" + message.toolNames, "prompt");
+  const providerSetting = message.providerSetting;
+  const filesContent: ToolCall[] = await readFiles(message.fileNames);
+
+  const enabledToolDefinitions: ToolDefinition[] = filterToolsByName(
+    availableToolsDefinitions,
+    message.toolNames
+  );
+
+  const response = await newAiApi(providerSetting)(
+    {
+      user: message.user,
+      system: message.system,
+      tools: filesContent,
+    },
+    enabledToolDefinitions,
+    { logger: log, signal }
+  );
+
+  return response;
+}
+
+export async function cleanupFiles(
+  log: Logger,
+  providerSetting: AiApiSettings,
+  fileNames: string[],
+  autoRemoveComments: boolean,
+  autoFormat: boolean,
+  autoFixErrors: boolean
+): Promise<string[]> {
+  if (fileNames.length > 0) {
+    if (autoRemoveComments) {
+      log("Auto-removing comments from modified files...", "info");
+      await handleRemoveCommentsInFiles(fileNames, log);
+    }
+
+    if (autoFormat) {
+      log("Auto-formatting modified files...", "info");
+      await handleFormatFilesInFiles(fileNames, log);
+    }
+
+    if (autoFixErrors) {
+      await checkAndFixErrors(fileNames, providerSetting, log);
+    }
+  }
+
+  return fileNames;
+}
+
+export const getModifiedFileNames = (toolCallResults: ToolCallResult[]) =>
+  toolCallResults
+    .map((toolResult) => {
+      if (
+        toolResult.name === "writeFile" &&
+        typeof toolResult.parameters === "object" &&
+        toolResult.parameters !== null &&
+        "filePath" in toolResult.parameters &&
+        typeof toolResult.parameters.filePath === "string"
+      ) {
+        return toolResult.parameters.filePath;
+      }
+    })
+    .filter((s) => s) as string[];

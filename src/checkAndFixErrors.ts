@@ -50,7 +50,7 @@ export const checkAndFixErrors = async (
     enabledTools,
     { logger: log, signal: abortController.signal }
   );
-  await executeToolCalls(response.tools, enabledTools);
+  await executeToolCalls(response.tools, enabledTools, log);
 };
 
 export const findErrors = async (filePaths: string[], log: Logger) => {
