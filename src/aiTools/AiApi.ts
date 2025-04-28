@@ -307,7 +307,7 @@ const callOpenAi = async (
   const promptMessages = buildPromptMessagesOpenAi(prompt);
   const tooldefMessages = buildToolDefMessagesOpenAi(tools);
 
-  const apiCallParams: OpenAI.Chat.Completions.ChatCompletionCreateParamsNonStreaming =
+  const openaiPrompt: OpenAI.Chat.Completions.ChatCompletionCreateParamsNonStreaming =
     {
       model: apiSettings.model,
       max_tokens: apiSettings.max_tokens,
@@ -320,11 +320,14 @@ const callOpenAi = async (
     };
 
   logger(
-    "apiCallParams\n\n" + JSON.stringify(apiCallParams, null, 2),
+    "Calling OpenAi " +
+      apiSettings.model +
+      "\n\n" +
+      JSON.stringify(openaiPrompt, null, 2),
     "prompt"
   );
 
-  const response = await openaiInstance.chat.completions.create(apiCallParams, {
+  const response = await openaiInstance.chat.completions.create(openaiPrompt, {
     signal,
   });
 
@@ -497,7 +500,13 @@ const callGemini = async (
     },
   };
 
-  logger(JSON.stringify(geminiPrompt, null, 2), "prompt");
+  logger(
+    "Calling Gemini " +
+      apiSettings.model +
+      "\n\n" +
+      JSON.stringify(geminiPrompt, null, 2),
+    "prompt"
+  );
 
   const response = await genAI.models.generateContent(geminiPrompt);
 
@@ -613,8 +622,6 @@ const callGroq = async (
 ): Promise<{ assistant: string; tools: ToolCall[] }> => {
   const { signal, logger = () => {} } = options || {};
 
-  logger("Calling Groq API...");
-
   if (signal?.aborted) {
     throw new Error("AbortError: Request aborted by user.");
   }
@@ -638,6 +645,14 @@ const callGroq = async (
         ? tools.map(convertToGroqTool)
         : undefined,
   };
+
+  logger(
+    "Calling Groq " +
+      apiSettings.model +
+      "\n\n" +
+      JSON.stringify(groqPrompt, null, 2),
+    "prompt"
+  );
 
   const response = await groq.chat.completions.create(groqPrompt, {
     signal: signal,
@@ -744,8 +759,6 @@ const callCerebras = async (
 ): Promise<{ assistant: string; tools: ToolCall[] }> => {
   const { signal, logger = () => {} } = options || {};
 
-  logger("Calling Cerebras API...");
-
   if (signal?.aborted) {
     throw new Error("AbortError: Request aborted by user.");
   }
@@ -770,6 +783,14 @@ const callCerebras = async (
           ? tools.map(convertToCerebrasTool)
           : undefined,
     };
+
+  logger(
+    "Calling Cerebras " +
+      apiSettings.model +
+      "\n\n" +
+      JSON.stringify(cerebrasPrompt, null, 2),
+    "prompt"
+  );
 
   const response: ChatCompletion.ChatCompletionResponse =
     (await cerebrasApi.chat.completions.create(cerebrasPrompt, {
@@ -869,7 +890,6 @@ const callClaude = async (
   options?: { signal?: AbortSignal; logger?: Logger }
 ): Promise<{ assistant: string; tools: ToolCall[] }> => {
   const { signal, logger = () => {} } = options || {};
-  logger("Calling Claude API...");
 
   if (signal?.aborted) {
     throw new Error("AbortError: Request aborted by user.");
@@ -894,6 +914,14 @@ const callClaude = async (
         ? tools.map(convertToClaudeTool)
         : undefined,
   };
+
+  logger(
+    "Calling Claude " +
+      apiSettings.model +
+      "\n\n" +
+      JSON.stringify(claudePrompt, null, 2),
+    "prompt"
+  );
 
   const response: Anthropic.Messages.Message = await anthropic.messages.create(
     claudePrompt,
