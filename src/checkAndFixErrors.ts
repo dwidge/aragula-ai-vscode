@@ -21,21 +21,7 @@ export const checkAndFixErrors = async (
   log: Logger
 ) => {
   log("Checking for errors...", "info");
-  let allErrors: {
-    filePath: string;
-    line: number;
-    message: string;
-  }[] = [];
-  for (const filePath of filePaths) {
-    try {
-      const errors = await getCodeErrorsWithVscode(
-        getWorkspaceAbsolutePath(filePath)
-      );
-      allErrors.push(...errors.map((err) => ({ filePath, ...err })));
-    } catch (error: any) {
-      log(`Error checking errors in ${filePath}: ${error.message}`, "error");
-    }
-  }
+  const allErrors = await findErrors(filePaths, log);
 
   if (allErrors.length === 0) {
     log("No errors found.", "info");
@@ -65,4 +51,23 @@ export const checkAndFixErrors = async (
     { logger: log, signal: abortController.signal }
   );
   await executeToolCalls(response.tools, enabledTools);
+};
+
+export const findErrors = async (filePaths: string[], log: Logger) => {
+  let allErrors: {
+    filePath: string;
+    line: number;
+    message: string;
+  }[] = [];
+  for (const filePath of filePaths) {
+    try {
+      const errors = await getCodeErrorsWithVscode(
+        getWorkspaceAbsolutePath(filePath)
+      );
+      allErrors.push(...errors.map((err) => ({ filePath, ...err })));
+    } catch (error: any) {
+      log(`Error checking errors in ${filePath}: ${error.message}`, "error");
+    }
+  }
+  return allErrors;
 };
