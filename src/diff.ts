@@ -3,11 +3,11 @@ import * as os from "os";
 import { promisify } from "util";
 import * as vscode from "vscode";
 
-interface GitExtension {
+export interface GitExtension {
   getAPI(version: 1): API;
 }
 
-interface API {
+export interface API {
   repositories: Repository[];
   getRepository(uri: vscode.Uri): Repository | null;
 }
@@ -19,27 +19,28 @@ type Diff = {
   status: number;
 };
 
-interface Repository {
+export interface Repository {
   rootUri: vscode.Uri;
   state: { workingTreeChanges: Diff[] };
   diff(path?: string, other?: string): Promise<string>;
   diffWithHEAD(path?: string): Promise<string>;
   diffIndexWithHEAD(): Promise<Diff[]>;
+  add(paths: string | string[]): Promise<void>;
+  commit(message: string): Promise<void>;
 }
 
 /**
  * Gets the Git API.
  *
- * @returns {API | undefined} The Git API, or undefined if not found.
+ * @returns {API} The Git API, or throws if not found.
  */
-async function getGitAPI(): Promise<API | undefined> {
+export async function getGitAPI(): Promise<API> {
   const gitExtension =
     vscode.extensions.getExtension<GitExtension>("vscode.git");
   if (!gitExtension) {
-    vscode.window.showErrorMessage(
+    throw new Error(
       "Git extension not found. Please ensure Git extension is installed and enabled."
     );
-    return undefined;
   }
   if (!gitExtension.isActive) {
     await gitExtension.activate();
@@ -52,27 +53,24 @@ async function getGitAPI(): Promise<API | undefined> {
  *
  * @param {vscode.Uri} rootUri The root URI of the repository.
  * @returns {Promise<string>} A promise that resolves to the combined formatted diff string.
+ * @throws {Error} If the Git extension is not found, the repository is not found, or there are no staged changes.
  */
 export async function getDiffs(rootUri: vscode.Uri): Promise<string> {
   const git = await getGitAPI();
   if (!git) {
-    return "";
+    throw new Error("Git extension not found.");
   }
 
   const repository = git.getRepository(rootUri);
   if (!repository) {
-    vscode.window.showErrorMessage(`Repository not found: ${rootUri}`);
-    return "";
+    throw new Error(`Repository not found: ${rootUri}`);
   }
 
   try {
     const diffIndex = await repository.diffIndexWithHEAD();
 
     if (!diffIndex || diffIndex.length === 0) {
-      vscode.window.showWarningMessage(
-        `No staged changes found for repository: ${rootUri}.`
-      );
-      return "";
+      throw new Error(`No staged changes found for repository: ${rootUri}.`);
     }
 
     const formattedDiffsArray: string[] = [];
@@ -86,17 +84,16 @@ export async function getDiffs(rootUri: vscode.Uri): Promise<string> {
           );
           formattedDiffsArray.push(`// ./${relativeFilePath}\n${fileDiff}`);
         }
-      } catch (error) {
-        console.error(
+      } catch (error: unknown) {
+        throw new Error(
           `Error getting diff for ${diffItem.uri.fsPath}: ${error}`
         );
       }
     }
 
     return formattedDiffsArray.join("\n\n");
-  } catch (error) {
-    vscode.window.showErrorMessage(`Error getting diff: ${error}`);
-    return "";
+  } catch (error: unknown) {
+    throw new Error(`Failed to get staged diffs: ${error}`);
   }
 }
 
@@ -107,7 +104,7 @@ const execAsync = promisify(exec);
  *
  * @param {vscode.Uri} rootUri The root URI of the repository.
  * @param {number} limit The max number of commits.
- * @returns {Promise<string>} A promise that resolves to a string containing the commit messages.
+ * @returns {Promise<string[]>} A promise that resolves to an array of formatted commit message strings.
  */
 export async function getCommitMessages(
   rootUri: vscode.Uri,
@@ -122,15 +119,16 @@ export async function getCommitMessages(
     const options = {
       cwd: rootUri.fsPath,
       shell: shellPath,
+      encoding: "utf8",
     };
 
     const { stdout, stderr } = await execAsync(
       `git log --pretty=format:"%h %s" -n ${limit}`,
       options
     );
+
     if (stderr) {
-      console.error("Error running git log:", stderr);
-      return [];
+      throw new Error(`Error running git log: ${stderr}`);
     }
 
     const commitLines = stdout.trim().split("\n");
@@ -146,8 +144,7 @@ export async function getCommitMessages(
     }
 
     return formattedMessages;
-  } catch (error) {
-    console.error("Failed to execute git log:", error);
-    return [];
+  } catch (error: unknown) {
+    throw new Error(`Failed to get commit messages: ${error}`);
   }
 }
