@@ -63,7 +63,6 @@ const chatPanels = new Map<string, vscode.WebviewPanel>();
 export interface PlanStep {
   description: string;
   subPrompt: string;
-  commitMessage: string;
 }
 
 export interface AIPlan {

@@ -79,11 +79,10 @@ export async function handlePlanAndExecute(
 You are an AI assistant capable of breaking down complex coding tasks into a sequence of 1-5 safe steps.
 Each step must leave the code in a working state.
 For each step, you must provide:
-1.  A brief description of the step.
-2.  A "Sub-Prompt" that can be sent to another AI instance to execute *only* that specific step. This sub-prompt should be detailed enough for the AI to understand the required code changes, potentially including relevant code snippets or context.
-3.  A Git commit message summarizing the changes made in that step.
+1.  A brief description of the step. This description will also be used as the Git commit message for this step.
+2.  A "Sub-Prompt" that can be sent to another AI instance to execute *only* that specific step. This sub-prompt should be detailed enough for the AI to understand the required code changes, potentially including only very small relevant code snippets or context.
 Each step should be significant and self contained. Prefer to use fewer steps. If the task is simple, use 1-2 steps. If some parts of the task are more complex than others, or likely to break the app, use more steps. The amount of work done by each step can vary, depending on risk and complexity.
-Your response MUST be formatted exactly as follows, using markdown code blocks for the Sub-Prompt and Commit Message:
+Your response MUST be formatted exactly as follows, using markdown code blocks for the Sub-Prompt:
 
 \`\`\`markdown
 ## AI Plan
@@ -94,24 +93,14 @@ Your response MUST be formatted exactly as follows, using markdown code blocks f
 
 **Sub-Prompt:**
 \`\`\`markdown
-[Markdown block containing the prompt for the AI to execute this step. Include necessary context like file contents or specific instructions.]
-\`\`\`
-
-**Commit Message:**
-\`\`\`
-[Git commit message for this step]
+[Markdown block containing the prompt for the AI to execute this step. Include necessary context like file name paths involved or specific instructions.]
 \`\`\`
 
 ### Step 2: [Short description of step 2]
 
 **Sub-Prompt:**
 \`\`\`markdown
-[Markdown block containing the prompt for the AI to execute this step.]
-\`\`\`
-
-**Commit Message:**
-\`\`\`
-[Git commit message for this step]
+[Markdown block containing the prompt for the AI to execute this step. Include necessary context like file name paths involved or specific instructions.]
 \`\`\`
 
 ... and so on for subsequent steps.
@@ -316,9 +305,8 @@ function parseAIPlan(responseText: string): AIPlan | null {
     const plan: AIPlan = { overallGoal: "", steps: [] };
     const lines = responseText.split("\n");
     let currentStep: Partial<PlanStep> | null = null;
-    let parsingState: "none" | "subprompt" | "commit" = "none";
+    let parsingState: "none" | "subprompt" = "none";
     let subPromptContent: string[] = [];
-    let commitMessageContent: string[] = [];
 
     for (const line of lines) {
       if (line.startsWith("## AI Plan")) {
@@ -334,25 +322,19 @@ function parseAIPlan(responseText: string): AIPlan | null {
         if (
           currentStep &&
           currentStep.description &&
-          currentStep.subPrompt !== undefined &&
-          currentStep.commitMessage !== undefined
+          currentStep.subPrompt !== undefined
         ) {
           plan.steps.push(currentStep as PlanStep);
         }
         currentStep = { description: stepMatch[1].trim() };
         parsingState = "none";
         subPromptContent = [];
-        commitMessageContent = [];
         continue;
       }
 
       if (currentStep) {
         if (line.trim() === "**Sub-Prompt:**") {
           parsingState = "subprompt";
-          continue;
-        }
-        if (line.trim() === "**Commit Message:**") {
-          parsingState = "commit";
           continue;
         }
 
@@ -366,16 +348,8 @@ function parseAIPlan(responseText: string): AIPlan | null {
           continue;
         }
 
-        if (line.trim() === "```" && parsingState === "commit") {
-          currentStep.commitMessage = commitMessageContent.join("\n").trim();
-          parsingState = "none";
-          continue;
-        }
-
         if (parsingState === "subprompt") {
           subPromptContent.push(line);
-        } else if (parsingState === "commit") {
-          commitMessageContent.push(line);
         }
       }
     }
@@ -383,8 +357,7 @@ function parseAIPlan(responseText: string): AIPlan | null {
     if (
       currentStep &&
       currentStep.description &&
-      currentStep.subPrompt !== undefined &&
-      currentStep.commitMessage !== undefined
+      currentStep.subPrompt !== undefined
     ) {
       plan.steps.push(currentStep as PlanStep);
     }
@@ -394,11 +367,7 @@ function parseAIPlan(responseText: string): AIPlan | null {
       return null;
     }
     for (const step of plan.steps) {
-      if (
-        !step.description ||
-        step.subPrompt === undefined ||
-        step.commitMessage === undefined
-      ) {
+      if (!step.description || step.subPrompt === undefined) {
         console.error("Parsed plan step is incomplete:", step);
         return null;
       }
@@ -410,6 +379,7 @@ function parseAIPlan(responseText: string): AIPlan | null {
     return null;
   }
 }
+
 /**
  * Executes a single step of the plan.
  * @param context Extension context.
@@ -417,7 +387,6 @@ function parseAIPlan(responseText: string): AIPlan | null {
  * @param tabId Current tab ID.
  * @param log Logger function.
  */
-
 async function executePlanStep(
   context: vscode.ExtensionContext,
   panel: vscode.WebviewPanel,
@@ -554,7 +523,6 @@ async function executePlanStep(
     try {
       await stageFiles(modifiedFiles);
       const message =
-        step.commitMessage ||
         step.description ||
         (await generateCommitMessage(
           getWorkspaceRoot().fsPath,

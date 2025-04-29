@@ -506,21 +506,53 @@ export default (tabId: string) => `
         border: 1px solid var(--plan-step-border);
         background-color: var(--plan-step-background);
         display: flex;
-        align-items: flex-start;
+        flex-direction: column; /* Stack header and content */
+      }
+      .plan-step-header {
+        display: grid; /* Use grid for status, preview, button */
+        grid-template-columns: auto 1fr auto; /* Status | Preview | Button */
+        align-items: center;
         gap: 10px;
+        cursor: pointer;
       }
       .plan-step-status {
         font-size: 1.2em;
         min-width: 20px; /* Ensure consistent spacing */
         text-align: center;
       }
+      .plan-step-preview {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
       .plan-step-content {
-        flex-grow: 1;
+        overflow: hidden;
+        transition: max-height 0.3s ease-out;
+        padding-top: 10px; /* Add padding when expanded */
       }
-      .plan-step-content strong {
-        display: block;
-        margin-bottom: 5px;
+      .plan-step-content.collapsed {
+        max-height: 0;
+        padding-top: 0;
+        padding-bottom: 0;
+        margin-bottom: 0;
+        overflow: hidden;
       }
+      .plan-step-content p {
+          margin-top: 0;
+          margin-bottom: 5px;
+          font-weight: bold;
+      }
+      .plan-step-content pre {
+          margin-top: 0;
+          margin-bottom: 10px;
+          padding: 8px; /* Slightly less padding than main pre */
+          font-size: 0.9em; /* Slightly smaller font */
+      }
+      /* Hide full description inside content when collapsed */
+      .plan-step:has(.plan-step-content.collapsed) .plan-step-content strong {
+          display: none;
+      }
+
       .plan-step.completed {
         background-color: var(--plan-step-completed-background);
         border-color: var(--plan-step-completed-border);
@@ -750,7 +782,7 @@ export default (tabId: string) => `
        * @typedef {Object} PlanStep
        * @property {string} description
        * @property {string} subPrompt
-       * @property {string} commitMessage
+       * @property {boolean} [isCollapsed] - If the step content is collapsed
        */
       /**
        * @typedef {Object} AIPlan
@@ -768,6 +800,7 @@ export default (tabId: string) => `
        * @property {boolean} autoRemoveComments
        * @property {boolean} autoFormat
        * @property {boolean} autoFixErrors
+      * @property {boolean[]} [stepCollapsedStates] - Array to store collapse state for each step
        */
       /** @type {PlanState} */
       let planState = {
@@ -780,6 +813,7 @@ export default (tabId: string) => `
         autoRemoveComments: true,
         autoFormat: true,
         autoFixErrors: true,
+        stepCollapsedStates: [] // Initialize collapse states
       };
 
 
@@ -1789,25 +1823,83 @@ export default (tabId: string) => `
           planGoalEl.textContent = \`AI Plan: \${plan.overallGoal}\`;
           planStepsEl.innerHTML = ''; // Clear existing steps
 
+          // Initialize collapse states if not already present or if plan changed
+          if (!planState.stepCollapsedStates || planState.stepCollapsedStates.length !== plan.steps.length) {
+              planState.stepCollapsedStates = Array(plan.steps.length).fill(true); // All collapsed by default
+          }
+
+
           plan.steps.forEach((step, index) => {
               const stepDiv = document.createElement('div');
               stepDiv.classList.add('plan-step');
               stepDiv.id = \`plan-step-\${index}\`; // Add ID for easy updating
 
+              const isCollapsed = planState.stepCollapsedStates[index] ?? true; // Default to collapsed
+
+              const headerDiv = document.createElement('div');
+              headerDiv.classList.add('plan-step-header');
+              headerDiv.onclick = () => togglePlanStepCollapse(index); // Make header clickable
+
               const statusSpan = document.createElement('span');
               statusSpan.classList.add('plan-step-status');
               statusSpan.textContent = '☐'; // Default unchecked box
-              stepDiv.appendChild(statusSpan);
+              headerDiv.appendChild(statusSpan);
+
+              const previewSpan = document.createElement('span');
+              previewSpan.classList.add('plan-step-preview');
+              previewSpan.textContent = \`Step \${index + 1}: \${step.description}\`; // Preview text
+              headerDiv.appendChild(previewSpan);
+
+              const collapseButton = document.createElement('button');
+              collapseButton.classList.add('collapse-button');
+              collapseButton.textContent = isCollapsed ? '▼' : '▲'; // Toggle icon
+              headerDiv.appendChild(collapseButton);
+
+              stepDiv.appendChild(headerDiv);
 
               const contentDiv = document.createElement('div');
               contentDiv.classList.add('plan-step-content');
-              contentDiv.innerHTML = \`<strong>Step \${index + 1}: \${step.description}</strong>\`;
+              contentDiv.classList.toggle('collapsed', isCollapsed);
+
+              const fullDescription = document.createElement('strong');
+              fullDescription.textContent = \`Step \${index + 1}: \${step.description}\`;
+              contentDiv.appendChild(fullDescription);
+
+              const subPromptPre = document.createElement('pre');
+              subPromptPre.textContent = step.subPrompt;
+              contentDiv.appendChild(subPromptPre);
+
               stepDiv.appendChild(contentDiv);
 
               planStepsEl.appendChild(stepDiv);
           });
           scrollToBottom(); // Scroll to show the plan
       }
+
+      /**
+       * Toggles the collapsed state of a plan step.
+       * @param {number} stepIndex - The index of the step to toggle.
+       */
+      function togglePlanStepCollapse(stepIndex) {
+          const stepDiv = document.getElementById(\`plan-step-\${stepIndex}\`);
+          if (stepDiv) {
+              const contentDiv = stepDiv.querySelector('.plan-step-content');
+              const collapseButton = stepDiv.querySelector('.collapse-button');
+              if (contentDiv && collapseButton) {
+                  const isCollapsed = contentDiv.classList.toggle('collapsed');
+                  collapseButton.textContent = isCollapsed ? '▼' : '▲';
+
+                  // Update state array (optional, but good for persistence if needed)
+                  if (planState.stepCollapsedStates && planState.stepCollapsedStates.length > stepIndex) {
+                      planState.stepCollapsedStates[stepIndex] = isCollapsed;
+                      // Note: We don't save planState to extension storage on every collapse toggle
+                      // to avoid excessive messaging. This state is ephemeral within the webview session.
+                      // If persistence across sessions is needed, add a postMessage here.
+                  }
+              }
+          }
+      }
+
 
       /**
        * Updates the status icon and class for a specific plan step.
@@ -2104,15 +2196,33 @@ export default (tabId: string) => `
 
           // --- Plan Execution Messages ---
           case "displayPlan":
+              // When receiving a new plan, reset collapse states
+              planState.stepCollapsedStates = Array(message.plan.steps.length).fill(true);
               renderPlan(message.plan);
               break;
           case "updateStepStatus":
               updateStepStatus(message.stepIndex, message.status);
               break;
           case "updatePlanState":
+              // Preserve collapse states when updating planState
+              const oldPlan = planState.plan;
               planState = message.planState;
+              if (oldPlan && planState.plan && oldPlan.steps.length === planState.plan.steps.length) {
+                  // If plan structure is the same, keep old collapse states
+                  // This handles status updates without re-rendering the whole plan
+              } else if (planState.plan) {
+                   // If plan structure changed or is new, reset collapse states
+                   planState.stepCollapsedStates = Array(planState.plan.steps.length).fill(true);
+                   renderPlan(planState.plan); // Re-render if plan structure changed
+              } else {
+                   // If plan is null, clear plan UI
+                   planStepsEl.innerHTML = '';
+                   planGoalEl.textContent = 'AI Plan:';
+                   planContainer.style.display = 'none';
+                   planState.stepCollapsedStates = [];
+              }
               updatePlanControls(); // Update buttons and error message
-              // Also update step statuses based on the new state
+              // Update step statuses based on the new state (this is redundant if renderPlan is called, but safe)
               if (planState.plan && planState.plan.steps) {
                   planState.plan.steps.forEach((_, index) => {
                       let status = 'pending';
@@ -2180,6 +2290,7 @@ export default (tabId: string) => `
       window.handleFixErrors = handleFixErrors; // Expose new function
       window.handleCommitFiles = handleCommitFiles; // Expose new function
       window.updateStepStatus = updateStepStatus; // Expose for potential manual testing/debugging
+      window.togglePlanStepCollapse = togglePlanStepCollapse; // Expose new function
     </script>
   </body>
 </html>
