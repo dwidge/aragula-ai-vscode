@@ -38,6 +38,13 @@ import {
   useUserPromptInStorage,
 } from "./settings";
 
+const log: Logger = (msg: string) => {
+  vscode.window.showInformationMessage(msg);
+};
+const logError: Logger = (e: unknown) => {
+  vscode.window.showErrorMessage(`${e}`);
+};
+
 const chatPanels = new Map<string, vscode.WebviewPanel>();
 
 export function activate(context: vscode.ExtensionContext) {
@@ -110,22 +117,71 @@ export function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(
     vscode.commands.registerCommand(
       "aragula-ai.askAI",
-      async (single: vscode.Uri, multi: vscode.Uri[]) => addFiles(multi)
+      async (single: vscode.Uri, multi: vscode.Uri[]) =>
+        addFiles(multi).catch(logError)
     )
   );
 
   context.subscriptions.push(
     vscode.commands.registerCommand(
       "aragula-ai.askAIEditor",
-      async (single: vscode.Uri, options: any) => addFiles([single])
+      async (single: vscode.Uri, options: any) =>
+        addFiles([single]).catch(logError)
     )
   );
 
   context.subscriptions.push(
     vscode.commands.registerCommand(
       "aragula-ai.generateCommitMessage",
-      (sourceControl: vscode.SourceControl) =>
-        generateCommitMessage(context, sourceControl)
+      async (sourceControl: vscode.SourceControl) => {
+        if (!sourceControl.rootUri) {
+          log("No rootUri found for the source control.", "error");
+          return;
+        }
+
+        const providerSettingsList = getProviderSettingsFromStorage(context);
+        const currentProviderSetting =
+          getCurrentProviderSettingFromGlobalState(context) ||
+          providerSettingsList[0];
+
+        const abortController = new AbortController();
+
+        vscode.window.withProgress(
+          {
+            location: vscode.ProgressLocation.SourceControl,
+            title: "Generating Commit Message...",
+            cancellable: true,
+          },
+          async (progress, token) => {
+            token.onCancellationRequested(() => {
+              abortController.abort();
+            });
+
+            try {
+              const commitMessage = await generateCommitMessage(
+                sourceControl.rootUri!.fsPath,
+                currentProviderSetting,
+                {
+                  signal: abortController.signal,
+                  progress: (message) => progress.report({ message }),
+                }
+              );
+
+              if (commitMessage) {
+                sourceControl.inputBox.value = commitMessage;
+              } else {
+                log("Generated commit message was empty.", "error");
+              }
+            } catch (error: unknown) {
+              if (!abortController.signal.aborted) {
+                log(`Failed to generate commit message: ${error}`, "error");
+              }
+            } finally {
+              progress.report({ increment: 100 });
+            }
+          }
+        );
+      }
     )
   );
 }
@@ -152,8 +208,8 @@ async function readOpenFilePaths(uris: vscode.Uri[]): Promise<string[]> {
         await fs.access(uri.fsPath);
         const relativePath = vscode.workspace.asRelativePath(uri);
         openFilePaths.push(relativePath);
-      } catch {
-        vscode.window.showErrorMessage(`Failed to access file: ${uri.fsPath}`);
+      } catch (error) {
+        throw new Error(`Could not access file: ${uri.fsPath}: ${error}`);
       }
     }
   }

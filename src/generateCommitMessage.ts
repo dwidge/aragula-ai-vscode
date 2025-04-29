@@ -1,61 +1,58 @@
 import * as vscode from "vscode";
-import { Logger, newAiApi } from "./aiTools/AiApi";
+import { AiApiSettings, newAiApi } from "./aiTools/AiApi";
 import { getCommitMessages, getDiffs } from "./diff";
-import {
-  getCurrentProviderSettingFromGlobalState,
-  getProviderSettingsFromStorage,
-} from "./settings";
 
+/**
+ * Options for generating a commit message.
+ */
+interface TaskOptions {
+  /** Optional AbortSignal to cancel the operation. */
+  signal?: AbortSignal;
+  /** Optional progress reporter. */
+  progress?: (message: string) => void;
+}
+
+/**
+ * Generates a git commit message based on staged changes using an AI model.
+ *
+ * @param rootUri The file system path of the git repository root.
+ * @param aiProviderSettings The settings for the AI provider to use.
+ * @param options Optional options for the generation process.
+ * @returns A promise that resolves with the generated commit message string.
+ * @throws An error if generation fails (e.g., no staged changes, API key missing, API call error).
+ */
 export const generateCommitMessage = async (
-  context: vscode.ExtensionContext,
-  sourceControl: vscode.SourceControl
-) => {
-  const log: Logger = (msg: string, type: string = "log") => {
-    vscode.window.showInformationMessage(msg);
-  };
+  rootUri: string,
+  aiProviderSettings: AiApiSettings,
+  options: TaskOptions = {}
+): Promise<string> => {
+  const { progress, signal } = options;
 
-  if (!sourceControl.rootUri) {
-    log("No rootUri.", "error");
-    return;
+  if (!rootUri) {
+    throw new Error("No rootUri provided.");
   }
 
-  const providerSettingsList = getProviderSettingsFromStorage(context);
-  const currentProviderSetting =
-    getCurrentProviderSettingFromGlobalState(context) ||
-    providerSettingsList[0];
-  if (!currentProviderSetting) {
-    log(
-      "No AI provider settings configured. Please add provider settings.",
-      "error"
-    );
-    return;
-  }
-  if (!currentProviderSetting.apiKey) {
-    log(
-      `API key missing for provider: ${currentProviderSetting.name}. Please configure API key in settings.`,
-      "error"
-    );
-    return;
-  }
+  progress?.("Initializing AI API...");
 
   const callAiApi = newAiApi(
-    currentProviderSetting.vendor === "gemini"
+    aiProviderSettings.vendor === "gemini"
       ? {
-          ...currentProviderSetting,
+          ...aiProviderSettings,
           model: "gemini-2.0-flash-lite",
         }
-      : currentProviderSetting
+      : aiProviderSettings
   );
 
-  const diffText = await getDiffs(sourceControl.rootUri);
+  const rootUriObject = vscode.Uri.file(rootUri);
+
+  progress?.("Getting staged changes...");
+  const diffText = await getDiffs(rootUriObject);
   if (diffText.length === 0) {
-    log("No staged changes to generate commit message for.");
-    return;
+    throw new Error("No staged changes to generate commit message for.");
   }
 
-  const previousMessages: string[] = await getCommitMessages(
-    sourceControl.rootUri
-  );
+  progress?.("Getting previous commit messages...");
+  const previousMessages: string[] = await getCommitMessages(rootUriObject);
 
   const systemPrevious = [
     "It must follow the same style as the previous commit messages.",
@@ -81,56 +78,35 @@ export const generateCommitMessage = async (
     diffText,
   ].join("\n\n");
 
-  vscode.window.withProgress(
-    {
-      location: vscode.ProgressLocation.Notification,
-      title: "Generating Commit Message...",
-      cancellable: false,
-    },
-    async (progress) => {
-      try {
-        const response = await callAiApi(
-          {
-            user: userPrompt,
-            system: systemPrompt,
-            tools: [],
-          },
-          [],
-          { logger: log, signal: new AbortController().signal }
-        );
-
-        let commitMessage = response.assistant.trim();
-        commitMessage = parseCommitMessage(commitMessage);
-
-        if (commitMessage) {
-          setCommitMessageInInputBox(sourceControl, commitMessage);
-        } else {
-          log("Could not generate commit message.", "error");
-        }
-      } catch (error: any) {
-        if (error.name === "AbortError") {
-          log("Commit message request aborted by user.", "info");
-        } else {
-          log(`Commit message API call failed: ${error.message}`, "error");
-        }
-      }
-      progress.report({ increment: 100 });
-    }
-  );
+  progress?.("Calling AI model...");
+  try {
+    const response = await callAiApi(
+      {
+        user: userPrompt,
+        system: systemPrompt,
+        tools: [],
+      },
+      [],
+      { logger: progress, signal }
+    );
+    progress?.("Parsing response...");
+    return parseCommitMessage(response.assistant.trim());
+  } catch (error: unknown) {
+    throw new Error(`Commit message API call failed: ${error}`);
+  }
 };
 
 const parseCommitMessage = (rawMessage: string): string => {
   const trimmedMessage = rawMessage.trim();
   if (trimmedMessage.startsWith("```") && trimmedMessage.endsWith("```")) {
     const messageContent = trimmedMessage.slice(3, -3).trim();
+    if (!messageContent) {
+      throw new Error("Could not parse commit message.");
+    }
     return messageContent;
   }
+  if (!trimmedMessage) {
+    throw new Error("Could not parse commit message.");
+  }
   return trimmedMessage;
-};
-
-const setCommitMessageInInputBox = (
-  sourceControl: vscode.SourceControl,
-  message: string
-) => {
-  sourceControl.inputBox.value = message;
 };
