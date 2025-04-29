@@ -29,6 +29,9 @@ export async function stageFiles(relativeFileNames: string[]): Promise<void> {
  * @throws Error if the repository is not found or committing fails.
  */
 export async function commitStaged(message: string): Promise<void> {
+  if (!message.trim()) {
+    throw new Error(`No commit message`);
+  }
   const workspaceFolder = getWorkspaceRoot();
   const gitApi = await getGitAPI();
   const repository = gitApi?.getRepository(workspaceFolder);

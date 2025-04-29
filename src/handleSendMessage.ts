@@ -191,10 +191,10 @@ export const getModifiedFileNames = (toolCallResults: ToolCallResult[]) =>
         toolResult.name === "writeFile" &&
         typeof toolResult.parameters === "object" &&
         toolResult.parameters !== null &&
-        "filePath" in toolResult.parameters &&
-        typeof toolResult.parameters.filePath === "string"
+        "path" in toolResult.parameters &&
+        typeof toolResult.parameters.path === "string"
       ) {
-        return toolResult.parameters.filePath;
+        return toolResult.parameters.path;
       }
     })
     .filter((s) => s) as string[];
