@@ -598,6 +598,7 @@ export default (tabId: string) => `
             <label for="autoFixErrorsCheckbox">Auto Fix Errors</label>
           </div>
           <button id="fixErrorsButton" onclick="handleFixErrors()">Fix Errors</button>
+          <button id="commitFilesButton" onclick="handleCommitFiles()">Commit Files</button> <!-- New Commit Files Button -->
         </div>
       </div>
       <div id="messages-container"></div>
@@ -702,6 +703,7 @@ export default (tabId: string) => `
       const autoRemoveCommentsCheckbox = document.getElementById('autoRemoveCommentsCheckbox');
       const autoFormatCheckbox = document.getElementById('autoFormatCheckbox');
       const autoFixErrorsCheckbox = document.getElementById('autoFixErrorsCheckbox'); // New checkbox for auto fix errors
+      const commitFilesButton = document.getElementById('commitFilesButton'); // New Commit Files Button
 
 
       /**
@@ -1141,6 +1143,18 @@ export default (tabId: string) => `
               return;
           }
           vscode.postMessage({ command: "checkErrorsInFiles", filePaths: openFiles, providerSetting: currentProviderSetting });
+      }
+
+      /**
+       * Handles committing selected files.
+       */
+      function handleCommitFiles() {
+          if (openFiles.length === 0) {
+              alert("No files selected to commit.");
+              return;
+          }
+          // You might want to prompt for a commit message here or generate one
+          vscode.postMessage({ command: "commitFiles", fileNames: openFiles });
       }
 
 
@@ -1722,6 +1736,7 @@ export default (tabId: string) => `
       window.handleRemoveComments = handleRemoveComments; // Expose new function
       window.handleFormat = handleFormat; // Expose new function
       window.handleFixErrors = handleFixErrors; // Expose new function
+      window.handleCommitFiles = handleCommitFiles; // Expose new function
     </script>
   </body>
 </html>

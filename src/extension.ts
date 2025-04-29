@@ -5,7 +5,10 @@ import { availableToolNames, availableVendors } from "./availableToolNames";
 import chatview from "./chatview";
 import { checkAndFixErrors } from "./checkAndFixErrors";
 import { generateCommitMessage } from "./generateCommitMessage";
-import { getWorkspaceAbsolutePath } from "./getWorkspaceAbsolutePath";
+import {
+  getWorkspaceAbsolutePath,
+  getWorkspaceRoot,
+} from "./getWorkspaceAbsolutePath";
 import { handleFormatFilesInFiles } from "./handleFormatFilesInFiles";
 import { handleRemoveCommentsInFiles } from "./handleRemoveCommentsInFiles";
 import { cancelActiveRequest, handleSendMessage } from "./handleSendMessage";
@@ -37,6 +40,7 @@ import {
   useSystemPromptInStorage,
   useUserPromptInStorage,
 } from "./settings";
+import { commitStaged, stageFiles } from "./utils/git";
 
 const log: Logger = (msg: string) => {
   vscode.window.showInformationMessage(msg);
@@ -425,9 +429,85 @@ function handleWebviewMessage(
     case "setAutoFixErrors":
       setAutoFixErrorsToWorkspace(context, tabId, message.checked);
       break;
+    case "commitFiles":
+      handleCommitFiles(context, message.fileNames, log);
+      break;
     default:
       console.warn("Unknown command from webview:", message.command);
   }
+}
+
+async function handleCommitFiles(
+  context: vscode.ExtensionContext,
+  fileNames: string[],
+  log: Logger
+) {
+  if (!fileNames || fileNames.length === 0) {
+    log("No files selected to commit.", "warning");
+    return;
+  }
+
+  const workspaceRoot = getWorkspaceRoot();
+  if (!workspaceRoot) {
+    log("No workspace folder found.", "error");
+    return;
+  }
+
+  const providerSettingsList = getProviderSettingsFromStorage(context);
+  const currentProviderSetting =
+    getCurrentProviderSettingFromGlobalState(context) ||
+    providerSettingsList[0];
+
+  if (!currentProviderSetting) {
+    log("No AI provider setting found.", "error");
+    return;
+  }
+
+  const abortController = new AbortController();
+
+  vscode.window.withProgress(
+    {
+      location: vscode.ProgressLocation.Notification,
+      title: "Committing files...",
+      cancellable: true,
+    },
+    async (progress, token) => {
+      token.onCancellationRequested(() => {
+        abortController.abort();
+      });
+
+      try {
+        progress.report({ message: "Staging files..." });
+        await stageFiles(fileNames);
+
+        progress.report({ message: "Generating commit message..." });
+        const commitMessage = await generateCommitMessage(
+          workspaceRoot.fsPath,
+          currentProviderSetting,
+          {
+            signal: abortController.signal,
+            progress: (message) => progress.report({ message }),
+          }
+        );
+
+        progress.report({ message: "Committing staged files..." });
+        await commitStaged(commitMessage);
+
+        log(
+          `Successfully committed ${fileNames.length} file(s) with message: "${commitMessage}"`,
+          "info"
+        );
+      } catch (error: unknown) {
+        if (!abortController.signal.aborted) {
+          log(`Failed to commit files: ${error}`, "error");
+        } else {
+          log("Commit generation or process cancelled.", "info");
+        }
+      } finally {
+        progress.report({ increment: 100 });
+      }
+    }
+  );
 }
 
 async function handleRequestCurrentProviderSetting(
