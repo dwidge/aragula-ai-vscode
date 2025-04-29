@@ -157,6 +157,84 @@ export async function performAiRequest(
   return response;
 }
 
+/**
+ * Calls the AI API with specific parameters, handling tool calls if enabled.
+ * This is used internally for plan execution.
+ * @param context Extension context.
+ * @param panel Webview panel.
+ * @param message AI request parameters (user, system, fileNames, toolNames, providerSetting, messageId, autoRemoveComments, autoFormat, autoFixErrors, currentStepIndex).
+ * @param tabId Current tab ID.
+ * @param log Logger function.
+ * @param isPlanningCall If true, this is the initial planning call (expecting text plan). If false, it's a step execution call (expecting tool calls).
+ * @returns Promise resolving to the AI response object ({ text: string; toolCalls?: ToolCall[]; modifiedFiles?: string[] }) for execution steps, or raw text (string) for the planning call, or null on failure.
+ */
+export async function callAI(
+  message: {
+    user: string;
+    system: string;
+    fileNames: string[];
+    toolNames: string[];
+    providerSetting: AiApiSettings;
+    autoRemoveComments: boolean;
+    autoFormat: boolean;
+    autoFixErrors: boolean;
+  },
+  log: Logger
+): Promise<{
+  assistant: string;
+  tools?: ToolCall[];
+  modifiedFiles?: string[];
+}> {
+  const {
+    user,
+    system,
+    fileNames,
+    toolNames,
+    providerSetting,
+    autoRemoveComments,
+    autoFormat,
+    autoFixErrors,
+  } = message;
+
+  const { assistant, tools } = await performAiRequest(
+    {
+      user: user,
+      system: system,
+      fileNames: fileNames,
+      toolNames: toolNames,
+      providerSetting: providerSetting,
+    },
+    log,
+    new AbortController().signal
+  );
+
+  const enabledToolDefinitions = filterToolsByName(
+    availableToolsDefinitions,
+    toolNames
+  );
+
+  const toolCallResults = await executeToolCalls(
+    tools,
+    enabledToolDefinitions,
+    log
+  );
+  const modifiedFiles = getModifiedFileNames(toolCallResults);
+  await cleanupFiles(
+    log,
+    providerSetting,
+    modifiedFiles,
+    autoRemoveComments,
+    autoFormat,
+    autoFixErrors
+  );
+
+  return {
+    assistant,
+    tools,
+    modifiedFiles,
+  };
+}
+
 export async function cleanupFiles(
   log: Logger,
   providerSetting: AiApiSettings,

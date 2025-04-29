@@ -2,6 +2,7 @@ import { exec } from "child_process";
 import * as os from "os";
 import { promisify } from "util";
 import * as vscode from "vscode";
+import { Logger } from "./aiTools/AiApi";
 
 export interface GitExtension {
   getAPI(version: 1): API;
@@ -146,5 +147,32 @@ export async function getCommitMessages(
     return formattedMessages;
   } catch (error: unknown) {
     throw new Error(`Failed to get commit messages: ${error}`);
+  }
+}
+
+export async function getDiffContext(log: Logger) {
+  const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
+  if (workspaceFolder) {
+    const gitApi = await getGitAPI();
+    const repository: Repository | null | undefined = gitApi?.getRepository(
+      workspaceFolder.uri
+    );
+    if (repository) {
+      try {
+        const diff = await getDiffs(workspaceFolder.uri);
+        if (diff) {
+          return "\n\n```diff\n" + diff + "\n```\n";
+        }
+      } catch (diffError: any) {
+        log(`Failed to get git diff: ${diffError.message}`, "warning");
+      }
+    } else {
+      log(
+        "Git repository not found in workspace. Skipping diff context.",
+        "warning"
+      );
+    }
+  } else {
+    log("No workspace folder found. Skipping diff context.", "warning");
   }
 }

@@ -37,16 +37,24 @@ export default (tabId: string) => `
         --popup-border: var(--pre-border);
         --popup-shadow: 0 4px 8px rgba(0,0,0,0.1);
         --tool-button-background: var(--file-button-background);
-        --tool-button-hover: var(--file-button-hover);
-        --tool-button-remove-hover: var(--file-button-remove-hover);
-        --tool-button-text-color: var(--file-button-text-color);
+        --tool-button-hover: var(--tool-button-hover);
+        --tool-button-remove-hover: var(--tool-button-remove-hover);
+        --tool-button-text-color: var(--tool-button-text-color);
         --provider-button-background: var(--file-button-background);
-        --provider-button-hover: var(--file-button-hover);
-        --provider-button-remove-hover: var(--file-button-remove-hover);
-        --provider-button-text-color: var(--file-button-text-color);
+        --provider-button-hover: var(--provider-button-hover);
+        --provider-button-remove-hover: var(--provider-button-remove-hover);
+        --provider-button-text-color: var(--provider-button-text-color);
         --form-input-background: var(--textarea-background);
         --form-input-border: var(--textarea-border);
         --form-input-text-color: var(--text-color);
+        --plan-step-background: #e0f2f7; /* Light blue */
+        --plan-step-completed-background: #c8e6c9; /* Light green */
+        --plan-step-executing-background: #fff9c4; /* Light yellow */
+        --plan-step-failed-background: #ffcdd2; /* Light red */
+        --plan-step-border: #b2ebf2;
+        --plan-step-completed-border: #a5d6a7;
+        --plan-step-executing-border: #ffe082;
+        --plan-step-failed-border: #ef9a9a;
       }
       @media (prefers-color-scheme: dark) {
         :root {
@@ -80,16 +88,24 @@ export default (tabId: string) => `
           --popup-border: var(--pre-border);
           --popup-shadow: 0 4px 8px rgba(0,0,0,0.2);
           --tool-button-background: var(--file-button-background);
-          --tool-button-hover: var(--file-button-hover);
-          --tool-button-remove-hover: var(--file-button-remove-hover);
-          --tool-button-text-color: var(--file-button-text-color);
+          --tool-button-hover: var(--tool-button-hover);
+          --tool-button-remove-hover: var(--tool-button-remove-hover);
+          --tool-button-text-color: var(--tool-button-text-color);
           --provider-button-background: var(--file-button-background);
-          --provider-button-hover: var(--file-button-hover);
-          --provider-button-remove-hover: var(--file-button-remove-hover);
-          --provider-button-text-color: var(--file-button-text-color);
+          --provider-button-hover: var(--provider-button-hover);
+          --provider-button-remove-hover: var(--provider-button-remove-hover);
+          --provider-button-text-color: var(--provider-button-text-color);
           --form-input-background: var(--textarea-background);
           --form-input-border: var(--textarea-border);
           --form-input-text-color: var(--text-color);
+          --plan-step-background: #263238; /* Dark blue-grey */
+          --plan-step-completed-background: #33691e; /* Dark green */
+          --plan-step-executing-background: #f57f17; /* Dark yellow */
+          --plan-step-failed-background: #b71c1c; /* Dark red */
+          --plan-step-border: #37474f;
+          --plan-step-completed-border: #558b2f;
+          --plan-step-executing-border: #fbc02d;
+          --plan-step-failed-border: #c62828;
         }
       }
       body {
@@ -427,7 +443,7 @@ export default (tabId: string) => `
 
 
       .provider-form-buttons {
-        display: none;
+        display: flex; /* Always visible now */
         gap: 10px;
         justify-content: flex-end;
         margin-top: 10px;
@@ -466,6 +482,69 @@ export default (tabId: string) => `
       }
       .auto-checkbox input[type="checkbox"] {
         margin: 0;
+      }
+
+      /* Plan UI Styles */
+      #plan-container {
+        margin-top: 20px;
+        padding: 10px;
+        border: 1px solid var(--pre-border);
+        border-radius: 5px;
+        background-color: var(--pre-background);
+        display: none; /* Hidden by default */
+      }
+      #plan-container h3 {
+        margin-top: 0;
+        margin-bottom: 10px;
+        border-bottom: 1px solid var(--pre-border);
+        padding-bottom: 5px;
+      }
+      .plan-step {
+        padding: 10px;
+        margin-bottom: 8px;
+        border-radius: 5px;
+        border: 1px solid var(--plan-step-border);
+        background-color: var(--plan-step-background);
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+      }
+      .plan-step-status {
+        font-size: 1.2em;
+        min-width: 20px; /* Ensure consistent spacing */
+        text-align: center;
+      }
+      .plan-step-content {
+        flex-grow: 1;
+      }
+      .plan-step-content strong {
+        display: block;
+        margin-bottom: 5px;
+      }
+      .plan-step.completed {
+        background-color: var(--plan-step-completed-background);
+        border-color: var(--plan-step-completed-border);
+      }
+      .plan-step.executing {
+        background-color: var(--plan-step-executing-background);
+        border-color: var(--plan-step-executing-border);
+      }
+       .plan-step.failed {
+        background-color: var(--plan-step-failed-background);
+        border-color: var(--plan-step-failed-border);
+      }
+      #plan-controls {
+        margin-top: 10px;
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        justify-content: center;
+      }
+      #plan-error {
+        color: red;
+        margin-top: 10px;
+        font-weight: bold;
+        display: none;
       }
 
 
@@ -579,6 +658,10 @@ export default (tabId: string) => `
             <span id="buttonText">Send</span>
             <span id="loader" class="loader" style="display:none;"></span>
           </button>
+          <button id="planButton" onclick="handlePlanAndExecute()">
+             <span id="planButtonText">Plan & Execute</span>
+             <span id="planLoader" class="loader" style="display:none;"></span>
+          </button>
           <button id="clearButton" onclick="clearChatHistory()">Clear</button>
           <button id="addFilesButton" onclick="addFilesDialog()">Add Files</button>
           <button id="addToolButton" onclick="toggleToolPopup()">Add Tool</button>
@@ -601,6 +684,18 @@ export default (tabId: string) => `
           <button id="commitFilesButton" onclick="handleCommitFiles()">Commit Files</button> <!-- New Commit Files Button -->
         </div>
       </div>
+
+      <div id="plan-container">
+        <h3 id="plan-goal">AI Plan:</h3>
+        <div id="plan-steps">
+          <!-- Plan steps will be rendered here -->
+        </div>
+        <div id="plan-error"></div>
+        <div id="plan-controls">
+          <!-- Plan control buttons will be rendered here -->
+        </div>
+      </div>
+
       <div id="messages-container"></div>
     </main>
     <script>
@@ -651,15 +746,53 @@ export default (tabId: string) => `
       /** @type {boolean} */
       let autoFixErrors = true; // Will be initialized by message
 
+      /**
+       * @typedef {Object} PlanStep
+       * @property {string} description
+       * @property {string} subPrompt
+       * @property {string} commitMessage
+       */
+      /**
+       * @typedef {Object} AIPlan
+       * @property {string} overallGoal
+       * @property {PlanStep[]} steps
+       */
+      /**
+       * @typedef {Object} PlanState
+       * @property {'idle' | 'planning' | 'executing' | 'paused' | 'failed' | 'completed'} status
+       * @property {number} currentStepIndex
+       * @property {AIPlan | null} plan
+       * @property {string | null} error
+       * @property {string[]} filePaths
+       * @property {AiProviderSettings | null} providerSetting
+       * @property {boolean} autoRemoveComments
+       * @property {boolean} autoFormat
+       * @property {boolean} autoFixErrors
+       */
+      /** @type {PlanState} */
+      let planState = {
+        status: 'idle',
+        currentStepIndex: -1,
+        plan: null,
+        error: null,
+        filePaths: [],
+        providerSetting: null,
+        autoRemoveComments: true,
+        autoFormat: true,
+        autoFixErrors: true,
+      };
+
+
       const STORAGE_KEYS = {
         chatHistory: \`chatMessages-\${tabId}\`,
         userInput: \`userInput-\${tabId}\`,
         openFiles: \`openFiles-\${tabId}\`,
-        enabledTools: 'enabledTools', // Key for enabled tools
-        currentProviderSettingName: 'currentProviderSettingName', // Key for current provider setting name
-        autoRemoveComments: \`autoRemoveComments-\${tabId}\`, // Key for auto remove comments checkbox state
-        autoFormat: \`autoFormat-\${tabId}\`, // Key for auto format checkbox state
-        autoFixErrors: \`autoFixErrors-\${tabId}\` // Key for auto fix errors checkbox state
+        enabledTools: 'enabledTools', // Key for enabled tools (Global)
+        currentProviderSettingName: 'currentProviderSettingName', // Key for current provider setting name (Global)
+        autoRemoveComments: \`autoRemoveComments-\${tabId}\`, // Key for auto remove comments checkbox state (Workspace)
+        autoFormat: \`autoFormat-\${tabId}\`, // Key for auto format checkbox state (Workspace)
+        autoFixErrors: \`autoFixErrors-\${tabId}\`, // Key for auto fix errors checkbox state (Workspace)
+        planState: \`planState-\${tabId}\`, // Key for plan state (Workspace)
       };
 
       // DOM elements
@@ -669,6 +802,9 @@ export default (tabId: string) => `
       const sendButton = document.getElementById("sendButton");
       const buttonText = document.getElementById("buttonText");
       const loader = document.getElementById("loader");
+      const planButton = document.getElementById("planButton"); // New plan button
+      const planButtonText = document.getElementById("planButtonText"); // Text span for plan button
+      const planLoader = document.getElementById("planLoader"); // Loader for plan button
       const selectedFilesContainer = document.getElementById("selected-files-container");
       const enabledToolsContainer = document.getElementById("enabled-tools-container"); // Enabled tools container
       const systemPromptsPopupEl = document.getElementById("system-prompts-popup");
@@ -705,6 +841,13 @@ export default (tabId: string) => `
       const autoFixErrorsCheckbox = document.getElementById('autoFixErrorsCheckbox'); // New checkbox for auto fix errors
       const commitFilesButton = document.getElementById('commitFilesButton'); // New Commit Files Button
 
+      // Plan UI elements
+      const planContainer = document.getElementById('plan-container');
+      const planGoalEl = document.getElementById('plan-goal');
+      const planStepsEl = document.getElementById('plan-steps');
+      const planErrorEl = document.getElementById('plan-error');
+      const planControlsEl = document.getElementById('plan-controls');
+
 
       /**
        * @typedef {Object} AiProviderSettings
@@ -719,23 +862,27 @@ export default (tabId: string) => `
 
 
       /**
-       * Loads state from localStorage: chat history, open files, and checkbox states.
+       * Loads state from localStorage: chat history, open files.
+       * Note: Plan state, prompts, auto settings, enabled tools, current provider
+       * are loaded from workspaceState/globalState via initPrompts message.
        */
       function loadState() {
         chatHistory = loadFromLocalStorage(STORAGE_KEYS.chatHistory, []);
         openFiles = loadFromLocalStorage(STORAGE_KEYS.openFiles, []);
-        enabledTools = loadFromLocalStorage(STORAGE_KEYS.enabledTools, []); // Load enabled tools from localStorage
-        const currentProviderSettingName = localStorage.getItem(STORAGE_KEYS.currentProviderSettingName);
-        if (currentProviderSettingName && providerSettingsList.length > 0) {
-          currentProviderSetting = providerSettingsList.find(p => p.name === currentProviderSettingName);
-        } else if (providerSettingsList.length > 0) {
-          currentProviderSetting = providerSettingsList[0]; // Default to first if available and none selected
-        }
+        // enabledTools and currentProviderSetting are now primarily managed by globalState in extension.ts
+        // and sent via initPrompts/sendEnabledTools/sendCurrentProviderSetting messages.
+        // We keep localStorage for backward compatibility or if globalState isn't available immediately.
+        // enabledTools = loadFromLocalStorage(STORAGE_KEYS.enabledTools, []); // Removed - rely on extension state
+        // const currentProviderSettingName = localStorage.getItem(STORAGE_KEYS.currentProviderSettingName); // Removed - rely on extension state
+        // if (currentProviderSettingName && providerSettingsList.length > 0) {
+        //   currentProviderSetting = providerSettingsList.find(p => p.name === currentProviderSettingName);
+        // } else if (providerSettingsList.length > 0) {
+        //   currentProviderSetting = providerSettingsList[0]; // Default to first if available and none selected
+        // }
 
-        // Load checkbox states
-        autoRemoveCommentsCheckbox.checked = localStorage.getItem(STORAGE_KEYS.autoRemoveComments) !== 'false';
-        autoFormatCheckbox.checked = localStorage.getItem(STORAGE_KEYS.autoFormat) !== 'false';
-        autoFixErrorsCheckbox.checked = localStorage.getItem(STORAGE_KEYS.autoFixErrors) !== 'false'; // Load auto fix errors state
+        // Checkbox states are loaded from workspaceState via initPrompts message.
+        // The initial state from initPrompts will set the checkbox values.
+        // We don't load them from localStorage here anymore to avoid conflicts.
       }
 
       /**
@@ -755,19 +902,17 @@ export default (tabId: string) => `
       }
 
       /**
-       * Saves state to localStorage: chat history, open files, enabled tools, current provider, and checkbox states.
+       * Saves state to localStorage: chat history, open files.
+       * Checkbox states, plan state, enabled tools, current provider are saved to workspaceState/globalState via extension messages.
        */
       function saveState() {
         saveToLocalStorage(STORAGE_KEYS.chatHistory, chatHistory);
         saveToLocalStorage(STORAGE_KEYS.openFiles, openFiles);
-        saveToLocalStorage(STORAGE_KEYS.enabledTools, enabledTools); // Save enabled tools to localStorage - GLOBAL
-        if (currentProviderSetting) {
-          localStorage.setItem(STORAGE_KEYS.currentProviderSettingName, currentProviderSetting.name); // GLOBAL
-        }
-        // Save checkbox states
-        localStorage.setItem(STORAGE_KEYS.autoRemoveComments, autoRemoveCommentsCheckbox.checked ? 'true' : 'false');
-        localStorage.setItem(STORAGE_KEYS.autoFormat, autoFormatCheckbox.checked ? 'true' : 'false');
-        localStorage.setItem(STORAGE_KEYS.autoFixErrors, autoFixErrorsCheckbox.checked ? 'true' : 'false'); // Save auto fix errors state
+        // saveToLocalStorage(STORAGE_KEYS.enabledTools, enabledTools); // Removed - rely on extension state
+        // if (currentProviderSetting) { // Removed - rely on extension state
+        //   localStorage.setItem(STORAGE_KEYS.currentProviderSettingName, currentProviderSetting.name);
+        // }
+        // Checkbox states and plan state are saved via messages to extension
       }
 
       /**
@@ -817,7 +962,7 @@ export default (tabId: string) => `
 
         const collapseButton = document.createElement('button');
         collapseButton.classList.add('collapse-button');
-        collapseButton.textContent = isCollapsed ? '▲' : '▼';
+        collapseButton.textContent = isCollapsed ? '▼' : '▲'; // Toggle icon
         headerDiv.appendChild(collapseButton);
         el.appendChild(headerDiv);
 
@@ -847,7 +992,7 @@ export default (tabId: string) => `
           text,
           sender,
           messageType,
-          isCollapsed: ['prompt', 'tool'].includes(messageType) // Collapse prompt and tool messages by default
+          isCollapsed: ['prompt', 'tool', 'log', 'info', 'warning', 'error'].includes(messageType) // Collapse non-assistant/user messages by default
         };
         chatHistory.push(message);
         saveState();
@@ -868,6 +1013,8 @@ export default (tabId: string) => `
           msg.text = newText;
           msg.sender = newSender;
           msg.messageType = newMessageType;
+          // Don't change collapse state on update unless specifically requested
+          // msg.isCollapsed = ['prompt', 'tool', 'log', 'info', 'warning', 'error'].includes(newMessageType);
           saveState();
           renderChatHistory();
         }
@@ -945,6 +1092,16 @@ export default (tabId: string) => `
         buttonText.textContent = "Send";
       }
 
+       /**
+       * Resets the plan button state to enable and hide loader.
+       */
+      function resetPlanButton() {
+        planButton.disabled = false;
+        planLoader.style.display = "none";
+        planButtonText.textContent = "Plan & Execute";
+      }
+
+
       /**
        * Renders the selected files in the UI.
        */
@@ -1005,9 +1162,12 @@ export default (tabId: string) => `
        * @param {string} filePath - Path of the file to remove.
        */
       function removeFile(filePath) {
+        // Update local state immediately for responsiveness
         openFiles = openFiles.filter(file => file !== filePath);
-        saveState();
-        renderSelectedFiles();
+        saveState(); // Save updated file list to localStorage
+        renderSelectedFiles(); // Update UI
+
+        // Notify extension to update its state (workspaceState)
         vscode.postMessage({ command: "removeFile", filePath: filePath });
       }
 
@@ -1019,9 +1179,12 @@ export default (tabId: string) => `
       function addFiles(files) {
         const newFiles = files.filter(filePath => !openFiles.includes(filePath));
         if (newFiles.length > 0) {
+            // Update local state immediately for responsiveness
             openFiles.push(...newFiles);
-            saveState();
-            renderSelectedFiles();
+            saveState(); // Save updated file list to localStorage
+            renderSelectedFiles(); // Update UI
+
+            // Notify extension to update its state (workspaceState)
             vscode.postMessage({ command: "addFiles", filePaths: newFiles });
         }
       }
@@ -1064,6 +1227,7 @@ export default (tabId: string) => `
         }
 
         if (filePaths.length > 0) {
+          // Send file paths to extension to handle adding and updating webview state
           vscode.postMessage({ command: "addFilesFromDialog", filePaths: filePaths });
         }
       }
@@ -1107,6 +1271,72 @@ export default (tabId: string) => `
           autoFixErrors: autoFixErrors // Add auto fix errors state
         });
       }
+
+      /**
+       * Handles initiating the plan and execute mode.
+       */
+      function handlePlanAndExecute() {
+         if (planButton.disabled) return;
+         const user = userInputEl.value.trim();
+         const system = systemPromptEl.value.trim();
+         if (!user) {
+           alert("Please enter a user prompt describing the task for the plan.");
+           return;
+         }
+         if (!currentProviderSetting) {
+           alert("Please select an AI Provider in 'Providers' popup before planning.");
+           return;
+         }
+
+         planButton.disabled = true;
+         planLoader.style.display = "inline-block";
+         planButtonText.textContent = "";
+
+         // Get checkbox states
+         const autoRemoveComments = autoRemoveCommentsCheckbox.checked;
+         const autoFormat = autoFormatCheckbox.checked;
+         const autoFixErrors = autoFixErrorsCheckbox.checked;
+
+         // Clear previous plan UI
+         planStepsEl.innerHTML = '';
+         planGoalEl.textContent = 'AI Plan:';
+         planErrorEl.style.display = 'none';
+         planControlsEl.innerHTML = '';
+         planContainer.style.display = 'block'; // Show the plan container
+
+         vscode.postMessage({
+           command: "planAndExecute",
+           user: user,
+           system: system,
+           fileNames: openFiles, // Pass current open files for context
+           providerSetting: currentProviderSetting,
+           autoRemoveComments: autoRemoveComments,
+           autoFormat: autoFormat,
+           autoFixErrors: autoFixErrors,
+         });
+      }
+
+      /**
+       * Handles pausing the plan execution.
+       */
+      function handlePausePlan() {
+          vscode.postMessage({ command: "pausePlan" });
+      }
+
+      /**
+       * Handles resuming the plan execution.
+       */
+      function handleResumePlan() {
+          vscode.postMessage({ command: "resumePlan" });
+      }
+
+      /**
+       * Handles stopping the plan execution.
+       */
+      function handleStopPlan() {
+          vscode.postMessage({ command: "stopPlan" });
+      }
+
 
       /**
        * Handles removing comments from selected files.
@@ -1163,7 +1393,11 @@ export default (tabId: string) => `
        * @param {string} messageId - ID to assign to the loading message.
        */
       function showLoadingMessage(messageId) {
-        addChatMessage("Loading response...", "assistant", "loading");
+        // Check if a loading message with this ID already exists
+        const existingLoadingMsg = chatHistory.find(msg => msg.id === messageId && msg.messageType === 'loading');
+        if (!existingLoadingMsg) {
+             addChatMessage("Loading response...", "assistant", "loading");
+        }
       }
 
       function renderSystemPromptsList() {
@@ -1306,7 +1540,6 @@ export default (tabId: string) => `
       }
 
       function toggleToolPopup() {
-        console.log("toggleToolPopup, current state:", toolPopupVisible); // DEBUG
         toolPopupVisible = !toolPopupVisible;
         toolPopupEl.style.display = toolPopupVisible ? 'block' : 'none';
         if (toolPopupVisible) {
@@ -1392,27 +1625,27 @@ export default (tabId: string) => `
       function enableTool(toolName) {
         if (!enabledTools.includes(toolName)) {
           enabledTools = [...enabledTools, toolName]; // Create a new array
-          saveState();
+          saveState(); // Save to localStorage (for backward compatibility, main state is in extension)
           renderEnabledTools();
-          vscode.postMessage({ command: "enableTool", toolName: toolName });
+          vscode.postMessage({ command: "enableTool", toolName: toolName }); // Notify extension
         }
         toggleToolPopup(); // Close tool popup after enabling
       }
 
       function disableTool(toolName) {
         enabledTools = enabledTools.filter(tool => tool !== toolName);
-        saveState();
+        saveState(); // Save to localStorage (for backward compatibility, main state is in extension)
         renderEnabledTools();
-        vscode.postMessage({ command: "disableTool", toolName: toolName });
+        vscode.postMessage({ command: "disableTool", toolName: toolName }); // Notify extension
       }
 
       function selectProviderSetting(providerSettingName) {
         const providerSetting = providerSettingsList.find(p => p.name === providerSettingName);
         if (providerSetting) {
           currentProviderSetting = providerSetting;
-          saveState();
+          saveState(); // Save to localStorage (for backward compatibility, main state is in extension)
           renderSelectedProvider();
-          vscode.postMessage({ command: "useProviderSettingFromLibrary", providerSettingName: providerSettingName });
+          vscode.postMessage({ command: "useProviderSettingFromLibrary", providerSettingName: providerSettingName }); // Notify extension
         }
         toggleProviderSettingsPopup(); // Close provider popup after selecting
       }
@@ -1437,8 +1670,10 @@ export default (tabId: string) => `
         if (originalProviderSetting) {
           const newProviderSetting = { ...originalProviderSetting };
           newProviderSetting.name = \`\${originalProviderSetting.name} Copy\`; // Create new name
-          vscode.postMessage({ command: "updateProviderSetting", providerSetting: newProviderSetting });
-          loadProviderSettingToForm(newProviderSetting); // Load duplicated provider to form for editing
+          // Send as a new save command, not update, as it's a new setting
+          vscode.postMessage({ command: "saveProviderSetting", providerSetting: newProviderSetting });
+          // Load the duplicated provider to the form for immediate editing
+          loadProviderSettingToForm(newProviderSetting);
         }
       }
 
@@ -1487,9 +1722,14 @@ export default (tabId: string) => `
           providerNameError.style.display = 'block';
           isValid = false;
         } else {
-          const existingProvider = providerSettingsList.find(p => p.name === providerSetting.name);
-          if (existingProvider && existingProvider.name !== editingProviderName) {
-            editingProviderName = existingProvider.name;
+          // Check for duplicate name only if adding a new provider (editingProviderName is null)
+          if (editingProviderName === null) {
+             const existingProvider = providerSettingsList.find(p => p.name === providerSetting.name);
+             if (existingProvider) {
+                providerNameError.textContent = \`Provider "\${providerSetting.name}" already exists.\`;
+                providerNameError.style.display = 'block';
+                isValid = false;
+             }
           }
         }
         if (!providerSetting.vendor) {
@@ -1519,12 +1759,150 @@ export default (tabId: string) => `
 
 
         if (editingProviderName) {
+          // If editing, send update command
           vscode.postMessage({ command: "updateProviderSetting", oldProviderSettingName: editingProviderName, providerSetting: providerSetting });
         } else {
-          vscode.postMessage({ command: "updateProviderSetting", providerSetting: providerSetting });
+          // If adding new, send save command
+          vscode.postMessage({ command: "saveProviderSetting", providerSetting: providerSetting });
         }
 
-        editingProviderName = null;
+        editingProviderName = null; // Exit editing mode
+        // Optionally close the popup or clear the form after saving
+        // toggleProviderSettingsPopup(); // Auto-closing might be annoying
+        handleAddProviderButton(); // Clear form for next entry
+      }
+
+      function handleCancelProviderSettings() {
+          editingProviderName = null; // Exit editing mode
+          handleAddProviderButton(); // Clear form
+          // Optionally close the popup
+          // toggleProviderSettingsPopup();
+      }
+
+
+      /**
+       * Renders the plan steps in the UI.
+       * @param {AIPlan} plan - The plan object.
+       */
+      function renderPlan(plan) {
+          planContainer.style.display = 'block';
+          planGoalEl.textContent = \`AI Plan: \${plan.overallGoal}\`;
+          planStepsEl.innerHTML = ''; // Clear existing steps
+
+          plan.steps.forEach((step, index) => {
+              const stepDiv = document.createElement('div');
+              stepDiv.classList.add('plan-step');
+              stepDiv.id = \`plan-step-\${index}\`; // Add ID for easy updating
+
+              const statusSpan = document.createElement('span');
+              statusSpan.classList.add('plan-step-status');
+              statusSpan.textContent = '☐'; // Default unchecked box
+              stepDiv.appendChild(statusSpan);
+
+              const contentDiv = document.createElement('div');
+              contentDiv.classList.add('plan-step-content');
+              contentDiv.innerHTML = \`<strong>Step \${index + 1}: \${step.description}</strong>\`;
+              stepDiv.appendChild(contentDiv);
+
+              planStepsEl.appendChild(stepDiv);
+          });
+          scrollToBottom(); // Scroll to show the plan
+      }
+
+      /**
+       * Updates the status icon and class for a specific plan step.
+       * @param {number} stepIndex - The index of the step to update.
+       * @param {'pending' | 'executing' | 'completed' | 'failed'} status - The new status.
+       */
+      function updateStepStatus(stepIndex, status) {
+          const stepDiv = document.getElementById(\`plan-step-\${stepIndex}\`);
+          if (stepDiv) {
+              const statusSpan = stepDiv.querySelector('.plan-step-status');
+              stepDiv.classList.remove('pending', 'executing', 'completed', 'failed');
+              stepDiv.classList.add(status);
+
+              if (statusSpan) {
+                  switch (status) {
+                      case 'pending':
+                          statusSpan.textContent = '☐';
+                          break;
+                      case 'executing':
+                          statusSpan.innerHTML = '<span class="loader" style="width: 1em; height: 1em; border-width: 2px;"></span>'; // Small loader
+                          break;
+                      case 'completed':
+                          statusSpan.textContent = '✅'; // Checkmark
+                          break;
+                      case 'failed':
+                          statusSpan.textContent = '❌'; // Cross mark
+                          break;
+                  }
+              }
+          }
+      }
+
+      /**
+       * Updates the visibility and state of plan control buttons based on plan state.
+       */
+      function updatePlanControls() {
+          planControlsEl.innerHTML = ''; // Clear existing buttons
+          planErrorEl.style.display = planState.error ? 'block' : 'none';
+          planErrorEl.textContent = planState.error || '';
+
+          let buttonsHtml = '';
+          switch (planState.status) {
+              case 'idle':
+                  // No buttons needed, Plan & Execute button is visible
+                  planContainer.style.display = 'none'; // Hide plan container when idle
+                  resetPlanButton();
+                  break;
+              case 'planning':
+                  // No buttons needed, loader is visible on Plan & Execute button
+                  planButton.disabled = true;
+                  planLoader.style.display = "inline-block";
+                  planButtonText.textContent = "";
+                  planContainer.style.display = 'block'; // Show plan container
+                  break;
+              case 'executing':
+                  buttonsHtml = '<button onclick="handlePausePlan()">Pause</button><button onclick="handleStopPlan()">Stop</button>';
+                  planButton.disabled = true; // Disable Plan button while executing
+                  resetPlanButton(); // Ensure plan button is not showing loader
+                  planContainer.style.display = 'block'; // Show plan container
+                  break;
+              case 'paused':
+                  buttonsHtml = '<button onclick="handleResumePlan()">Resume</button><button onclick="handleStopPlan()">Stop</button>';
+                  planButton.disabled = true; // Disable Plan button while paused
+                  resetPlanButton(); // Ensure plan button is not showing loader
+                  planContainer.style.display = 'block'; // Show plan container
+                  break;
+              case 'failed':
+                  buttonsHtml = '<button onclick="handleResumePlan()">Resume from Failed Step</button><button onclick="handleStopPlan()">Stop & Reset</button>';
+                  planButton.disabled = false; // Re-enable Plan button after failure
+                  resetPlanButton();
+                  planContainer.style.display = 'block'; // Show plan container
+                  break;
+              case 'completed':
+                  buttonsHtml = '<button onclick="handleStopPlan()">Reset Plan</button>'; // Stop & Reset effectively
+                  planButton.disabled = false; // Re-enable Plan button after completion
+                  resetPlanButton();
+                  planContainer.style.display = 'block'; // Show plan container
+                  break;
+          }
+          planControlsEl.innerHTML = buttonsHtml;
+
+          // Update step statuses in the UI based on the current state
+          if (planState.plan && planState.plan.steps) {
+              planState.plan.steps.forEach((_, index) => {
+                  let status = 'pending';
+                  if (index < planState.currentStepIndex) {
+                      status = 'completed';
+                  } else if (index === planState.currentStepIndex) {
+                      status = planState.status === 'executing' ? 'executing' : (planState.status === 'failed' ? 'failed' : 'pending');
+                  } else {
+                      status = 'pending';
+                  }
+                  updateStepStatus(index, status);
+              });
+          }
       }
 
 
@@ -1535,35 +1913,41 @@ export default (tabId: string) => `
       window.addEventListener("load", () => {
         userInputEl.value = localStorage.getItem(STORAGE_KEYS.userInput) || "";
         // systemPromptEl.value = localStorage.getItem(STORAGE_KEYS.systemPrompt) || ""; // No longer loading systemPrompt from localStorage
-        loadState(); // Load checkbox states here
+        loadState(); // Load chat history, open files from localStorage
         renderChatHistory();
         renderSelectedFiles();
-        renderEnabledTools(); // Render enabled tools on load
-        renderSelectedProvider(); // Render selected provider on load
-        renderSystemPromptsList(); // Render system prompts on load
-        renderUserPromptsList(); // Render user prompts on load
-        renderProviderSettingsPopupList(); // Render provider settings list on load
-        renderVendorDropdown(); // Render vendor dropdown on load
-        vscode.postMessage({ command: "requestSystemPrompts" }); // Request latest prompts from extension - might be redundant now as initPrompts sends them
-        vscode.postMessage({ command: "requestUserPrompts" }); // Request latest user prompts from extension - might be redundant now as initPrompts sends them
+        // renderEnabledTools(); // Render enabled tools on load - now done after initPrompts
+        // renderSelectedProvider(); // Render selected provider on load - now done after initPrompts
+        // renderSystemPromptsList(); // Render system prompts on load - now done after initPrompts
+        // renderUserPromptsList(); // Render user prompts on load - now done after initPrompts
+        // renderProviderSettingsPopupList(); // Render provider settings list on load - now done after initPrompts
+        // renderVendorDropdown(); // Render vendor dropdown on load - now done after initPrompts
+
+        // Request initial state from extension, including workspace state like prompts, auto settings, and plan state
+        // These requests will trigger messages back to the webview (e.g., initPrompts, sendEnabledTools, etc.)
+        // which will then render the UI elements.
+        vscode.postMessage({ command: "requestSystemPrompts" }); // Request latest prompts from extension
+        vscode.postMessage({ command: "requestUserPrompts" }); // Request latest user prompts from extension
         vscode.postMessage({ command: "requestProviderSettings" }); // Request provider settings
         vscode.postMessage({ command: "requestAvailableVendors" }); // Request available vendors
         vscode.postMessage({ command: "requestEnabledTools" }); // Request enabled tools on load
         vscode.postMessage({ command: "requestCurrentProviderSetting" }); // Request current provider setting on load
+        vscode.postMessage({ command: "requestPlanState" }); // Request plan state on load
 
 
         document.addEventListener('click', function(event) {
+          // Close popups if click is outside
           if (systemPromptsPopupVisible && !systemPromptsPopupEl.contains(event.target) && event.target !== document.getElementById('systemPromptInput') && event.target !== systemPromptLoadButton) {
-            toggleSystemPromptsPopup(); // Close system prompt popup if click outside
+            toggleSystemPromptsPopup();
           }
           if (userPromptsPopupVisible && !userPromptsPopupEl.contains(event.target) && event.target !== document.getElementById('userInput') && event.target !== userPromptLoadButton) {
-            toggleUserPromptsPopup(); // Close user prompt popup if click outside
+            toggleUserPromptsPopup();
           }
-          if (toolPopupVisible && !toolPopupEl.contains(event.target) && event.target !== addToolButton) { // Check click outside tool popup and "Add Tool" button
-            toggleToolPopup(); // Close tool popup if click outside
+          if (toolPopupVisible && !toolPopupEl.contains(event.target) && event.target !== addToolButton) {
+            toggleToolPopup();
           }
-          if (providerSettingsPopupVisible && !providerSettingsPopupEl.contains(event.target) && event.target !== providerSettingsButton) { // Check click outside provider popup, "Providers" button
-            toggleProviderSettingsPopup(); // Close provider settings popup if click outside
+          if (providerSettingsPopupVisible && !providerSettingsPopupEl.contains(event.target) && event.target !== providerSettingsButton && !providerFormEl.contains(event.target)) { // Also check if click is outside the form itself
+            toggleProviderSettingsPopup();
           }
         });
       });
@@ -1579,17 +1963,14 @@ export default (tabId: string) => `
         updateSystemPrompt(e.target.value);
       });
 
-      // Save checkbox states on change
+      // Save checkbox states on change (send to extension to save in workspaceState)
       autoRemoveCommentsCheckbox.addEventListener('change', () => {
-          saveState();
           vscode.postMessage({ command: "setAutoRemoveComments", checked: autoRemoveCommentsCheckbox.checked });
       });
       autoFormatCheckbox.addEventListener('change', () => {
-          saveState();
           vscode.postMessage({ command: "setAutoFormat", checked: autoFormatCheckbox.checked });
       });
-      autoFixErrorsCheckbox.addEventListener('change', () => { // New event listener for auto fix errors
-          saveState();
+      autoFixErrorsCheckbox.addEventListener('change', () => {
           vscode.postMessage({ command: "setAutoFixErrors", checked: autoFixErrorsCheckbox.checked });
       });
 
@@ -1609,13 +1990,21 @@ export default (tabId: string) => `
         const message = event.data;
         switch (message.command) {
           case "receiveMessage":
-            addChatMessage(message.text, message.sender || "assistant");
+            // This is for standard chat messages
+            addChatMessage(message.text, message.sender || "assistant", message.messageType || "assistant"); // Default to assistant type
             resetSendButton();
             break;
           case "updateMessage":
+            // This is for updating streaming responses
             updateChatMessage(message.messageId, message.text, message.sender, message.messageType);
-            resetSendButton();
+            // Don't reset button here, as streaming might continue
             break;
+          case "endMessage":
+             // This signals the end of a streaming response
+             resetSendButton();
+             // Ensure the final message type is set correctly if needed
+             // updateChatMessage(message.messageId, message.text, message.sender, message.messageType); // Optional: update one last time
+             break;
           case "logMessage":
             addChatMessage(message.text, "log", message.messageType || 'log'); // Ensure messageType is passed and default to 'log'
             break;
@@ -1623,15 +2012,20 @@ export default (tabId: string) => `
             clearChatHistory();
             break;
           case "setOpenFiles":
+            // This is received when files are added/removed via extension commands or drag/drop
             openFiles = message.files;
-            saveState();
-            renderSelectedFiles();
+            saveState(); // Save updated file list to localStorage
+            renderSelectedFiles(); // Update UI
             break;
           case "startLoading":
+            // This is for standard chat loading indicator
             showLoadingMessage(message.messageId);
             break;
           case "addFilesFromDialog":
-            addFiles(message.filePaths);
+            // This is received after the user selects files in the dialog
+            // The extension has already handled adding them and sent setOpenFiles
+            // This message might be redundant if setOpenFiles is always sent after addFiles
+            // addFiles(message.filePaths); // This would add them locally again, rely on setOpenFiles instead
             break;
           case "systemPromptsList": // Renamed command
             systemPrompts = message.prompts;
@@ -1643,11 +2037,11 @@ export default (tabId: string) => `
             break;
           case "providerSettingsList": // New command for provider settings list
             providerSettingsList = message.providerSettingsList;
-            currentProviderSetting = message.currentProviderSetting;
+            // currentProviderSetting is handled by sendCurrentProviderSetting
             renderProviderSettingsPopupList();
-            renderSelectedProvider();
-            loadState(); // Ensure currentProviderSetting is loaded from localStorage if available, after list is updated
-            renderSelectedProvider(); // Re-render after loadState to reflect potentially updated currentProviderSetting
+            // renderSelectedProvider(); // Rendered by sendCurrentProviderSetting
+            // loadState(); // Ensure currentProviderSetting is loaded from localStorage if available, after list is updated - No longer needed, rely on sendCurrentProviderSetting
+            // renderSelectedProvider(); // Re-render after loadState to reflect potentially updated currentProviderSetting - No longer needed
             break;
           case "initPrompts": // New case to handle initial prompts and libraries
             currentSystemPrompt = message.systemPrompt || "";
@@ -1661,6 +2055,7 @@ export default (tabId: string) => `
             autoRemoveComments = message.autoRemoveComments ?? true; // Initialize auto remove comments
             autoFormat = message.autoFormat ?? true; // Initialize auto format
             autoFixErrors = message.autoFixErrors ?? true; // Initialize auto fix errors
+            planState = message.planState; // Initialize plan state
 
             systemPromptEl.value = currentSystemPrompt;
             userInputEl.value = currentUserPrompt;
@@ -1674,7 +2069,16 @@ export default (tabId: string) => `
             renderSelectedProvider(); // Render selected provider on init
             renderProviderSettingsPopupList(); // Render provider settings popup list on init
             renderVendorDropdown(); // Render vendor dropdown on init
-            loadState(); // Load checkbox states after initPrompts
+            // loadState(); // Load chat history, open files from localStorage after init
+            renderSelectedFiles(); // Ensure files from loadState are rendered
+            renderChatHistory(); // Ensure chat history from loadState is rendered
+
+            // Render plan UI if a plan is active
+            if (planState && planState.plan) {
+                renderPlan(planState.plan);
+            }
+            updatePlanControls(); // Update plan buttons based on initial state
+
             break;
           case "updateEnabledTools":
             enabledTools = message.enabledTools;
@@ -1683,12 +2087,8 @@ export default (tabId: string) => `
           case "providerSettingsUpdated":
             vscode.postMessage({ command: "requestProviderSettings" }); // Request updated list
             break;
-          case "addProviderSetting":
-            handleAddProviderSetting(message.providerSetting);
-            break;
-          case "updateProviderSetting":
-            handleUpdateProviderSetting(message.oldProviderSettingName, message.providerSetting);
-            break;
+          // case "addProviderSetting": // Handled by providerSettingsList update
+          // case "updateProviderSetting": // Handled by providerSettingsList update
           case "availableVendors":
             availableVendors = message.availableVendors;
             renderVendorDropdown();
@@ -1701,6 +2101,42 @@ export default (tabId: string) => `
             currentProviderSetting = message.currentProviderSetting;
             renderSelectedProvider();
             break;
+
+          // --- Plan Execution Messages ---
+          case "displayPlan":
+              renderPlan(message.plan);
+              break;
+          case "updateStepStatus":
+              updateStepStatus(message.stepIndex, message.status);
+              break;
+          case "updatePlanState":
+              planState = message.planState;
+              updatePlanControls(); // Update buttons and error message
+              // Also update step statuses based on the new state
+              if (planState.plan && planState.plan.steps) {
+                  planState.plan.steps.forEach((_, index) => {
+                      let status = 'pending';
+                      if (index < planState.currentStepIndex) {
+                          status = 'completed';
+                      } else if (index === planState.currentStepIndex) {
+                          status = planState.status === 'executing' ? 'executing' : (planState.status === 'failed' ? 'failed' : 'pending');
+                      } else {
+                          status = 'pending';
+                      }
+                      updateStepStatus(index, status);
+                  });
+              }
+              break;
+          case "planExecutionComplete":
+              // Handled by updatePlanState
+              break;
+          case "planExecutionFailed":
+              // Handled by updatePlanState
+              break;
+          case "planExecutionStopped":
+              // Handled by updatePlanState
+              break;
+
           default:
             console.warn("Unknown command:", message.command);
         }
@@ -1708,6 +2144,10 @@ export default (tabId: string) => `
 
       // Expose functions to the global scope.
       window.handleSendMessage = handleSendMessage;
+      window.handlePlanAndExecute = handlePlanAndExecute; // Expose new function
+      window.handlePausePlan = handlePausePlan; // Expose new function
+      window.handleResumePlan = handleResumePlan; // Expose new function
+      window.handleStopPlan = handleStopPlan; // Expose new function
       window.clearChatHistory = clearChatHistory;
       window.addFilesDialog = addFilesDialog;
       window.allowDrop = allowDrop;
@@ -1729,14 +2169,17 @@ export default (tabId: string) => `
       window.loadProviderSettingToForm = loadProviderSettingToForm;
       window.handleAddProviderButton = handleAddProviderButton;
       window.handleDuplicateProviderSetting = handleDuplicateProviderSetting;
+      window.handleCancelProviderSettings = handleCancelProviderSettings; // Expose cancel
       window.clearProviderFormErrors = clearProviderFormErrors;
-      window.handleAddProviderSetting = handleAddProviderSetting;
-      window.handleUpdateProviderSetting = handleUpdateProviderSetting;
+      window.handleSaveProviderSettings = handleSaveProviderSettings; // Expose save
+      // window.handleAddProviderSetting = handleAddProviderSetting; // Internal helper, not needed globally
+      // window.handleUpdateProviderSetting = handleUpdateProviderSetting; // Internal helper, not needed globally
       window.toggleMessageCollapse = toggleMessageCollapse;
       window.handleRemoveComments = handleRemoveComments; // Expose new function
       window.handleFormat = handleFormat; // Expose new function
       window.handleFixErrors = handleFixErrors; // Expose new function
       window.handleCommitFiles = handleCommitFiles; // Expose new function
+      window.updateStepStatus = updateStepStatus; // Expose for potential manual testing/debugging
     </script>
   </body>
 </html>

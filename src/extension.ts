@@ -13,6 +13,15 @@ import { handleFormatFilesInFiles } from "./handleFormatFilesInFiles";
 import { handleRemoveCommentsInFiles } from "./handleRemoveCommentsInFiles";
 import { cancelActiveRequest, handleSendMessage } from "./handleSendMessage";
 import {
+  getPlanState,
+  handlePausePlan,
+  handlePlanAndExecute,
+  handleRequestPlanState,
+  handleResumePlan,
+  handleStopPlan,
+  savePlanState,
+} from "./planTool";
+import {
   deleteProviderSettingFromStorage,
   deleteSystemPromptFromStorage,
   deleteUserPromptFromStorage,
@@ -50,6 +59,31 @@ const logError: Logger = (e: unknown) => {
 };
 
 const chatPanels = new Map<string, vscode.WebviewPanel>();
+
+export interface PlanStep {
+  description: string;
+  subPrompt: string;
+  commitMessage: string;
+}
+
+export interface AIPlan {
+  overallGoal: string;
+  steps: PlanStep[];
+}
+
+export interface PlanState {
+  status: "idle" | "planning" | "executing" | "paused" | "failed" | "completed";
+  currentStepIndex: number;
+  plan: AIPlan | null;
+  error: string | null;
+  filePaths: string[];
+  providerSetting: AiApiSettings | null;
+  autoRemoveComments: boolean;
+  autoFormat: boolean;
+  autoFixErrors: boolean;
+}
+
+export const PLAN_STATE_KEY = (tabId: string) => `planState-${tabId}`;
 
 export function activate(context: vscode.ExtensionContext) {
   console.log('Extension "aragula-ai" active');
@@ -260,6 +294,8 @@ async function openChatWindow(
     context.subscriptions
   );
 
+  const planState = getPlanState(context, tabId);
+
   panel.webview.postMessage({
     command: "initPrompts",
     systemPrompt: systemPrompt,
@@ -274,6 +310,7 @@ async function openChatWindow(
     autoRemoveComments: autoRemoveComments,
     autoFormat: autoFormat,
     autoFixErrors: autoFixErrors,
+    planState: planState,
   });
 
   panel.webview.postMessage({
@@ -432,6 +469,28 @@ function handleWebviewMessage(
     case "commitFiles":
       handleCommitFiles(context, message.fileNames, log);
       break;
+    case "planAndExecute":
+      handlePlanAndExecute(
+        context,
+        panel,
+        message,
+        openedFilePaths,
+        tabId,
+        log
+      );
+      break;
+    case "pausePlan":
+      handlePausePlan(context, panel, tabId, log);
+      break;
+    case "resumePlan":
+      handleResumePlan(context, panel, tabId, log);
+      break;
+    case "stopPlan":
+      handleStopPlan(context, panel, tabId, log);
+      break;
+    case "requestPlanState":
+      handleRequestPlanState(context, panel, tabId);
+      break;
     default:
       console.warn("Unknown command from webview:", message.command);
   }
@@ -573,6 +632,18 @@ async function handleUseProviderSettingFromLibrary(
   const currentProviderSetting = updatedProviderSettings.find(
     (p) => p.name === providerSettingName
   );
+
+  const planState = getPlanState(context, tabId);
+  if (planState.status === "paused" || planState.status === "failed") {
+    savePlanState(context, tabId, {
+      ...planState,
+      providerSetting: currentProviderSetting || null,
+    });
+    panel.webview.postMessage({
+      command: "updatePlanState",
+      planState: getPlanState(context, tabId),
+    });
+  }
 
   panel.webview.postMessage({
     command: "providerSettingsList",
