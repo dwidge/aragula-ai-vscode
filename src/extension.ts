@@ -13,7 +13,7 @@ import { handleFormatFilesInFiles } from "./handleFormatFilesInFiles";
 import { handleRemoveCommentsInFiles } from "./handleRemoveCommentsInFiles";
 import { cancelActiveRequest, handleSendMessage } from "./handleSendMessage";
 import {
-  getPlanState,
+  loadPlanState,
   handlePausePlan,
   handlePlanAndExecute,
   handleRequestPlanState,
@@ -293,7 +293,7 @@ async function openChatWindow(
     context.subscriptions
   );
 
-  const planState = getPlanState(context, tabId);
+  const planState = loadPlanState(context, tabId);
 
   panel.webview.postMessage({
     command: "initPrompts",
@@ -469,14 +469,7 @@ function handleWebviewMessage(
       handleCommitFiles(context, message.fileNames, log);
       break;
     case "planAndExecute":
-      handlePlanAndExecute(
-        context,
-        panel,
-        message,
-        openedFilePaths,
-        tabId,
-        log
-      );
+      handlePlanAndExecute(context, panel, message, tabId, log);
       break;
     case "pausePlan":
       handlePausePlan(context, panel, tabId, log);
@@ -632,15 +625,16 @@ async function handleUseProviderSettingFromLibrary(
     (p) => p.name === providerSettingName
   );
 
-  const planState = getPlanState(context, tabId);
+  const planState = loadPlanState(context, tabId);
   if (planState.status === "paused" || planState.status === "failed") {
-    savePlanState(context, tabId, {
+    const newPlanState = {
       ...planState,
       providerSetting: currentProviderSetting || null,
-    });
+    };
+    savePlanState(context, tabId, newPlanState);
     panel.webview.postMessage({
       command: "updatePlanState",
-      planState: getPlanState(context, tabId),
+      planState: newPlanState,
     });
   }
 

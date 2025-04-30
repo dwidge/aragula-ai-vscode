@@ -11,26 +11,40 @@ import { commitStaged, stageFiles } from "./utils/git";
 export async function handlePlanAndExecute(
   context: vscode.ExtensionContext,
   panel: vscode.WebviewPanel,
-  message: any,
-  openedFilePaths: string[],
+  message: {
+    user: string;
+    system: string;
+    fileNames: string[];
+    toolNames: string[];
+    providerSetting: AiApiSettings;
+    autoRemoveComments: boolean;
+    autoFormat: boolean;
+    autoFixErrors: boolean;
+  },
   tabId: string,
   log: Logger
 ) {
   const userPrompt = message.user;
   const systemPrompt = message.system;
   const providerSetting: AiApiSettings = message.providerSetting;
-  const filePaths = openedFilePaths;
+  const filePaths = message.fileNames;
   const autoRemoveComments: boolean = message.autoRemoveComments;
   const autoFormat: boolean = message.autoFormat;
   const autoFixErrors: boolean = message.autoFixErrors;
   const includeDiff: boolean = false;
+
+  const getState = () => loadPlanState(context, tabId);
+  const setState = (updateFn: (currentState: PlanState) => PlanState) =>
+    updateAndPostPlanState(context, tabId, panel, updateFn);
+  const postMessage = (msg: any) => panel.webview.postMessage(msg);
 
   if (!providerSetting) {
     log(
       "Please select an AI Provider in 'Providers' popup before planning.",
       "error"
     );
-    savePlanState(context, tabId, {
+    setState((currentState) => ({
+      ...currentState,
       status: "failed",
       currentStepIndex: -1,
       plan: null,
@@ -40,37 +54,30 @@ export async function handlePlanAndExecute(
       autoRemoveComments,
       autoFormat,
       autoFixErrors,
-    });
-    panel.webview.postMessage({
+    }));
+    postMessage({
       command: "planExecutionFailed",
       error: "No provider selected",
-    });
-    panel.webview.postMessage({
-      command: "updatePlanState",
-      planState: getPlanState(context, tabId),
     });
     return;
   }
   if (!userPrompt) {
     log("Please enter a user prompt describing the task.", "error");
-    savePlanState(context, tabId, {
+    setState((currentState) => ({
+      ...currentState,
       status: "failed",
       currentStepIndex: -1,
       plan: null,
       error: "No user prompt",
-      filePaths,
+      filePaths: filePaths,
       providerSetting,
       autoRemoveComments,
       autoFormat,
       autoFixErrors,
-    });
-    panel.webview.postMessage({
+    }));
+    postMessage({
       command: "planExecutionFailed",
       error: "No user prompt",
-    });
-    panel.webview.postMessage({
-      command: "updatePlanState",
-      planState: getPlanState(context, tabId),
     });
     return;
   }
@@ -119,21 +126,18 @@ Current open files (provide context from these in sub-prompts if needed): ${file
 `;
 
   log("Generating plan...", "info");
-  savePlanState(context, tabId, {
+  setState((currentState) => ({
+    ...currentState,
     status: "planning",
     currentStepIndex: -1,
     plan: null,
     error: null,
-    filePaths,
+    filePaths: filePaths,
     providerSetting,
     autoRemoveComments,
     autoFormat,
     autoFixErrors,
-  });
-  panel.webview.postMessage({
-    command: "updatePlanState",
-    planState: getPlanState(context, tabId),
-  });
+  }));
 
   try {
     const { assistant } = await callAI(
@@ -165,7 +169,8 @@ Current open files (provide context from these in sub-prompts if needed): ${file
 
     log(`Plan parsed successfully with ${plan.steps.length} steps.`, "info");
 
-    const newState: PlanState = {
+    setState((currentState) => ({
+      ...currentState,
       status: "executing",
       currentStepIndex: 0,
       plan: plan,
@@ -175,35 +180,27 @@ Current open files (provide context from these in sub-prompts if needed): ${file
       autoRemoveComments,
       autoFormat,
       autoFixErrors,
-    };
-    savePlanState(context, tabId, newState);
-    panel.webview.postMessage({ command: "displayPlan", plan: plan });
-    panel.webview.postMessage({
-      command: "updatePlanState",
-      planState: getPlanState(context, tabId),
-    });
+    }));
+    postMessage({ command: "displayPlan", plan: plan });
 
-    executePlan(context, panel, tabId, log);
+    executePlan(getState, setState, postMessage, log);
   } catch (error: any) {
     log(`Plan generation failed: ${error.message}`, "error");
-    savePlanState(context, tabId, {
+    setState((currentState) => ({
+      ...currentState,
       status: "failed",
       currentStepIndex: -1,
       plan: null,
       error: error.message,
-      filePaths,
+      filePaths: filePaths,
       providerSetting,
       autoRemoveComments,
       autoFormat,
       autoFixErrors,
-    });
-    panel.webview.postMessage({
+    }));
+    postMessage({
       command: "planExecutionFailed",
       error: error.message,
-    });
-    panel.webview.postMessage({
-      command: "updatePlanState",
-      planState: getPlanState(context, tabId),
     });
   }
 }
@@ -214,14 +211,18 @@ export async function handlePausePlan(
   tabId: string,
   log: Logger
 ) {
-  const planState = getPlanState(context, tabId);
+  const getState = () => loadPlanState(context, tabId);
+  const updateAndPostState = (
+    updateFn: (currentState: PlanState) => PlanState
+  ) => updateAndPostPlanState(context, tabId, panel, updateFn);
+
+  const planState = getState();
   if (planState.status === "executing") {
     log("Pausing plan execution...", "info");
-    savePlanState(context, tabId, { ...planState, status: "paused" });
-    panel.webview.postMessage({
-      command: "updatePlanState",
-      planState: getPlanState(context, tabId),
-    });
+    updateAndPostState((currentState) => ({
+      ...currentState,
+      status: "paused",
+    }));
     const currentMessageId = `step-${tabId}-${planState.currentStepIndex}`;
     cancelActiveRequest(currentMessageId, log);
   }
@@ -233,21 +234,21 @@ export async function handleResumePlan(
   tabId: string,
   log: Logger
 ) {
-  const planState = getPlanState(context, tabId);
+  const getState = () => loadPlanState(context, tabId);
+  const setState = (updateFn: (currentState: PlanState) => PlanState) =>
+    updateAndPostPlanState(context, tabId, panel, updateFn);
+  const postMessage = (msg: any) => panel.webview.postMessage(msg);
+
+  const planState = getState();
   if (planState.status === "paused" || planState.status === "failed") {
     log("Resuming plan execution...", "info");
-    const newState: PlanState = {
-      ...planState,
+    setState((currentState) => ({
+      ...currentState,
       status: "executing",
       error: null,
-    };
-    savePlanState(context, tabId, newState);
-    panel.webview.postMessage({
-      command: "updatePlanState",
-      planState: getPlanState(context, tabId),
-    });
+    }));
 
-    executePlan(context, panel, tabId, log);
+    executePlan(getState, setState, postMessage, log);
   }
 }
 
@@ -257,25 +258,27 @@ export async function handleStopPlan(
   tabId: string,
   log: Logger
 ) {
-  const planState = getPlanState(context, tabId);
+  const getState = () => loadPlanState(context, tabId);
+  const updateAndPostState = (
+    updateFn: (currentState: PlanState) => PlanState
+  ) => updateAndPostPlanState(context, tabId, panel, updateFn);
+  const postMessage = (msg: any) => panel.webview.postMessage(msg);
+
+  const planState = getState();
   if (
     planState.status === "executing" ||
     planState.status === "paused" ||
     planState.status === "planning"
   ) {
     log("Stopping plan execution...", "info");
-    savePlanState(context, tabId, {
-      ...planState,
+    updateAndPostState((currentState) => ({
+      ...currentState,
       status: "idle",
       currentStepIndex: -1,
       plan: null,
       error: "Execution stopped by user.",
-    });
-    panel.webview.postMessage({ command: "planExecutionStopped" });
-    panel.webview.postMessage({
-      command: "updatePlanState",
-      planState: getPlanState(context, tabId),
-    });
+    }));
+    postMessage({ command: "planExecutionStopped" });
     const currentMessageId =
       planState.status === "planning"
         ? `plan-${tabId}`
@@ -289,13 +292,16 @@ export async function handleRequestPlanState(
   panel: vscode.WebviewPanel,
   tabId: string
 ) {
-  const planState = getPlanState(context, tabId);
-  panel.webview.postMessage({
+  const getState = () => loadPlanState(context, tabId);
+  const postMessage = (msg: any) => panel.webview.postMessage(msg);
+
+  const planState = getState();
+  postMessage({
     command: "updatePlanState",
     planState: planState,
   });
   if (planState.plan) {
-    panel.webview.postMessage({ command: "displayPlan", plan: planState.plan });
+    postMessage({ command: "displayPlan", plan: planState.plan });
   }
 }
 
@@ -389,25 +395,22 @@ function parseAIPlan(responseText: string): AIPlan | null {
  * Executes a single step of the plan.
  * @param step The plan step to execute.
  * @param stepIndex The index of the step in the plan.
- * @param planState The current state of the plan execution.
- * @param context Extension context.
- * @param panel Webview panel.
- * @param tabId Current tab ID.
+ * @param planState The current state of the plan execution (read-only).
+ * @param postMessage Function to post messages to the webview.
  * @param log Logger function.
+ * @param tabId Current tab ID (for cancellation).
  * @returns A promise resolving to an object indicating success/failure and any error message.
  */
 async function executeSinglePlanStep(
   step: PlanStep,
   stepIndex: number,
   planState: PlanState,
-  context: vscode.ExtensionContext,
-  panel: vscode.WebviewPanel,
-  tabId: string,
+  postMessage: (msg: any) => void,
   log: Logger
 ): Promise<{ success: boolean; error?: string; modifiedFiles?: string[] }> {
   const stepNumber = stepIndex + 1;
   log(`Executing Step ${stepNumber}: ${step.description}`, "info");
-  panel.webview.postMessage({
+  postMessage({
     command: "updateStepStatus",
     stepIndex: stepIndex,
     status: "executing",
@@ -435,7 +438,7 @@ async function executeSinglePlanStep(
     ) {
       const errorMsg = `AI did not provide a valid response or tool calls.`;
       log(errorMsg, "error");
-      panel.webview.postMessage({
+      postMessage({
         command: "updateStepStatus",
         stepIndex: stepIndex,
         status: "failed",
@@ -453,7 +456,7 @@ async function executeSinglePlanStep(
         if (errorsFoundAfterAutoFix > 0) {
           const errorMsg = `${errorsFoundAfterAutoFix} errors detected after auto-fix. Stopping plan.`;
           log(errorMsg, "error");
-          panel.webview.postMessage({
+          postMessage({
             command: "updateStepStatus",
             stepIndex: stepIndex,
             status: "failed",
@@ -473,15 +476,14 @@ async function executeSinglePlanStep(
         step.description ||
         (await generateCommitMessage(
           getWorkspaceRoot().fsPath,
-          planState.providerSetting!,
-          {}
+          planState.providerSetting!
         ));
       await commitStaged(message);
       log(`Committed changes: "${message}"`, "info");
     } catch (e: any) {
       const errorMsg = `Failed to commit changes: ${e.message}`;
       log(errorMsg, "error");
-      panel.webview.postMessage({
+      postMessage({
         command: "updateStepStatus",
         stepIndex: stepIndex,
         status: "failed",
@@ -489,7 +491,7 @@ async function executeSinglePlanStep(
       return { success: false, error: errorMsg };
     }
 
-    panel.webview.postMessage({
+    postMessage({
       command: "updateStepStatus",
       stepIndex: stepIndex,
       status: "completed",
@@ -498,7 +500,7 @@ async function executeSinglePlanStep(
   } catch (error: any) {
     const errorMsg = `Execution failed: ${error.message}`;
     log(errorMsg, "error");
-    panel.webview.postMessage({
+    postMessage({
       command: "updateStepStatus",
       stepIndex: stepIndex,
       status: "failed",
@@ -509,25 +511,26 @@ async function executeSinglePlanStep(
 
 /**
  * Executes the plan step by step iteratively.
- * @param context Extension context.
- * @param panel Webview panel.
- * @param tabId Current tab ID.
+ * @param getState Function to get the current plan state.
+ * @param setState Function to update and post the plan state.
+ * @param postMessage Function to post messages to the webview.
  * @param log Logger function.
+ * @param tabId Current tab ID (for cancellation).
  */
 async function executePlan(
-  context: vscode.ExtensionContext,
-  panel: vscode.WebviewPanel,
-  tabId: string,
+  getState: () => PlanState,
+  setState: (updateFn: (prev: PlanState) => PlanState) => void,
+  postMessage: (msg: any) => void,
   log: Logger
 ) {
-  let planState = getPlanState(context, tabId);
+  let planState = getState();
 
   if (planState.status !== "executing" || !planState.plan) {
     log(
       "Plan execution called when not in 'executing' state or plan is missing.",
       "warning"
     );
-    panel.webview.postMessage({
+    postMessage({
       command: "updatePlanState",
       planState: planState,
     });
@@ -547,15 +550,13 @@ async function executePlan(
       step,
       currentStepIndex,
       planState,
-      context,
-      panel,
-      tabId,
+      postMessage,
       (msg: string, type: string = "log") => {
         log(`Step ${stepNumber}: ${msg}`, type);
       }
     );
 
-    planState = getPlanState(context, tabId);
+    planState = getState();
 
     if (planState.status !== "executing") {
       log(`Plan execution interrupted. Status: ${planState.status}`, "info");
@@ -567,70 +568,57 @@ async function executePlan(
         currentStepIndex + 1
       }: ${result.error}`;
       log(errorMsg, "error");
-      planState = {
-        ...planState,
+      setState((currentState) => ({
+        ...currentState,
         status: "failed",
         error: errorMsg,
-      };
-      savePlanState(context, tabId, planState);
-      panel.webview.postMessage({
+      }));
+      postMessage({
         command: "planExecutionFailed",
         error: errorMsg,
       });
       break;
     } else {
-      planState = {
-        ...planState,
+      setState((currentState) => ({
+        ...currentState,
         currentStepIndex: currentStepIndex + 1,
-      };
-      savePlanState(context, tabId, planState);
+      }));
+      planState = getState();
     }
-
-    panel.webview.postMessage({
-      command: "updatePlanState",
-      planState: planState,
-    });
   }
 
-  planState = getPlanState(context, tabId);
+  planState = getState();
 
   if (planState.status === "executing") {
     const currentPlan = planState.plan;
     if (currentPlan && planState.currentStepIndex >= currentPlan.steps.length) {
       log("Plan execution completed successfully!", "info");
-      planState = { ...planState, status: "completed" };
-      savePlanState(context, tabId, planState);
-      panel.webview.postMessage({ command: "planExecutionComplete" });
+      setState((currentState) => ({
+        ...currentState,
+        status: "completed",
+      }));
+      postMessage({ command: "planExecutionComplete" });
     } else {
       log(
         "Plan execution loop finished unexpectedly while still in 'executing' state.",
         "warning"
       );
       log("Correcting state to failed due to unexpected loop exit.", "error");
-      planState = {
-        ...planState,
+      setState((currentState) => ({
+        ...currentState,
         status: "failed",
         error: "Plan execution loop exited unexpectedly.",
-      };
-      savePlanState(context, tabId, planState);
-      panel.webview.postMessage({
+      }));
+      postMessage({
         command: "planExecutionFailed",
-        error: planState.error,
+        error: getState().error,
       });
     }
-    panel.webview.postMessage({
-      command: "updatePlanState",
-      planState: planState,
-    });
   } else {
     log(
       `Plan execution loop finished with status: ${planState.status}`,
       "info"
     );
-    panel.webview.postMessage({
-      command: "updatePlanState",
-      planState: planState,
-    });
   }
 }
 
@@ -640,11 +628,10 @@ async function executePlan(
  * @param tabId Current tab ID.
  * @returns The current PlanState.
  */
-export function getPlanState(
+export function loadPlanState(
   context: vscode.ExtensionContext,
-  tabId: string
-): PlanState {
-  const defaultState: PlanState = {
+  tabId: string,
+  defaultState: PlanState = {
     status: "idle",
     currentStepIndex: -1,
     plan: null,
@@ -654,7 +641,8 @@ export function getPlanState(
     autoRemoveComments: false,
     autoFormat: false,
     autoFixErrors: false,
-  };
+  }
+): PlanState {
   return context.workspaceState.get(PLAN_STATE_KEY(tabId), defaultState);
 }
 
@@ -671,4 +659,25 @@ export function savePlanState(
 ) {
   context.workspaceState.update(PLAN_STATE_KEY(tabId), state);
 }
-1;
+
+/**
+ * Updates the plan state and posts the new state to the webview.
+ * @param context Extension context.
+ * @param tabId Current tab ID.
+ * @param panel Webview panel.
+ * @param updateFn Function to update the current state.
+ */
+function updateAndPostPlanState(
+  context: vscode.ExtensionContext,
+  tabId: string,
+  panel: vscode.WebviewPanel,
+  updateFn: (currentState: PlanState) => PlanState
+) {
+  const currentState = loadPlanState(context, tabId);
+  const newState = updateFn(currentState);
+  savePlanState(context, tabId, newState);
+  panel.webview.postMessage({
+    command: "updatePlanState",
+    planState: newState,
+  });
+}
