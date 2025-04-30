@@ -323,3 +323,16 @@ export async function setAutoFixErrorsToWorkspace(
 ): Promise<void> {
   await setWorkspaceState(context, AUTO_FIX_ERRORS_STORAGE_KEY, tabId, state);
 }
+
+export const getCurrentProviderSetting = (context: vscode.ExtensionContext) => {
+  const providerSettingsList = getProviderSettingsFromStorage(context);
+  const currentProviderSetting =
+    getCurrentProviderSettingFromGlobalState(context) ||
+    providerSettingsList[0];
+
+  if (!currentProviderSetting) {
+    throw new Error("Please select an AI Provider in 'Providers' popup.");
+  }
+
+  return currentProviderSetting;
+};

@@ -13,12 +13,12 @@ import { handleFormatFilesInFiles } from "./handleFormatFilesInFiles";
 import { handleRemoveCommentsInFiles } from "./handleRemoveCommentsInFiles";
 import { cancelActiveRequest, handleSendMessage } from "./handleSendMessage";
 import {
-  loadPlanState,
   handlePausePlan,
   handlePlanAndExecute,
   handleRequestPlanState,
   handleResumePlan,
   handleStopPlan,
+  loadPlanState,
   savePlanState,
 } from "./planTool";
 import {
@@ -28,6 +28,7 @@ import {
   getAutoFixErrorsFromWorkspace,
   getAutoFormatFromWorkspace,
   getAutoRemoveCommentsFromWorkspace,
+  getCurrentProviderSetting,
   getCurrentProviderSettingFromGlobalState,
   getCurrentSystemPromptFromWorkspace,
   getCurrentUserPromptFromWorkspace,
@@ -80,6 +81,7 @@ export interface PlanState {
   autoRemoveComments: boolean;
   autoFormat: boolean;
   autoFixErrors: boolean;
+  tabId: string;
 }
 
 export const PLAN_STATE_KEY = (tabId: string) => `planState-${tabId}`;
@@ -106,8 +108,7 @@ export function activate(context: vscode.ExtensionContext) {
     const enabledToolNames = getEnabledToolNamesFromGlobalState(context);
     const providerSettingsList = getProviderSettingsFromStorage(context);
     const currentProviderSetting =
-      getCurrentProviderSettingFromGlobalState(context) ||
-      providerSettingsList[0];
+      getCurrentProviderSettingFromGlobalState(context);
 
     const workspaceSystemPrompt = getCurrentSystemPromptFromWorkspace(
       context,
@@ -176,10 +177,7 @@ export function activate(context: vscode.ExtensionContext) {
           return;
         }
 
-        const providerSettingsList = getProviderSettingsFromStorage(context);
-        const currentProviderSetting =
-          getCurrentProviderSettingFromGlobalState(context) ||
-          providerSettingsList[0];
+        const currentProviderSetting = getCurrentProviderSetting(context);
 
         const abortController = new AbortController();
 
@@ -242,7 +240,7 @@ async function readOpenFilePaths(uris: vscode.Uri[]): Promise<string[]> {
   for (const uri of uris) {
     if (uri.fsPath) {
       try {
-        await fs.access(uri.fsPath);
+        await fs.access(uri.fsPath, fs.constants.R_OK);
         const relativePath = vscode.workspace.asRelativePath(uri);
         openFilePaths.push(relativePath);
       } catch (error) {
@@ -321,8 +319,11 @@ async function openChatWindow(
     currentProviderSetting: getCurrentProviderSettingFromGlobalState(context),
   });
 
-  context.workspaceState.update(`userInput-${tabId}`, "");
-  context.workspaceState.update(`responseText-${tabId}`, "");
+  setCurrentSystemPromptToWorkspace(context, tabId, systemPrompt ?? "");
+  setCurrentUserPromptToWorkspace(context, tabId, userPrompt);
+  setAutoRemoveCommentsToWorkspace(context, tabId, autoRemoveComments);
+  setAutoFormatToWorkspace(context, tabId, autoFormat);
+  setAutoFixErrorsToWorkspace(context, tabId, autoFixErrors);
 }
 
 function sendInitialSystemMessage(
@@ -348,6 +349,7 @@ function handleWebviewMessage(
       text: msg,
       tabId: tabId,
       messageType: type,
+      stepIndex: message.stepIndex,
     });
   };
 
@@ -359,7 +361,7 @@ function handleWebviewMessage(
       checkAndFixErrors(message.filePaths, message.providerSetting, log);
       break;
     case "setSystemPrompt":
-      handleSetSystemPrompt(context, panel, message.systemPrompt, tabId);
+      handleSetSystemPrompt(context, panel, message.systemPrompt || "", tabId);
       break;
     case "setUserPrompt":
       handleSetUserPrompt(context, panel, message.userPrompt, tabId);
@@ -401,10 +403,10 @@ function handleWebviewMessage(
       handleRequestUserPrompts(context, panel);
       break;
     case "useSystemPromptFromLibrary":
-      handleUseSystemPromptFromLibrary(context, panel, message.prompt);
+      handleUseSystemPromptFromLibrary(context, panel, message.prompt, tabId);
       break;
     case "useUserPromptFromLibrary":
-      handleUseUserPromptFromLibrary(context, panel, message.prompt);
+      handleUseUserPromptFromLibrary(context, panel, message.prompt, tabId);
       break;
     case "enableTool":
       handleEnableTool(context, panel, message.toolName);
@@ -504,15 +506,7 @@ async function handleCommitFiles(
     return;
   }
 
-  const providerSettingsList = getProviderSettingsFromStorage(context);
-  const currentProviderSetting =
-    getCurrentProviderSettingFromGlobalState(context) ||
-    providerSettingsList[0];
-
-  if (!currentProviderSetting) {
-    log("No AI provider setting found.", "error");
-    return;
-  }
+  const currentProviderSetting = getCurrentProviderSetting(context);
 
   const abortController = new AbortController();
 
@@ -734,9 +728,11 @@ async function handleDisableTool(
 async function handleUseSystemPromptFromLibrary(
   context: vscode.ExtensionContext,
   panel: vscode.WebviewPanel,
-  prompt: string
+  prompt: string,
+  tabId: string
 ) {
   await useSystemPromptInStorage(context, prompt);
+  setCurrentSystemPromptToWorkspace(context, tabId, prompt);
   const updatedSystemPrompts = getSystemPromptsFromStorage(context);
   panel.webview.postMessage({
     command: "systemPromptsList",
@@ -747,9 +743,11 @@ async function handleUseSystemPromptFromLibrary(
 async function handleUseUserPromptFromLibrary(
   context: vscode.ExtensionContext,
   panel: vscode.WebviewPanel,
-  prompt: string
+  prompt: string,
+  tabId: string
 ) {
   await useUserPromptInStorage(context, prompt);
+  setCurrentUserPromptToWorkspace(context, tabId, prompt);
   const updatedUserPrompts = getUserPromptsFromStorage(context);
   panel.webview.postMessage({
     command: "userPromptsList",
@@ -859,9 +857,10 @@ function handleRemoveFile(
   filePath: string,
   openedFilePaths: string[]
 ) {
+  const updatedFilePaths = openedFilePaths.filter((f) => f !== filePath);
   panel.webview.postMessage({
     command: "setOpenFiles",
-    files: openedFilePaths.filter((f) => f !== filePath),
+    files: updatedFilePaths,
   });
 }
 
@@ -871,24 +870,24 @@ async function handleAddFiles(
   openedFilePaths: string[]
 ) {
   const addedFiles: string[] = [];
+  const currentOpenedFiles = [...openedFilePaths];
 
   for (const filePath of filePaths) {
-    if (!openedFilePaths.includes(filePath)) {
+    if (!currentOpenedFiles.includes(filePath)) {
       try {
-        await fs.access(getWorkspaceAbsolutePath(filePath));
-        openedFilePaths.push(filePath);
+        await fs.access(getWorkspaceAbsolutePath(filePath), fs.constants.R_OK);
+        currentOpenedFiles.push(filePath);
         addedFiles.push(filePath);
       } catch (error) {
-        vscode.window.showErrorMessage(`Failed to read file: ${filePath}`);
+        vscode.window.showWarningMessage(`Failed to read file: ${filePath}`);
         continue;
       }
     }
   }
   panel.webview.postMessage({
     command: "setOpenFiles",
-    files: openedFilePaths,
+    files: currentOpenedFiles,
   });
-  console.log("addedFiles1", addedFiles);
   return addedFiles;
 }
 
@@ -898,7 +897,7 @@ async function handleSetSystemPrompt(
   newPrompt: string,
   tabId: string
 ) {
-  setCurrentSystemPromptToWorkspace(context, tabId, newPrompt);
+  setCurrentSystemPromptToWorkspace(context, tabId, newPrompt || "");
 }
 
 async function handleSetUserPrompt(

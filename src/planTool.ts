@@ -183,7 +183,7 @@ Current open files (provide context from these in sub-prompts if needed): ${file
     }));
     postMessage({ command: "displayPlan", plan: plan });
 
-    executePlan(getState, setState, postMessage, log);
+    executePlan(getState, setState, postMessage, log, tabId);
   } catch (error: any) {
     log(`Plan generation failed: ${error.message}`, "error");
     setState((currentState) => ({
@@ -248,7 +248,7 @@ export async function handleResumePlan(
       error: null,
     }));
 
-    executePlan(getState, setState, postMessage, log);
+    executePlan(getState, setState, postMessage, log, tabId);
   }
 }
 
@@ -406,7 +406,8 @@ async function executeSinglePlanStep(
   stepIndex: number,
   planState: PlanState,
   postMessage: (msg: any) => void,
-  log: Logger
+  log: Logger,
+  tabId: string
 ): Promise<{ success: boolean; error?: string; modifiedFiles?: string[] }> {
   const stepNumber = stepIndex + 1;
   log(`Executing Step ${stepNumber}: ${step.description}`, "info");
@@ -415,6 +416,8 @@ async function executeSinglePlanStep(
     stepIndex: stepIndex,
     status: "executing",
   });
+
+  const stepMessageId = `step-${tabId}-${stepIndex}`;
 
   try {
     const stepResponse = await callAI(
@@ -430,21 +433,6 @@ async function executeSinglePlanStep(
       },
       log
     );
-
-    if (
-      !stepResponse ||
-      typeof stepResponse === "string" ||
-      !stepResponse.tools
-    ) {
-      const errorMsg = `AI did not provide a valid response or tool calls.`;
-      log(errorMsg, "error");
-      postMessage({
-        command: "updateStepStatus",
-        stepIndex: stepIndex,
-        status: "failed",
-      });
-      return { success: false, error: errorMsg };
-    }
 
     const modifiedFiles = stepResponse.modifiedFiles || [];
 
@@ -471,15 +459,19 @@ async function executeSinglePlanStep(
     }
 
     try {
+      log("Staging modified files...", "info");
       await stageFiles(modifiedFiles);
+
+      log("Generating commit message...", "info");
       const message =
         step.description ||
         (await generateCommitMessage(
           getWorkspaceRoot().fsPath,
           planState.providerSetting!
         ));
+
+      log(`Committing changes: "${message}"`, "info");
       await commitStaged(message);
-      log(`Committed changes: "${message}"`, "info");
     } catch (e: any) {
       const errorMsg = `Failed to commit changes: ${e.message}`;
       log(errorMsg, "error");
@@ -521,7 +513,8 @@ async function executePlan(
   getState: () => PlanState,
   setState: (updateFn: (prev: PlanState) => PlanState) => void,
   postMessage: (msg: any) => void,
-  log: Logger
+  log: Logger,
+  tabId: string
 ) {
   let planState = getState();
 
@@ -546,14 +539,23 @@ async function executePlan(
     const step = planState.plan.steps[currentStepIndex];
     const stepNumber = currentStepIndex + 1;
 
+    const stepLogger: Logger = (msg: string, type: string = "log") => {
+      postMessage({
+        command: "logMessage",
+        text: msg,
+        messageType: type,
+        stepIndex: currentStepIndex,
+        tabId: tabId,
+      });
+    };
+
     const result = await executeSinglePlanStep(
       step,
       currentStepIndex,
       planState,
       postMessage,
-      (msg: string, type: string = "log") => {
-        log(`Step ${stepNumber}: ${msg}`, type);
-      }
+      stepLogger,
+      tabId
     );
 
     planState = getState();
@@ -641,9 +643,12 @@ export function loadPlanState(
     autoRemoveComments: false,
     autoFormat: false,
     autoFixErrors: false,
+    tabId: tabId,
   }
 ): PlanState {
-  return context.workspaceState.get(PLAN_STATE_KEY(tabId), defaultState);
+  const state = context.workspaceState.get(PLAN_STATE_KEY(tabId), defaultState);
+  state.tabId = tabId;
+  return state;
 }
 
 /**
@@ -657,6 +662,7 @@ export function savePlanState(
   tabId: string,
   state: PlanState
 ) {
+  state.tabId = tabId;
   context.workspaceState.update(PLAN_STATE_KEY(tabId), state);
 }
 

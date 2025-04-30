@@ -43,23 +43,16 @@ export async function handleSendMessage(
     autoRemoveComments: boolean;
     autoFormat: boolean;
     autoFixErrors: boolean;
+    messageId: string;
   },
   tabId: string,
   log: Logger,
   signal?: AbortSignal
 ) {
   const providerSetting = message.providerSetting;
-
-  panel.webview.postMessage({
-    command: "receiveMessage",
-    text: message.user,
-    sender: "user",
-  });
+  const messageId = message.messageId;
 
   setCurrentUserPromptToWorkspace(context, tabId, message.user);
-
-  const messageId = Date.now().toString();
-  panel.webview.postMessage({ command: "startLoading", messageId });
 
   try {
     const response = await performAiRequest(message, log, signal);
@@ -69,6 +62,7 @@ export async function handleSendMessage(
       messageId,
       text: response.assistant,
       sender: "assistant",
+      messageType: "assistant",
     });
 
     const enabledToolDefinitions = filterToolsByName(
@@ -99,6 +93,7 @@ export async function handleSendMessage(
       messageId,
       text: response.assistant,
       sender: "assistant",
+      messageType: "assistant",
     });
     context.workspaceState.update(`responseText-${tabId}`, response);
   } catch (error: any) {
@@ -124,6 +119,16 @@ export async function handleSendMessage(
   }
 }
 
+/**
+ * Performs the core AI API request logic.
+ * This function is used by both standard chat and plan execution.
+ * It handles reading files, preparing tools, calling the AI, and logging.
+ * It does NOT handle tool execution or cleanup; that's done by the caller (`handleSendMessage` or `callAI`).
+ * @param message AI request parameters.
+ * @param log Logger function (can be main logger or step logger).
+ * @param signal Abort signal.
+ * @returns Promise resolving to the raw AI response ({ assistant: string; tools: ToolCall[] }).
+ */
 export async function performAiRequest(
   message: {
     user: string;
@@ -135,16 +140,17 @@ export async function performAiRequest(
   log: Logger,
   signal?: AbortSignal
 ): Promise<{ assistant: string; tools: ToolCall[] }> {
-  log("enabledToolNames\n\n" + message.toolNames, "prompt");
-  const providerSetting = message.providerSetting;
+  log("enabledToolNames\n\n" + message.toolNames, "info");
+
   const filesContent: ToolCall[] = await readFiles(message.fileNames);
+  log(`Read ${filesContent.length} files\n\n${message.fileNames}`, "info");
 
   const enabledToolDefinitions: ToolDefinition[] = filterToolsByName(
     availableToolsDefinitions,
     message.toolNames
   );
 
-  const response = await newAiApi(providerSetting)(
+  const response = await newAiApi(message.providerSetting)(
     {
       user: message.user,
       system: message.system,
@@ -158,15 +164,11 @@ export async function performAiRequest(
 }
 
 /**
- * Calls the AI API with specific parameters, handling tool calls if enabled.
- * This is used internally for plan execution.
- * @param context Extension context.
- * @param panel Webview panel.
- * @param message AI request parameters (user, system, fileNames, toolNames, providerSetting, messageId, autoRemoveComments, autoFormat, autoFixErrors, currentStepIndex).
- * @param tabId Current tab ID.
- * @param log Logger function.
- * @param isPlanningCall If true, this is the initial planning call (expecting text plan). If false, it's a step execution call (expecting tool calls).
- * @returns Promise resolving to the AI response object ({ text: string; toolCalls?: ToolCall[]; modifiedFiles?: string[] }) for execution steps, or raw text (string) for the planning call, or null on failure.
+ * Calls the AI API with specific parameters, handles tool calls, and cleanup.
+ * This function is designed for plan step execution.
+ * @param message AI request parameters (user, system, fileNames, toolNames, providerSetting, autoRemoveComments, autoFormat, autoFixErrors).
+ * @param log Logger function specific to the plan step.
+ * @returns Promise resolving to the AI response object ({ assistant: string; tools?: ToolCall[]; modifiedFiles?: string[] }).
  */
 export async function callAI(
   message: {
@@ -218,11 +220,12 @@ export async function callAI(
     enabledToolDefinitions,
     log
   );
-  const modifiedFiles = getModifiedFileNames(toolCallResults);
+  const modifiedFileNames = getModifiedFileNames(toolCallResults);
+
   await cleanupFiles(
     log,
     providerSetting,
-    modifiedFiles,
+    modifiedFileNames,
     autoRemoveComments,
     autoFormat,
     autoFixErrors
@@ -231,7 +234,7 @@ export async function callAI(
   return {
     assistant,
     tools,
-    modifiedFiles,
+    modifiedFiles: modifiedFileNames,
   };
 }
 
@@ -245,12 +248,10 @@ export async function cleanupFiles(
 ): Promise<string[]> {
   if (fileNames.length > 0) {
     if (autoRemoveComments) {
-      log("Auto-removing comments from modified files...", "info");
       await handleRemoveCommentsInFiles(fileNames, log);
     }
 
     if (autoFormat) {
-      log("Auto-formatting modified files...", "info");
       await handleFormatFilesInFiles(fileNames, log);
     }
 

@@ -11,6 +11,7 @@ export async function handleRemoveCommentsInFiles(
   filePaths: string[],
   log: Logger
 ) {
+  log(`Removing comments...\n\n${filePaths}`, "info");
   for (const filePath of filePaths) {
     const fullPath = getWorkspaceAbsolutePath(filePath);
     try {

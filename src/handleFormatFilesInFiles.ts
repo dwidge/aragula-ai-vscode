@@ -6,6 +6,7 @@ export async function handleFormatFilesInFiles(
   filePaths: string[],
   log: Logger
 ) {
+  log(`Formatting files...\n\n${filePaths}`, "info");
   for (const filePath of filePaths) {
     try {
       await formatCodeWithVscode(getWorkspaceAbsolutePath(filePath));

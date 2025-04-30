@@ -55,6 +55,8 @@ export default (tabId: string) => `
         --plan-step-completed-border: #a5d6a7;
         --plan-step-executing-border: #ffe082;
         --plan-step-failed-border: #ef9a9a;
+        --plan-step-message-background: #f0f4f6; /* Slightly darker than step background */
+        --plan-step-message-border: #cce7ee;
       }
       @media (prefers-color-scheme: dark) {
         :root {
@@ -106,6 +108,8 @@ export default (tabId: string) => `
           --plan-step-completed-border: #558b2f;
           --plan-step-executing-border: #fbc02d;
           --plan-step-failed-border: #c62828;
+          --plan-step-message-background: #37474f; /* Darker blue-grey */
+          --plan-step-message-border: #455a64;
         }
       }
       body {
@@ -429,7 +433,7 @@ export default (tabId: string) => `
         color: var(--form-input-text-color);
         appearance: none; /* Remove default arrow in some browsers */
         -webkit-appearance: none; /* For Safari */
-        background-image: url('data:image/svg+xml;utf8,<svg fill="black" height="24" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg"><path d="M7 10l5 5 5-5z"/><path d="M0 0h24v24H0z" fill="none"/></svg>');
+        background-image: url('data:image/svg+xml;utf8,<svg fill="black" height="24" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg"><path d="M7 10l5 5 5-5z"/><path d="0 0h24v24H0z" fill="none"/></svg>');
         background-repeat: no-repeat;
         background-position-x: 100%;
         background-position-y: 5px; /* Adjust as needed for vertical alignment */
@@ -437,7 +441,7 @@ export default (tabId: string) => `
       }
       @media (prefers-color-scheme: dark) {
         .provider-form select {
-          background-image: url('data:image/svg+xml;utf8,<svg fill="white" height="24" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg"><path d="M7 10l5 5 5-5z"/><path d="M0 0h24v24H0z" fill="none"/></svg>');
+          background-image: url('data:image/svg+xml;utf8,<svg fill="white" height="24" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg"><path d="M7 10l5 5 5-5z"/><path d="0 0h24v24H0z" fill="none"/></svg>');
         }
       }
 
@@ -577,6 +581,32 @@ export default (tabId: string) => `
         margin-top: 10px;
         font-weight: bold;
         display: none;
+      }
+
+      /* Styles for messages within plan steps */
+      .step-messages-container {
+          margin-top: 10px;
+          padding-top: 10px;
+          border-top: 1px dashed var(--pre-border); /* Separator */
+      }
+      .step-messages-container .message {
+          margin-bottom: 5px; /* Smaller margin between step messages */
+          padding: 8px; /* Smaller padding */
+          font-size: 0.9em; /* Smaller font size */
+          background-color: var(--plan-step-message-background); /* Different background */
+          border: 1px solid var(--plan-step-message-border); /* Different border */
+      }
+      .step-messages-container .message:last-child {
+          margin-bottom: 0;
+      }
+      .step-messages-container .message .message-header {
+          margin-bottom: 3px; /* Smaller margin in header */
+      }
+      .step-messages-container .message .message-type-badge {
+          font-size: 0.6em; /* Smaller badge */
+      }
+      .step-messages-container .message .collapse-button {
+          font-size: 0.7em; /* Smaller collapse button */
       }
 
 
@@ -742,6 +772,7 @@ export default (tabId: string) => `
        * @property {string} [sender] - Sender of the message (user, assistant, etc.)
        * @property {string} [messageType] - Type of message for styling (user, assistant, log, etc.)
        * @property {boolean} [isCollapsed] - If the message content is collapsed
+       * @property {number} [stepIndex] - Optional step index if message belongs to a plan step
        */
       /** @type {ChatMessage[]} */
       let chatHistory = [];
@@ -801,6 +832,7 @@ export default (tabId: string) => `
        * @property {boolean} autoFormat
        * @property {boolean} autoFixErrors
       * @property {boolean[]} [stepCollapsedStates] - Array to store collapse state for each step
+      * @property {string} tabId - The tab ID this plan state belongs to
        */
       /** @type {PlanState} */
       let planState = {
@@ -813,7 +845,8 @@ export default (tabId: string) => `
         autoRemoveComments: true,
         autoFormat: true,
         autoFixErrors: true,
-        stepCollapsedStates: [] // Initialize collapse states
+        stepCollapsedStates: [], // Initialize collapse states
+        tabId: tabId // Initialize tabId
       };
 
 
@@ -970,8 +1003,9 @@ export default (tabId: string) => `
       /**
        * Creates and appends a message element to the messages container.
        * @param {ChatMessage} msg - Chat message object.
+       * @param {HTMLElement} [container=messagesContainer] - The container to render the message into.
        */
-      function renderMessage({ id, text, sender, messageType = 'log', isCollapsed = false }) {
+      function renderMessage({ id, text, sender, messageType = 'log', isCollapsed = false }, container = messagesContainer) {
         const el = document.createElement('pre');
         el.classList.add('message'); // General message styling
         el.classList.add(\`\${messageType}-message\`); // Message type specific styling (background color)
@@ -981,7 +1015,7 @@ export default (tabId: string) => `
 
         const headerDiv = document.createElement('div');
         headerDiv.classList.add('message-header');
-        headerDiv.onclick = () => toggleMessageCollapse(id); // Make header clickable
+        headerDiv.onclick = () => toggleMessageCollapse(id, container); // Pass container to toggle
 
         const previewSpan = document.createElement('span');
         previewSpan.classList.add('message-preview');
@@ -1009,7 +1043,7 @@ export default (tabId: string) => `
 
 
         if (id) el.id = \`message-\${id}\`;
-        messagesContainer.appendChild(el);
+        container.appendChild(el);
       }
 
       /**
@@ -1040,30 +1074,69 @@ export default (tabId: string) => `
        * @param {string} newText - New message text.
        * @param {string} newSender - New sender.
        * @param {string} newMessageType - New message type.
+       * @param {HTMLElement} [container=messagesContainer] - The container where the message is rendered.
        */
-      function updateChatMessage(id, newText, newSender, newMessageType) {
-        const msg = chatHistory.find(m => m.id === id);
-        if (msg) {
-          msg.text = newText;
-          msg.sender = newSender;
-          msg.messageType = newMessageType;
-          // Don't change collapse state on update unless specifically requested
-          // msg.isCollapsed = ['prompt', 'tool', 'log', 'info', 'warning', 'error'].includes(newMessageType);
-          saveState();
-          renderChatHistory();
+      function updateChatMessage(id, newText, newSender, newMessageType, container = messagesContainer) {
+        // Find and update in chatHistory only if it's a main chat message
+        if (container === messagesContainer) {
+            const msg = chatHistory.find(m => m.id === id);
+            if (msg) {
+              msg.text = newText;
+              msg.sender = newSender;
+              msg.messageType = newMessageType;
+              // Don't change collapse state on update unless specifically requested
+              // msg.isCollapsed = ['prompt', 'tool', 'log', 'info', 'warning', 'error'].includes(newMessageType);
+              saveState();
+            }
+        }
+
+        // Update the DOM element directly
+        const el = container.querySelector(\`#message-\${id}\`);
+        if (el) {
+            const contentDiv = el.querySelector('.collapsible-content');
+            const previewSpan = el.querySelector('.message-preview');
+            const badge = el.querySelector('.message-type-badge');
+
+            if (contentDiv) contentDiv.textContent = newText;
+            if (previewSpan) {
+                const [firstLine] = newText.split('\\n');
+                previewSpan.textContent = firstLine;
+            }
+            if (badge) badge.textContent = newMessageType;
+
+            // Update classes for styling
+            el.classList.remove('user-message', 'assistant-message', 'system-message', 'prompt-message', 'tool-message', 'log-message', 'error-message', 'warning-message', 'info-message', 'loading-message');
+            el.classList.add(\`\${newMessageType}-message\`);
+             if (['prompt', 'tool'].includes(newMessageType)) {
+                el.classList.add('tool-message');
+            }
         }
       }
 
       /**
        * Toggles the collapsed state of a message and re-renders the chat history.
        * @param {string} messageId - ID of the message to toggle.
+       * @param {HTMLElement} [container=messagesContainer] - The container where the message is rendered.
        */
-      function toggleMessageCollapse(messageId) {
-        const msg = chatHistory.find(m => m.id === messageId);
-        if (msg) {
-          msg.isCollapsed = !msg.isCollapsed;
-          saveState();
-          renderChatHistory();
+      function toggleMessageCollapse(messageId, container = messagesContainer) {
+        // Update state in chatHistory only if it's a main chat message
+        if (container === messagesContainer) {
+            const msg = chatHistory.find(m => m.id === messageId);
+            if (msg) {
+              msg.isCollapsed = !msg.isCollapsed;
+              saveState();
+            }
+        }
+
+        // Toggle the DOM element's class
+        const el = container.querySelector(\`#message-\${messageId}\`);
+        if (el) {
+            const contentDiv = el.querySelector('.collapsible-content');
+            const collapseButton = el.querySelector('.collapse-button');
+            if (contentDiv && collapseButton) {
+                const isCollapsed = contentDiv.classList.toggle('collapsed');
+                collapseButton.textContent = isCollapsed ? '▼' : '▲';
+            }
         }
       }
 
@@ -1074,7 +1147,7 @@ export default (tabId: string) => `
       function clearChatHistory() {
         chatHistory = [];
         localStorage.removeItem(STORAGE_KEYS.chatHistory);
-        renderChatHistory();
+        messagesContainer.innerHTML = ""; // Clear DOM directly
       }
 
       /**
@@ -1082,6 +1155,7 @@ export default (tabId: string) => `
        */
       function scrollToBottom() {
         messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        planContainer.scrollTop = planContainer.scrollHeight; // Also scroll plan container
       }
 
       /**
@@ -1291,7 +1365,10 @@ export default (tabId: string) => `
         const autoFormat = autoFormatCheckbox.checked;
         const autoFixErrors = autoFixErrorsCheckbox.checked; // Get auto fix errors state
 
-        const messageId = addChatMessage(user, "user");
+        const messageId = Date.now().toString(); // Generate message ID locally
+        addChatMessage(user, "user", "user"); // Add user message to main chat history
+        showLoadingMessage(messageId); // Show loading message in main chat history
+
         vscode.postMessage({
           command: "sendMessage",
           user: user,
@@ -1299,7 +1376,7 @@ export default (tabId: string) => `
           fileNames: openFiles,
           toolNames: enabledTools,
           providerSetting: currentProviderSetting,
-          messageId,
+          messageId, // Pass messageId
           autoRemoveComments: autoRemoveComments, // Add checkbox state
           autoFormat: autoFormat, // Add checkbox state
           autoFixErrors: autoFixErrors // Add auto fix errors state
@@ -1425,12 +1502,26 @@ export default (tabId: string) => `
       /**
        * Displays a temporary loading message in the chat.
        * @param {string} messageId - ID to assign to the loading message.
+       * @param {number} [stepIndex] - Optional step index if message belongs to a plan step.
        */
-      function showLoadingMessage(messageId) {
-        // Check if a loading message with this ID already exists
-        const existingLoadingMsg = chatHistory.find(msg => msg.id === messageId && msg.messageType === 'loading');
+      function showLoadingMessage(messageId, stepIndex = undefined) {
+        // Determine the correct container based on stepIndex
+        const container = stepIndex != undefined
+            ? document.querySelector(\`#plan-step-\${stepIndex} .step-messages-container\`)
+            : messagesContainer;
+
+         if (!container) return;
+
+        // Check if a loading message with this ID already exists in this container
+        const existingLoadingMsg = container.querySelector(\`#message-\${messageId}\`);
         if (!existingLoadingMsg) {
-             addChatMessage("Loading response...", "assistant", "loading");
+             renderMessage({
+                id: messageId,
+                text: "Loading response...",
+                sender: "assistant",
+                messageType: "loading",
+                isCollapsed: false // Loading message should not be collapsed
+             }, container);
         }
       }
 
@@ -1869,6 +1960,13 @@ export default (tabId: string) => `
               subPromptPre.textContent = step.subPrompt;
               contentDiv.appendChild(subPromptPre);
 
+              // Add container for messages specific to this step
+              const stepMessagesContainer = document.createElement('div');
+              stepMessagesContainer.classList.add('step-messages-container');
+              stepMessagesContainer.id = \`step-messages-\${index}\`;
+              contentDiv.appendChild(stepMessagesContainer);
+
+
               stepDiv.appendChild(contentDiv);
 
               planStepsEl.appendChild(stepDiv);
@@ -1931,6 +2029,34 @@ export default (tabId: string) => `
               }
           }
       }
+
+      /**
+       * Adds or updates a message within a specific plan step's message container.
+       * @param {ChatMessage} message - The message object including stepIndex.
+       */
+      function addOrUpdateStepMessage(message) {
+          if (message.stepIndex === undefined || message.stepIndex === null) {
+              console.warn("addOrUpdateStepMessage called without stepIndex", message);
+              return; // Should not happen if messages are routed correctly
+          }
+          const stepMessagesContainer = document.getElementById(\`step-messages-\${message.stepIndex}\`);
+          if (!stepMessagesContainer) {
+              console.error(\`Step messages container not found for step index \${message.stepIndex}\`);
+              return;
+          }
+
+          const existingMessageEl = stepMessagesContainer.querySelector(\`#message-\${message.id}\`);
+
+          if (existingMessageEl) {
+              // Update existing message
+              updateChatMessage(message.id, message.text, message.sender, message.messageType, stepMessagesContainer);
+          } else {
+              // Add new message
+              renderMessage(message, stepMessagesContainer);
+          }
+           scrollToBottom(); // Scroll to show new/updated message
+      }
+
 
       /**
        * Updates the visibility and state of plan control buttons based on plan state.
@@ -2080,175 +2206,216 @@ export default (tabId: string) => `
       // Handle messages from the extension
       window.addEventListener("message", (event) => {
         const message = event.data;
-        switch (message.command) {
-          case "receiveMessage":
-            // This is for standard chat messages
-            addChatMessage(message.text, message.sender || "assistant", message.messageType || "assistant"); // Default to assistant type
-            resetSendButton();
-            break;
-          case "updateMessage":
-            // This is for updating streaming responses
-            updateChatMessage(message.messageId, message.text, message.sender, message.messageType);
-            // Don't reset button here, as streaming might continue
-            break;
-          case "endMessage":
-             // This signals the end of a streaming response
-             resetSendButton();
-             // Ensure the final message type is set correctly if needed
-             // updateChatMessage(message.messageId, message.text, message.sender, message.messageType); // Optional: update one last time
-             break;
-          case "logMessage":
-            addChatMessage(message.text, "log", message.messageType || 'log'); // Ensure messageType is passed and default to 'log'
-            break;
-          case "clearMessages":
-            clearChatHistory();
-            break;
-          case "setOpenFiles":
-            // This is received when files are added/removed via extension commands or drag/drop
-            openFiles = message.files;
-            saveState(); // Save updated file list to localStorage
-            renderSelectedFiles(); // Update UI
-            break;
-          case "startLoading":
-            // This is for standard chat loading indicator
-            showLoadingMessage(message.messageId);
-            break;
-          case "addFilesFromDialog":
-            // This is received after the user selects files in the dialog
-            // The extension has already handled adding them and sent setOpenFiles
-            // This message might be redundant if setOpenFiles is always sent after addFiles
-            // addFiles(message.filePaths); // This would add them locally again, rely on setOpenFiles instead
-            break;
-          case "systemPromptsList": // Renamed command
-            systemPrompts = message.prompts;
-            renderSystemPromptsList();
-            break;
-          case "userPromptsList": // New command
-            userPrompts = message.prompts;
-            renderUserPromptsList();
-            break;
-          case "providerSettingsList": // New command for provider settings list
-            providerSettingsList = message.providerSettingsList;
-            // currentProviderSetting is handled by sendCurrentProviderSetting
-            renderProviderSettingsPopupList();
-            // renderSelectedProvider(); // Rendered by sendCurrentProviderSetting
-            // loadState(); // Ensure currentProviderSetting is loaded from localStorage if available, after list is updated - No longer needed, rely on sendCurrentProviderSetting
-            // renderSelectedProvider(); // Re-render after loadState to reflect potentially updated currentProviderSetting - No longer needed
-            break;
-          case "initPrompts": // New case to handle initial prompts and libraries
-            currentSystemPrompt = message.systemPrompt || "";
-            currentUserPrompt = message.userPrompt || "";
-            systemPrompts = message.systemPrompts || [];
-            userPrompts = message.userPrompts || [];
-            availableTools = message.availableTools || []; // Initialize available tools
-            enabledTools = message.enabledTools || []; // Initialize enabled tools
-            currentProviderSetting = message.currentProviderSetting; // Initialize current provider setting
-            availableVendors = message.availableVendors || []; // Initialize available vendors
-            autoRemoveComments = message.autoRemoveComments ?? true; // Initialize auto remove comments
-            autoFormat = message.autoFormat ?? true; // Initialize auto format
-            autoFixErrors = message.autoFixErrors ?? true; // Initialize auto fix errors
-            planState = message.planState; // Initialize plan state
+        // Check if the message is related to a plan step by checking for stepIndex
+        if (message.stepIndex !== undefined && message.stepIndex !== null) {
+             // Handle messages specific to a plan step
+             switch (message.command) {
+                 case "logMessage":
+                 case "receiveMessage": // If step results come as receiveMessage
+                 case "updateMessage":
+                     // Add or update the message within the specific step's container
+                     addOrUpdateStepMessage({
+                         id: message.messageId || Date.now().toString(), // Ensure message has an ID
+                         text: message.text,
+                         sender: message.sender || "assistant",
+                         messageType: message.messageType || 'log',
+                         isCollapsed: ['prompt', 'tool', 'log', 'info', 'warning', 'error'].includes(message.messageType || 'log'), // Collapse non-assistant/user messages by default
+                         stepIndex: message.stepIndex // Keep step index
+                     });
+                     break;
+                 case "endMessage":
+                     // Update the final message state within the step's container
+                      addOrUpdateStepMessage({
+                         id: message.messageId,
+                         text: message.text,
+                         sender: message.sender || "assistant",
+                         messageType: message.messageType || 'assistant', // Final type might be assistant
+                         isCollapsed: ['prompt', 'tool', 'log', 'info', 'warning', 'error'].includes(message.messageType || 'assistant'),
+                         stepIndex: message.stepIndex
+                     });
+                     // No need to reset main send button for step messages
+                     break;
+                 case "startLoading":
+                     // Show loading message within the step's container
+                     showLoadingMessage(message.messageId, message.stepIndex);
+                     break;
+                 // Other step-specific commands can be added here
+                 default:
+                     console.warn("Unknown command for plan step:", message.command, message.stepIndex);
+             }
+        } else {
+            // Handle standard chat messages (including planning phase messages)
+            switch (message.command) {
+              case "receiveMessage":
+                // This is for standard chat messages (user prompt, system prompt, tools, initial assistant message)
+                addChatMessage(message.text, message.sender || "assistant", message.messageType || "assistant"); // Default to assistant type
+                // DO NOT resetSendButton() here. It should only reset after the final 'endMessage'.
+                break;
+              case "updateMessage":
+                // This is for updating streaming responses in main chat
+                updateChatMessage(message.messageId, message.text, message.sender, message.messageType);
+                // Don't reset button here, as streaming might continue
+                break;
+              case "endMessage":
+                 // This signals the end of a streaming response in main chat
+                 resetSendButton(); // This is correct here, for the main assistant response
+                 // Ensure the final message type is set correctly if needed
+                 // updateChatMessage(message.messageId, message.text, message.sender, message.messageType); // Optional: update one last time
+                 break;
+              case "logMessage":
+                // Log messages without stepIndex go to the main chat history
+                addChatMessage(message.text, "log", message.messageType || 'log'); // Ensure messageType is passed and default to 'log'
+                break;
+              case "clearMessages":
+                clearChatHistory();
+                break;
+              case "setOpenFiles":
+                // This is received when files are added/removed via extension commands or drag/drop
+                openFiles = message.files;
+                saveState(); // Save updated file list to localStorage
+                renderSelectedFiles(); // Update UI
+                break;
+              case "startLoading":
+                // This is for standard chat loading indicator (including planning phase)
+                showLoadingMessage(message.messageId); // This should show loading for the *main* send button
+                break;
+              case "addFilesFromDialog":
+                // This is received after the user selects files in the dialog
+                // The extension has already handled adding them and sent setOpenFiles
+                // This message might be redundant if setOpenFiles is always sent after addFiles
+                // addFiles(message.filePaths); // This would add them locally again, rely on setOpenFiles instead
+                break;
+              case "systemPromptsList": // Renamed command
+                systemPrompts = message.prompts;
+                renderSystemPromptsList();
+                break;
+              case "userPromptsList": // New command
+                userPrompts = message.prompts;
+                renderUserPromptsList();
+                break;
+              case "providerSettingsList": // New command for provider settings list
+                providerSettingsList = message.providerSettingsList;
+                // currentProviderSetting is handled by sendCurrentProviderSetting
+                renderProviderSettingsPopupList();
+                // renderSelectedProvider(); // Rendered by sendCurrentProviderSetting
+                // loadState(); // Ensure currentProviderSetting is loaded from localStorage if available, after list is updated, No longer needed, rely on sendCurrentProviderSetting
+                // renderSelectedProvider(); // Re-render after loadState to reflect potentially updated currentProviderSetting - No longer needed
+                break;
+              case "initPrompts": // New case to handle initial prompts and libraries
+                currentSystemPrompt = message.systemPrompt || "";
+                currentUserPrompt = message.userPrompt || "";
+                systemPrompts = message.systemPrompts || [];
+                userPrompts = message.userPrompts || [];
+                availableTools = message.availableTools || []; // Initialize available tools
+                enabledTools = message.enabledTools || []; // Initialize enabled tools
+                currentProviderSetting = message.currentProviderSetting; // Initialize current provider setting
+                availableVendors = message.availableVendors || []; // Initialize available vendors
+                autoRemoveComments = message.autoRemoveComments ?? true; // Initialize auto remove comments
+                autoFormat = message.autoFormat ?? true; // Initialize auto format
+                autoFixErrors = message.autoFixErrors ?? true; // Initialize auto fix errors
+                planState = message.planState; // Initialize plan state
 
-            systemPromptEl.value = currentSystemPrompt;
-            userInputEl.value = currentUserPrompt;
-            autoRemoveCommentsCheckbox.checked = autoRemoveComments; // Set checkbox state from received message
-            autoFormatCheckbox.checked = autoFormat; // Set checkbox state from received message
-            autoFixErrorsCheckbox.checked = autoFixErrors; // Set auto fix errors checkbox state
+                systemPromptEl.value = currentSystemPrompt;
+                userInputEl.value = currentUserPrompt;
+                autoRemoveCommentsCheckbox.checked = autoRemoveComments; // Set checkbox state from received message
+                autoFormatCheckbox.checked = autoFormat; // Set checkbox state from received message
+                autoFixErrorsCheckbox.checked = autoFixErrors; // Set auto fix errors checkbox state
 
-            renderSystemPromptsList();
-            renderUserPromptsList();
-            renderEnabledTools(); // Render enabled tools on init
-            renderSelectedProvider(); // Render selected provider on init
-            renderProviderSettingsPopupList(); // Render provider settings popup list on init
-            renderVendorDropdown(); // Render vendor dropdown on init
-            // loadState(); // Load chat history, open files from localStorage after init
-            renderSelectedFiles(); // Ensure files from loadState are rendered
-            renderChatHistory(); // Ensure chat history from loadState is rendered
+                renderSystemPromptsList();
+                renderUserPromptsList();
+                renderEnabledTools(); // Render enabled tools on init
+                renderSelectedProvider(); // Render selected provider on init
+                renderProviderSettingsPopupList(); // Render provider settings popup list on init
+                renderVendorDropdown(); // Render vendor dropdown on init
+                // loadState(); // Load chat history, open files from localStorage after init
+                renderSelectedFiles(); // Ensure files from loadState are rendered
+                renderChatHistory(); // Ensure chat history from loadState is rendered
 
-            // Render plan UI if a plan is active
-            if (planState && planState.plan) {
-                renderPlan(planState.plan);
+                // Render plan UI if a plan is active
+                if (planState && planState.plan) {
+                    renderPlan(planState.plan);
+                }
+                updatePlanControls(); // Update buttons based on initial state
+
+                break;
+              case "updateEnabledTools":
+                enabledTools = message.enabledTools;
+                renderEnabledTools();
+                break;
+              case "providerSettingsUpdated":
+                vscode.postMessage({ command: "requestProviderSettings" }); // Request updated list
+                break;
+              // case "addProviderSetting": // Handled by providerSettingsList update
+              // case "updateProviderSetting": // Handled by providerSettingsList update
+              case "availableVendors":
+                availableVendors = message.availableVendors;
+                renderVendorDropdown();
+                break;
+              case "sendEnabledTools": // Receive enabled tools from extension on load
+                enabledTools = message.enabledTools;
+                renderEnabledTools();
+                break;
+              case "sendCurrentProviderSetting": // Receive current provider setting from extension on load
+                currentProviderSetting = message.currentProviderSetting;
+                renderSelectedProvider();
+                break;
+
+              // --- Plan Execution Messages ---
+              case "displayPlan":
+                  // When receiving a new plan, reset collapse states
+                  planState.stepCollapsedStates = Array(message.plan.steps.length).fill(true);
+                  renderPlan(message.plan);
+                  break;
+              case "updateStepStatus":
+                  updateStepStatus(message.stepIndex, message.status);
+                  break;
+              case "updatePlanState":
+                  // Preserve collapse states when updating planState
+                  const oldPlan = planState.plan;
+                  planState = message.planState;
+                  if (oldPlan && planState.plan && oldPlan.steps.length === planState.plan.steps.length) {
+                      // If plan structure is the same, keep old collapse states
+                      // This handles status updates without re-rendering the whole plan
+                  } else if (planState.plan) {
+                       // If plan structure changed or is new, reset collapse states
+                       planState.stepCollapsedStates = Array(planState.plan.steps.length).fill(true);
+                       renderPlan(planState.plan); // Re-render if plan structure changed
+                  } else {
+                       // If plan is null, clear plan UI
+                       planStepsEl.innerHTML = '';
+                       planGoalEl.textContent = 'AI Plan:';
+                       planContainer.style.display = 'none';
+                       planState.stepCollapsedStates = [];
+                  }
+                  updatePlanControls(); // Update buttons and error message
+                  // Update step statuses based on the new state (this is redundant if renderPlan is called, but safe)
+                  if (planState.plan && planState.plan.steps) {
+                      planState.plan.steps.forEach((_, index) => {
+                          let status = 'pending';
+                          if (index < planState.currentStepIndex) {
+                              status = 'completed';
+                          } else if (index === planState.currentStepIndex) {
+                              status = planState.status === 'executing' ? 'executing' : (planState.status === 'failed' ? 'failed' : 'pending');
+                          } else {
+                              status = 'pending';
+                          }
+                          updateStepStatus(index, status);
+                      });
+                  }
+                  break;
+              case "planExecutionComplete":
+                  // Handled by updatePlanState
+                  break;
+              case "planExecutionFailed":
+                  // Handled by updatePlanState
+                  break;
+              case "planExecutionStopped":
+                  // Handled by updatePlanState
+                  break;
+
+              default:
+                console.warn("Unknown command:", message.command);
             }
-            updatePlanControls(); // Update plan buttons based on initial state
-
-            break;
-          case "updateEnabledTools":
-            enabledTools = message.enabledTools;
-            renderEnabledTools();
-            break;
-          case "providerSettingsUpdated":
-            vscode.postMessage({ command: "requestProviderSettings" }); // Request updated list
-            break;
-          // case "addProviderSetting": // Handled by providerSettingsList update
-          // case "updateProviderSetting": // Handled by providerSettingsList update
-          case "availableVendors":
-            availableVendors = message.availableVendors;
-            renderVendorDropdown();
-            break;
-          case "sendEnabledTools": // Receive enabled tools from extension on load
-            enabledTools = message.enabledTools;
-            renderEnabledTools();
-            break;
-          case "sendCurrentProviderSetting": // Receive current provider setting from extension on load
-            currentProviderSetting = message.currentProviderSetting;
-            renderSelectedProvider();
-            break;
-
-          // --- Plan Execution Messages ---
-          case "displayPlan":
-              // When receiving a new plan, reset collapse states
-              planState.stepCollapsedStates = Array(message.plan.steps.length).fill(true);
-              renderPlan(message.plan);
-              break;
-          case "updateStepStatus":
-              updateStepStatus(message.stepIndex, message.status);
-              break;
-          case "updatePlanState":
-              // Preserve collapse states when updating planState
-              const oldPlan = planState.plan;
-              planState = message.planState;
-              if (oldPlan && planState.plan && oldPlan.steps.length === planState.plan.steps.length) {
-                  // If plan structure is the same, keep old collapse states
-                  // This handles status updates without re-rendering the whole plan
-              } else if (planState.plan) {
-                   // If plan structure changed or is new, reset collapse states
-                   planState.stepCollapsedStates = Array(planState.plan.steps.length).fill(true);
-                   renderPlan(planState.plan); // Re-render if plan structure changed
-              } else {
-                   // If plan is null, clear plan UI
-                   planStepsEl.innerHTML = '';
-                   planGoalEl.textContent = 'AI Plan:';
-                   planContainer.style.display = 'none';
-                   planState.stepCollapsedStates = [];
-              }
-              updatePlanControls(); // Update buttons and error message
-              // Update step statuses based on the new state (this is redundant if renderPlan is called, but safe)
-              if (planState.plan && planState.plan.steps) {
-                  planState.plan.steps.forEach((_, index) => {
-                      let status = 'pending';
-                      if (index < planState.currentStepIndex) {
-                          status = 'completed';
-                      } else if (index === planState.currentStepIndex) {
-                          status = planState.status === 'executing' ? 'executing' : (planState.status === 'failed' ? 'failed' : 'pending');
-                      } else {
-                          status = 'pending';
-                      }
-                      updateStepStatus(index, status);
-                  });
-              }
-              break;
-          case "planExecutionComplete":
-              // Handled by updatePlanState
-              break;
-          case "planExecutionFailed":
-              // Handled by updatePlanState
-              break;
-          case "planExecutionStopped":
-              // Handled by updatePlanState
-              break;
-
-          default:
-            console.warn("Unknown command:", message.command);
         }
       });
 
