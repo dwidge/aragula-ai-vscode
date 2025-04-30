@@ -2,7 +2,7 @@ import { exec } from "child_process";
 import * as os from "os";
 import { promisify } from "util";
 import * as vscode from "vscode";
-import { Logger } from "./aiTools/AiApi";
+import { Logger } from "./utils/Logger";
 
 export interface GitExtension {
   getAPI(version: 1): API;

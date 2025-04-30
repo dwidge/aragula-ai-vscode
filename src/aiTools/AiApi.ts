@@ -13,14 +13,15 @@ import Groq from "groq-sdk";
 import { ChatCompletionCreateParamsNonStreaming } from "groq-sdk/resources/chat/completions.mjs";
 import { OpenAI } from "openai";
 import { ChatCompletionMessageParam } from "openai/resources/index.mjs";
+import { Logger } from "../utils/Logger";
 import { decodeToolCalls } from "./decodeToolCalls";
 import {
-  encodeToolCallsWithResultsToXml,
-  encodeToolCallsWithResultsToJson,
   encodeToolCallsWithResultsToBacktick,
-  encodeToolToXml,
-  encodeToolToJson,
+  encodeToolCallsWithResultsToJson,
+  encodeToolCallsWithResultsToXml,
   encodeToolToBacktick,
+  encodeToolToJson,
+  encodeToolToXml,
 } from "./encodeToolCalls";
 
 /**
@@ -94,8 +95,6 @@ export interface AiApiCaller {
     options?: { logger?: Logger; signal?: AbortSignal }
   ): Promise<{ assistant: string; tools: ToolCall[] }>;
 }
-
-export type Logger = (message: string, type?: string) => void;
 
 /**
  * Settings for the AI API caller.

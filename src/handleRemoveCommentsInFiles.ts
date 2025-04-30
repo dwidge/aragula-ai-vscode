@@ -1,11 +1,11 @@
-import { Logger } from "./aiTools/AiApi";
 import { readFileSafe, writeFileSafe } from "./aiTools/file";
 import { formatCodeWithVscode } from "./aiTools/formatCodeWithVscode";
 import {
-  removeJsJsxComments,
   keepOnlyJsDocAndRemoveEmptyLinesReplacer,
+  removeJsJsxComments,
 } from "./aiTools/removeJsJsxComments";
 import { getWorkspaceAbsolutePath } from "./getWorkspaceAbsolutePath";
+import { Logger } from "./utils/Logger";
 
 export async function handleRemoveCommentsInFiles(
   filePaths: string[],

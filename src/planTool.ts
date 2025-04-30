@@ -1,5 +1,5 @@
 import * as vscode from "vscode";
-import { AiApiSettings, Logger } from "./aiTools/AiApi";
+import { AiApiSettings } from "./aiTools/AiApi";
 import { findErrors } from "./checkAndFixErrors";
 import { getDiffContext } from "./diff";
 import { AIPlan, PLAN_STATE_KEY, PlanState, PlanStep } from "./extension";
@@ -7,6 +7,7 @@ import { generateCommitMessage } from "./generateCommitMessage";
 import { getWorkspaceRoot } from "./getWorkspaceAbsolutePath";
 import { callAI, cancelActiveRequest } from "./handleSendMessage";
 import { commitStaged, stageFiles } from "./utils/git";
+import { Logger } from "./utils/Logger";
 
 export async function handlePlanAndExecute(
   context: vscode.ExtensionContext,

@@ -1,8 +1,8 @@
+import { Logger } from "../utils/Logger";
 import {
   AiApiCaller,
   ToolCall,
   ToolDefinition,
-  Logger,
   validateJsonAgainstSchema,
 } from "./AiApi";
 

@@ -1,6 +1,6 @@
-import { Logger } from "./aiTools/AiApi";
 import { formatCodeWithVscode } from "./aiTools/formatCodeWithVscode";
 import { getWorkspaceAbsolutePath } from "./getWorkspaceAbsolutePath";
+import { Logger } from "./utils/Logger";
 
 export async function handleFormatFilesInFiles(
   filePaths: string[],

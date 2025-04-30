@@ -1,6 +1,5 @@
 import {
   AiApiSettings,
-  Logger,
   ToolCall,
   ToolDefinition,
   newAiApi,
@@ -10,6 +9,7 @@ import { writeFileTool } from "./aiTools/tools";
 import { executeToolCalls } from "./executeToolCalls";
 import { getWorkspaceAbsolutePath } from "./getWorkspaceAbsolutePath";
 import { readFiles } from "./readFiles";
+import { Logger } from "./utils/Logger";
 
 /**
  * Checks for errors in files, constructs a prompt with errors and file content,

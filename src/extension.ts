@@ -1,6 +1,6 @@
 import * as fs from "fs/promises";
 import * as vscode from "vscode";
-import { AiApiSettings, Logger } from "./aiTools/AiApi";
+import { AiApiSettings } from "./aiTools/AiApi";
 import { availableToolNames, availableVendors } from "./availableToolNames";
 import chatview from "./chatview";
 import { checkAndFixErrors } from "./checkAndFixErrors";
@@ -51,6 +51,7 @@ import {
   useUserPromptInStorage,
 } from "./settings";
 import { commitStaged, stageFiles } from "./utils/git";
+import { Logger } from "./utils/Logger";
 
 const log: Logger = (msg: string) => {
   vscode.window.showInformationMessage(msg);

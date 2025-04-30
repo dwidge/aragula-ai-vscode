@@ -1,7 +1,6 @@
 import * as vscode from "vscode";
 import {
   AiApiSettings,
-  Logger,
   newAiApi,
   ToolCall,
   ToolDefinition,
@@ -14,6 +13,7 @@ import { handleFormatFilesInFiles } from "./handleFormatFilesInFiles";
 import { handleRemoveCommentsInFiles } from "./handleRemoveCommentsInFiles";
 import { readFiles } from "./readFiles";
 import { setCurrentUserPromptToWorkspace } from "./settings";
+import { Logger } from "./utils/Logger";
 
 interface ActiveRequest {
   abortController: AbortController;

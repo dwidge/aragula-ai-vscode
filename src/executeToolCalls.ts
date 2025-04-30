@@ -1,5 +1,6 @@
 import { Json } from "@dwidge/xml-parser";
-import { Logger, ToolCall, ToolDefinition } from "./aiTools/AiApi";
+import { ToolCall, ToolDefinition } from "./aiTools/AiApi";
+import { Logger } from "./utils/Logger";
 
 export type ToolCallResult = {
   name: string;
