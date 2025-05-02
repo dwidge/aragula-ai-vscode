@@ -11,7 +11,7 @@ import {
 } from "./getWorkspaceAbsolutePath";
 import { handleFormatFilesInFiles } from "./handleFormatFilesInFiles";
 import { handleRemoveCommentsInFiles } from "./handleRemoveCommentsInFiles";
-import { cancelActiveRequest, handleSendMessage } from "./handleSendMessage";
+import { handleSendMessage } from "./handleSendMessage";
 import {
   handlePausePlan,
   handlePlanAndExecute,
@@ -21,6 +21,7 @@ import {
   loadPlanState,
   savePlanState,
 } from "./planTool";
+import { runTestTask } from "./runTestTask";
 import {
   deleteProviderSettingFromStorage,
   deleteSystemPromptFromStorage,
@@ -51,7 +52,12 @@ import {
   useUserPromptInStorage,
 } from "./settings";
 import { commitStaged, stageFiles } from "./utils/git";
-import { Logger } from "./utils/Logger";
+import {
+  createMessageLogger,
+  createTask,
+  Logger,
+  TaskLogger,
+} from "./utils/Logger";
 
 const log: Logger = (msg: string) => {
   vscode.window.showInformationMessage(msg);
@@ -61,6 +67,7 @@ const logError: Logger = (e: unknown) => {
 };
 
 const chatPanels = new Map<string, vscode.WebviewPanel>();
+const activeTasks = new Map<string, AbortController>();
 
 export interface PlanStep {
   description: string;
@@ -344,22 +351,39 @@ function handleWebviewMessage(
   openedFilePaths: string[],
   tabId: string
 ) {
-  const log: Logger = (msg: string, type: string = "log") => {
-    panel.webview.postMessage({
-      command: "logMessage",
-      text: msg,
-      tabId: tabId,
-      messageType: type,
-      stepIndex: message.stepIndex,
-    });
-  };
+  const logTask: TaskLogger = createTask(async (v) => {
+    await panel.webview.postMessage({ ...v, tabId });
+  }, activeTasks);
+
+  const log: Logger = createMessageLogger(logTask);
 
   switch (message.command) {
+    case "cancelTask":
+      const controller = activeTasks.get(message.id);
+      if (controller) {
+        controller.abort();
+        activeTasks.delete(message.id);
+      } else {
+        log(`Task not found or already finished: ${message.id}`, "warning");
+      }
+      break;
     case "sendMessage":
       handleSendMessage(context, panel, message, tabId, log);
       break;
     case "checkErrorsInFiles":
-      checkAndFixErrors(message.filePaths, message.providerSetting, log);
+      logTask(
+        {
+          summary: `Check and fix errors`,
+          detail: `Files: ${message.filePaths.join(", ")}`,
+          type: "task",
+        },
+        async (progress, log, signal) =>
+          checkAndFixErrors(
+            message.filePaths,
+            message.providerSetting,
+            createMessageLogger(log)
+          )
+      );
       break;
     case "setSystemPrompt":
       handleSetSystemPrompt(context, panel, message.systemPrompt || "", tabId);
@@ -369,9 +393,6 @@ function handleWebviewMessage(
       break;
     case "clearMessages":
       panel.webview.postMessage({ command: "clearMessages" });
-      break;
-    case "cancelRequest":
-      cancelActiveRequest(message.messageId, log);
       break;
     case "removeFile":
       handleRemoveFile(panel, message.filePath, openedFilePaths);
@@ -469,7 +490,7 @@ function handleWebviewMessage(
       setAutoFixErrorsToWorkspace(context, tabId, message.checked);
       break;
     case "commitFiles":
-      handleCommitFiles(context, message.fileNames, log);
+      handleCommitFiles(context, message.fileNames, logTask);
       break;
     case "planAndExecute":
       handlePlanAndExecute(context, panel, message, tabId, log);
@@ -486,75 +507,57 @@ function handleWebviewMessage(
     case "requestPlanState":
       handleRequestPlanState(context, panel, tabId);
       break;
+    case "runTestTask":
+      runTestTask(logTask);
+      break;
     default:
       console.warn("Unknown command from webview:", message.command);
   }
 }
 
-async function handleCommitFiles(
+const handleCommitFiles = (
   context: vscode.ExtensionContext,
   fileNames: string[],
-  log: Logger
-) {
-  if (!fileNames || fileNames.length === 0) {
-    log("No files selected to commit.", "warning");
-    return;
-  }
-
-  const workspaceRoot = getWorkspaceRoot();
-  if (!workspaceRoot) {
-    log("No workspace folder found.", "error");
-    return;
-  }
-
-  const currentProviderSetting = getCurrentProviderSetting(context);
-
-  const abortController = new AbortController();
-
-  vscode.window.withProgress(
+  log: TaskLogger
+) =>
+  log(
     {
-      location: vscode.ProgressLocation.Notification,
-      title: "Committing files...",
-      cancellable: true,
+      summary: `Commit files`,
+      detail: `Files: ${fileNames.join(", ")}`,
+      type: "task",
     },
-    async (progress, token) => {
-      token.onCancellationRequested(() => {
-        abortController.abort();
-      });
-
-      try {
-        progress.report({ message: "Staging files..." });
-        await stageFiles(fileNames);
-
-        progress.report({ message: "Generating commit message..." });
-        const commitMessage = await generateCommitMessage(
-          workspaceRoot.fsPath,
-          currentProviderSetting,
-          {
-            signal: abortController.signal,
-            progress: (message) => progress.report({ message }),
-          }
-        );
-
-        progress.report({ message: "Committing staged files..." });
-        await commitStaged(commitMessage);
-
-        log(
-          `Successfully committed ${fileNames.length} file(s) with message: "${commitMessage}"`,
-          "info"
-        );
-      } catch (error: unknown) {
-        if (!abortController.signal.aborted) {
-          log(`Failed to commit files: ${error}`, "error");
-        } else {
-          log("Commit generation or process cancelled.", "info");
-        }
-      } finally {
-        progress.report({ increment: 100 });
+    async (progress, log, signal) => {
+      if (!fileNames || fileNames.length === 0) {
+        throw new Error("No files selected to commit.");
       }
+
+      const workspaceRoot = getWorkspaceRoot();
+      const currentProviderSetting = getCurrentProviderSetting(context);
+
+      log({ summary: "Stage files" });
+      await stageFiles(fileNames);
+
+      log({ summary: "Generate commit message" });
+      const commitMessage = await log({}, (progress, log, signal) =>
+        generateCommitMessage(workspaceRoot.fsPath, currentProviderSetting, {
+          signal,
+          progress: (message) =>
+            log({
+              summary: message,
+            }),
+        })
+      );
+
+      log({ summary: "Commit staged files" });
+      await commitStaged(commitMessage);
+
+      log({
+        summary: `Successfully committed ${fileNames.length} file(s).`,
+        detail: `Commit message: "${commitMessage}"`,
+        type: "success",
+      });
     }
   );
-}
 
 async function handleRequestCurrentProviderSetting(
   context: vscode.ExtensionContext,
@@ -910,4 +913,7 @@ async function handleSetUserPrompt(
   setCurrentUserPromptToWorkspace(context, tabId, newPrompt);
 }
 
-export function deactivate() {}
+export function deactivate() {
+  activeTasks.forEach((controller) => controller.abort());
+  activeTasks.clear();
+}

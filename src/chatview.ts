@@ -57,6 +57,8 @@ export default (tabId: string) => `
         --plan-step-failed-border: #ef9a9a;
         --plan-step-message-background: #f0f4f6; /* Slightly darker than step background */
         --plan-step-message-border: #cce7ee;
+        --progress-bar-background: #ccc;
+        --progress-bar-fill: #4CAF50; /* Green */
       }
       @media (prefers-color-scheme: dark) {
         :root {
@@ -110,6 +112,8 @@ export default (tabId: string) => `
           --plan-step-failed-border: #c62828;
           --plan-step-message-background: #37474f; /* Darker blue-grey */
           --plan-step-message-border: #455a64;
+          --progress-bar-background: #555;
+          --progress-bar-fill: #4CAF50; /* Green */
         }
       }
       body {
@@ -210,23 +214,34 @@ export default (tabId: string) => `
       }
       pre {
         background-color: var(--pre-background);
-        padding: 10px;
         border-radius: 5px;
         border: 1px solid var(--pre-border);
         white-space: pre-wrap;
         color: var(--text-color);
-        margin-bottom: 5px;
         overflow-x: auto;
         position: relative;
         display: flex; /* Enable flex layout for badge and collapse button alignment */
-        flex-direction: column; /* Stack badge and collapse button on top of content */
+        flex-direction: column; /* Stack progress bar, then content wrapper */
       }
+
+      /* Wrapper for content below the progress bar */
+      .message-content-wrapper {
+          padding: 8px;
+          display: flex;
+          flex-direction: column;
+          flex-grow: 1;
+          gap: 8px;
+      }
+
       .message-header {
         display: grid; /* Changed to grid layout */
         grid-template-columns: 1fr auto auto; /* Layout with 3 columns */
         align-items: start; /* Align items to start */
-        margin-bottom: 5px; /* Space between header and content */
         cursor: pointer; /* Make entire header clickable */
+        position: relative; /* Needed for absolute positioning of busy/cancel */
+      }
+      .message-header.non-collapsible {
+          cursor: default; /* Change cursor for non-collapsible messages */
       }
       .message-preview {
         overflow: hidden; /* Hide overflowing text */
@@ -235,9 +250,6 @@ export default (tabId: string) => `
         margin-right: 10px; /* Add some spacing to the right */
       }
       /* Hide message preview when expanded */
-      .message:has(.collapsible-content:not(.collapsed)) .message-header .message-preview {
-        display: none;
-      }
       .message-type-badge {
         padding: 2px 5px;
         border-radius: 3px;
@@ -261,10 +273,21 @@ export default (tabId: string) => `
       }
       .message {
         word-wrap: break-word;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
       }
+
+      /* New wrapper for detail text and child messages, below the header */
+      .message-body-content {
+        padding-top: 8px; /* Space above content */
+        border-top: 1px dashed var(--pre-border); /* The dotted line */
+      }
+
       .collapsible-content {
         overflow: hidden;
         transition: max-height 0.3s ease-out;
+        max-height: 1000px; /* Set a large max-height when not collapsed */
       }
       .collapsible-content.collapsed {
         max-height: 0;
@@ -272,6 +295,13 @@ export default (tabId: string) => `
         padding-bottom: 0;
         margin-bottom: 0;
         overflow: hidden; /* Ensure hidden content doesn't cause scroll */
+      }
+
+      /* Container for main chat messages */
+      #messages-container {
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
       }
 
 
@@ -532,7 +562,10 @@ export default (tabId: string) => `
       .plan-step-content {
         overflow: hidden;
         transition: max-height 0.3s ease-out;
-        padding-top: 10px; /* Add padding when expanded */
+        max-height: 1000px; /* Set a large max-height when not collapsed */
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
       }
       .plan-step-content.collapsed {
         max-height: 0;
@@ -548,9 +581,7 @@ export default (tabId: string) => `
       }
       .plan-step-content pre {
           margin-top: 0;
-          margin-bottom: 10px;
           padding: 8px; /* Slightly less padding than main pre */
-          font-size: 0.9em; /* Slightly smaller font */
       }
       /* Hide full description inside content when collapsed */
       .plan-step:has(.plan-step-content.collapsed) .plan-step-content strong {
@@ -585,31 +616,87 @@ export default (tabId: string) => `
 
       /* Styles for messages within plan steps */
       .step-messages-container {
-          margin-top: 10px;
-          padding-top: 10px;
+          padding-top: 8px;
           border-top: 1px dashed var(--pre-border); /* Separator */
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
       }
       .step-messages-container .message {
-          margin-bottom: 5px; /* Smaller margin between step messages */
-          padding: 8px; /* Smaller padding */
-          font-size: 0.9em; /* Smaller font size */
           background-color: var(--plan-step-message-background); /* Different background */
           border: 1px solid var(--plan-step-message-border); /* Different border */
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
       }
+       .step-messages-container .message .message-content-wrapper {
+           padding: 8px; /* Apply padding inside the wrapper */
+       }
       .step-messages-container .message:last-child {
-          margin-bottom: 0;
       }
       .step-messages-container .message .message-header {
-          margin-bottom: 3px; /* Smaller margin in header */
       }
       .step-messages-container .message .message-type-badge {
-          font-size: 0.6em; /* Smaller badge */
       }
       .step-messages-container .message .collapse-button {
-          font-size: 0.7em; /* Smaller collapse button */
       }
 
+      /* Styles for nested task logs (outside of plan steps) */
+      .child-messages-container {
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+      }
+      .child-messages-container .message {
+          border: 1px solid var(--plan-step-message-border);
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+      }
+      .child-messages-container .message .message-content-wrapper {
+          padding: 8px; /* Apply padding inside the wrapper */
+      }
+      .child-messages-container .message:last-child {
+      }
+      .child-messages-container .message .message-header {
+      }
+      .child-messages-container .message .message-type-badge {
+      }
+      .child-messages-container .message .collapse-button {
+      }
 
+      /* Styles for Task Logger Progress Bar */
+      .progress-bar-container {
+          width: 100%;
+          height: 5px; /* Height of the progress bar */
+          background-color: var(--progress-bar-background);
+          /* border-radius: 2.5px; /* Half of height for rounded ends */ /* Removed for top border look */
+          overflow: hidden; /* Hide overflow of the fill */
+          margin-top: 0; /* Position at the very top */
+          margin-bottom: 0; /* No margin below, padding is in the wrapper */
+          border-top-left-radius: 5px; /* Match pre border radius */
+          border-top-right-radius: 5px; /* Match pre border radius */
+      }
+
+      .progress-bar-fill {
+          height: 100%;
+          background-color: var(--progress-bar-fill);
+          width: 0%; /* Initial width */
+          transition: width 0.3s ease-in-out; /* Smooth transition */
+      }
+
+      /* Optional: Style for failed progress */
+      .progress-bar-container.failed .progress-bar-fill {
+          background-color: #f44336; /* Red color for failed */
+      }
+      /* Optional: Style for completed progress */
+      .progress-bar-container.completed .progress-bar-fill {
+          background-color: #4CAF50; /* Green color for completed */
+      }
+      /* Optional: Style for busy progress */
+      .progress-bar-container.busy .progress-bar-fill {
+          background-color: #ffeb3b; /* Yellow color for busy */
+      }
     </style>
   </head>
   <body ondragover="allowDrop(event)" ondrop="dropHandler(event)">
@@ -744,6 +831,7 @@ export default (tabId: string) => `
           </div>
           <button id="fixErrorsButton" onclick="handleFixErrors()">Fix Errors</button>
           <button id="commitFilesButton" onclick="handleCommitFiles()">Commit Files</button> <!-- New Commit Files Button -->
+          <button id="testTaskButton" onclick="handleTestTask()">Test Task Logger</button> <!-- New Test Task Logger Button -->
         </div>
       </div>
 
@@ -768,11 +856,13 @@ export default (tabId: string) => `
       /**
        * @typedef {Object} ChatMessage
        * @property {string} id
-       * @property {string} text
+       * @property {string} summary - A short summary for the header.
+       * @property {string} [detail] - The full content of the message (optional).
        * @property {string} [sender] - Sender of the message (user, assistant, etc.)
        * @property {string} [messageType] - Type of message for styling (user, assistant, log, etc.)
        * @property {boolean} [isCollapsed] - If the message content is collapsed
        * @property {number} [stepIndex] - Optional step index if message belongs to a plan step
+       * @property {string} [text] - Kept for backward compatibility, prefer 'detail'.
        */
       /** @type {ChatMessage[]} */
       let chatHistory = [];
@@ -907,6 +997,8 @@ export default (tabId: string) => `
       const autoFormatCheckbox = document.getElementById('autoFormatCheckbox');
       const autoFixErrorsCheckbox = document.getElementById('autoFixErrorsCheckbox'); // New checkbox for auto fix errors
       const commitFilesButton = document.getElementById('commitFilesButton'); // New Commit Files Button
+      const testTaskButton = document.getElementById('testTaskButton'); // New Test Task Logger Button
+
 
       // Plan UI elements
       const planContainer = document.getElementById('plan-container');
@@ -996,146 +1088,299 @@ export default (tabId: string) => `
        */
       function renderChatHistory() {
         messagesContainer.innerHTML = ""; // Clear existing messages
-        chatHistory.forEach(renderMessage);
+        chatHistory.forEach(msg => {
+            // Use stored summary and detail
+            renderMessage({
+                id: msg.id,
+                type: msg.messageType,
+                summary: msg.summary, // Use stored summary
+                detail: msg.detail,   // Use stored detail
+                isCollapsed: msg.isCollapsed
+            }); // renderMessage defaults to messagesContainer
+        });
         scrollToBottom();
       }
 
       /**
-       * Creates and appends a message element to the messages container.
-       * @param {ChatMessage} msg - Chat message object.
-       * @param {HTMLElement} [container=messagesContainer] - The container to render the message into.
+       * Creates and appends a message element to the DOM.
+       * @param {object} params - Parameters for the message.
+       * @param {string} params.id - Unique ID for the message element.
+       * @param {string} [params.type='log'] - Type of message for styling and badge.
+       * @param {string} [params.summary] - Short summary for the message header.
+       * @param {string} [params.detail] - Full detail for the collapsible content.
+       * @param {number} [params.progress] - Progress value (0 to 1) for a task.
+       * @param {boolean} [params.isCollapsed=false] - Initial collapsed state.
+       * @param {HTMLElement} [targetContainer=messagesContainer] - The container to append the message to.
        */
-      function renderMessage({ id, text, sender, messageType = 'log', isCollapsed = false }, container = messagesContainer) {
-        const el = document.createElement('pre');
-        el.classList.add('message'); // General message styling
-        el.classList.add(\`\${messageType}-message\`); // Message type specific styling (background color)
-        if (['prompt', 'tool'].includes(messageType)) {
-          el.classList.add('tool-message'); // Apply tool message style if type is prompt or tool
-        }
+      function renderMessage({ id, type = 'log', summary, detail, progress, isCollapsed = false }, targetContainer = messagesContainer) {
+          const el = document.createElement('pre');
+          el.classList.add('message');
+          el.classList.add(\`\${type}-message\`);
+          if (['prompt', 'tool'].includes(type)) {
+            el.classList.add('tool-message');
+          }
+          if (id) el.id = \`message-\${id}\`; // Add ID to the message element
 
-        const headerDiv = document.createElement('div');
-        headerDiv.classList.add('message-header');
-        headerDiv.onclick = () => toggleMessageCollapse(id, container); // Pass container to toggle
+          // Add Progress Bar if progress is defined
+          if (progress !== undefined) {
+              const progressBarContainer = document.createElement('div');
+              progressBarContainer.classList.add('progress-bar-container');
+              const progressBarFill = document.createElement('div');
+              progressBarFill.classList.add('progress-bar-fill');
+              const width = Math.max(0, Math.min(1, progress)) * 100;
+              progressBarFill.style.width = \`\${width}%\`;
+               if (progress < 0) {
+                   progressBarContainer.classList.add('failed');
+               } else if (progress === 1) {
+                   progressBarContainer.classList.add('completed');
+               } else if (progress > 0 && progress < 1) {
+                   progressBarContainer.classList.add('busy');
+               }
+              progressBarContainer.appendChild(progressBarFill);
+              el.appendChild(progressBarContainer); // Append progress bar first, inside the message element
+          }
 
-        const previewSpan = document.createElement('span');
-        previewSpan.classList.add('message-preview');
-        const [firstLine] = text.split('\\n'); // Get only the first line
-        previewSpan.textContent = firstLine;
-        headerDiv.appendChild(previewSpan);
+          // Create a wrapper for the content below the progress bar
+          const messageContentWrapper = document.createElement('div');
+          messageContentWrapper.classList.add('message-content-wrapper');
 
-        const badge = document.createElement('span');
-        badge.classList.add('message-type-badge');
-        badge.textContent = messageType;
-        headerDiv.appendChild(badge);
+          const headerDiv = document.createElement('div');
+          headerDiv.classList.add('message-header');
 
-        const collapseButton = document.createElement('button');
-        collapseButton.classList.add('collapse-button');
-        collapseButton.textContent = isCollapsed ? '▼' : '▲'; // Toggle icon
-        headerDiv.appendChild(collapseButton);
-        el.appendChild(headerDiv);
+          const previewSpan = document.createElement('span');
+          previewSpan.classList.add('message-preview');
+          // Use provided summary for preview
+          previewSpan.textContent = summary !== undefined ? summary : '';
+          headerDiv.appendChild(previewSpan);
+
+          const badge = document.createElement('span');
+          badge.classList.add('message-type-badge');
+          badge.textContent = type;
+          headerDiv.appendChild(badge);
+
+          const collapseButton = document.createElement('button');
+          collapseButton.classList.add('collapse-button');
+          collapseButton.textContent = isCollapsed ? '▼' : '▲';
+          headerDiv.appendChild(collapseButton);
+
+          messageContentWrapper.appendChild(headerDiv); // Append header to the wrapper
 
 
-        const contentDiv = document.createElement('div');
-        contentDiv.classList.add('collapsible-content');
-        contentDiv.classList.toggle('collapsed', isCollapsed);
-        contentDiv.textContent = text;
-        el.appendChild(contentDiv);
+          const contentDiv = document.createElement('div');
+          contentDiv.classList.add('collapsible-content');
+          contentDiv.classList.toggle('collapsed', isCollapsed); // Set initial collapsed state
 
+          // Create wrapper for detail text and child messages, below the header
+          const messageBodyContentDiv = document.createElement('div');
+          messageBodyContentDiv.classList.add('message-body-content');
 
-        if (id) el.id = \`message-\${id}\`;
-        container.appendChild(el);
+          // Create wrapper for detail text
+          const messageDetailTextDiv = document.createElement('div');
+          messageDetailTextDiv.classList.add('message-detail-text');
+          messageDetailTextDiv.textContent = detail || ''; // Use provided detail for content
+          messageBodyContentDiv.appendChild(messageDetailTextDiv); // Append detail text wrapper
+
+          // Add container for child messages (hidden by default)
+          const childMessagesContainer = document.createElement('div');
+          childMessagesContainer.classList.add('child-messages-container');
+          childMessagesContainer.style.display = isCollapsed ? 'none' : ''; // Hide child container if collapsed
+          messageBodyContentDiv.appendChild(childMessagesContainer); // Append child container
+
+          contentDiv.appendChild(messageBodyContentDiv); // Append the body content wrapper to collapsible content
+          messageContentWrapper.appendChild(contentDiv); // Append collapsible content to the wrapper
+
+          el.appendChild(messageContentWrapper); // Append the wrapper to the message element
+
+          // Update collapsibility based on initial content
+          updateMessageCollapsibility(el);
+
+          targetContainer.appendChild(el);
       }
 
       /**
-       * Adds a new message to the chat history, saves state, and re-renders.
-       * @param {string} text - Message text.
-       * @param {string} sender - Sender of the message (user, assistant, etc.).
-       * @param {string} [messageType='log'] - Type of message (log, error, etc.) for styling.
-       * @returns {string} - The ID of the newly added message.
-       */
-      function addChatMessage(text, sender, messageType = 'log') {
-        /** @type ChatMessage */
-        const message = {
-          id: Date.now().toString(),
-          text,
-          sender,
-          messageType,
-          isCollapsed: ['prompt', 'tool', 'log', 'info', 'warning', 'error'].includes(messageType) // Collapse non-assistant/user messages by default
-        };
-        chatHistory.push(message);
-        saveState();
-        renderChatHistory();
-        return message.id;
-      }
-
-      /**
-       * Updates an existing chat message, saves state, and re-renders.
-       * @param {string} id - ID of the message to update.
-       * @param {string} newText - New message text.
-       * @param {string} newSender - New sender.
-       * @param {string} newMessageType - New message type.
+       * Updates an existing message element in the DOM.
+       * @param {string} id - ID of the message element to update.
+       * @param {object} params - Parameters for the update.
+       * @param {string} [params.type] - New type of message.
+       * @param {string} [params.summary] - New summary.
+       * @param {string} [params.detail] - New detail.
+       * @param {number} [params.progress] - New progress value.
        * @param {HTMLElement} [container=messagesContainer] - The container where the message is rendered.
        */
-      function updateChatMessage(id, newText, newSender, newMessageType, container = messagesContainer) {
-        // Find and update in chatHistory only if it's a main chat message
-        if (container === messagesContainer) {
-            const msg = chatHistory.find(m => m.id === id);
-            if (msg) {
-              msg.text = newText;
-              msg.sender = newSender;
-              msg.messageType = newMessageType;
-              // Don't change collapse state on update unless specifically requested
-              // msg.isCollapsed = ['prompt', 'tool', 'log', 'info', 'warning', 'error'].includes(newMessageType);
-              saveState();
-            }
-        }
+      function updateMessageElement(id, { type, summary, detail, progress }, container = messagesContainer) {
+          const el = container.querySelector(\`#message-\${id}\`); // Find element within the specified container
+          if (!el) return;
 
-        // Update the DOM element directly
-        const el = container.querySelector(\`#message-\${id}\`);
-        if (el) {
-            const contentDiv = el.querySelector('.collapsible-content');
-            const previewSpan = el.querySelector('.message-preview');
-            const badge = el.querySelector('.message-type-badge');
+          const contentDiv = el.querySelector('.collapsible-content');
+          const previewSpan = el.querySelector('.message-preview');
+          const badge = el.querySelector('.message-type-badge');
+          const messageDetailTextDiv = el.querySelector('.message-detail-text'); // Get the detail text wrapper
+          let progressBarContainer = el.querySelector('.progress-bar-container');
+          let progressBarFill = el.querySelector('.progress-bar-fill');
+          const childMessagesContainer = el.querySelector('.child-messages-container'); // Get child container
 
-            if (contentDiv) contentDiv.textContent = newText;
-            if (previewSpan) {
-                const [firstLine] = newText.split('\\n');
-                previewSpan.textContent = firstLine;
-            }
-            if (badge) badge.textContent = newMessageType;
 
-            // Update classes for styling
-            el.classList.remove('user-message', 'assistant-message', 'system-message', 'prompt-message', 'tool-message', 'log-message', 'error-message', 'warning-message', 'info-message', 'loading-message');
-            el.classList.add(\`\${newMessageType}-message\`);
-             if (['prompt', 'tool'].includes(newMessageType)) {
-                el.classList.add('tool-message');
-            }
-        }
+          if (summary !== undefined && previewSpan) {
+               previewSpan.textContent = summary; // Use provided summary
+          }
+
+          if (detail !== undefined && messageDetailTextDiv) {
+              messageDetailTextDiv.textContent = detail; // Update detail text
+              // Re-evaluate collapsibility after detail update
+              updateMessageCollapsibility(el);
+          }
+          if (type !== undefined && badge) {
+              badge.textContent = type;
+              // Update classes for styling
+              el.classList.remove('user-message', 'assistant-message', 'system-message', 'prompt-message', 'tool-message', 'log-message', 'error-message', 'warning-message', 'info-message', 'loading-message');
+              el.classList.add(\`\${type}-message\`);
+               if (['prompt', 'tool'].includes(type)) {
+                  el.classList.add('tool-message');
+              }
+          }
+
+          // Update Progress Bar if progress is defined
+          if (progress !== undefined) {
+              if (!progressBarContainer) {
+                   // Create progress bar if it doesn't exist
+                   progressBarContainer = document.createElement('div');
+                   progressBarContainer.classList.add('progress-bar-container');
+                   progressBarFill = document.createElement('div');
+                   progressBarFill.classList.add('progress-bar-fill');
+                   progressBarContainer.appendChild(progressBarFill);
+                   // Insert the progress bar container before the content wrapper
+                   const messageContentWrapper = el.querySelector('.message-content-wrapper');
+                   if (messageContentWrapper) {
+                       messageContentWrapper.before(progressBarContainer);
+                   } else {
+                       el.prepend(progressBarContainer); // Fallback
+                   }
+              } else {
+                   // Ensure it's visible if it was hidden by collapse
+                   progressBarContainer.style.display = '';
+              }
+
+              const width = Math.max(0, Math.min(1, progress)) * 100;
+              progressBarFill.style.width = \`\${width}%\`;
+
+              progressBarContainer.classList.remove('failed', 'completed', 'busy');
+              if (progress < 0) {
+                   progressBarContainer.classList.add('failed');
+              } else if (progress === 1) {
+                   progressBarContainer.classList.add('completed');
+              } else if (progress > 0 && progress < 1) {
+                   progressBarContainer.classList.add('busy');
+              }
+          } else if (progressBarContainer) {
+               // If progress is undefined but bar exists, hide it.
+               progressBarContainer.style.display = 'none';
+          }
+
+          // Collapse state is handled by toggleMessageCollapse, not update
       }
 
       /**
-       * Toggles the collapsed state of a message and re-renders the chat history.
+       * Updates the collapsibility state of a message element based on its content.
+       * Hides/shows the collapse button and sets the non-collapsible class on the header.
+       * @param {HTMLElement} messageEl - The message element (<pre>) to update.
+       */
+      function updateMessageCollapsibility(messageEl) {
+          if (!messageEl) return;
+
+          const headerDiv = messageEl.querySelector('.message-header');
+          const contentDiv = messageEl.querySelector('.collapsible-content');
+          const collapseButton = messageEl.querySelector('.collapse-button');
+          const detailTextDiv = messageEl.querySelector('.message-detail-text');
+          const childMessagesContainer = messageEl.querySelector('.child-messages-container');
+
+          const hasDetailText = detailTextDiv && detailTextDiv.textContent.trim() !== '';
+          const hasChildMessages = childMessagesContainer && childMessagesContainer.children.length > 0;
+          const isCollapsible = hasDetailText || hasChildMessages;
+
+          if (isCollapsible) {
+              headerDiv.classList.remove('non-collapsible');
+              if (collapseButton) collapseButton.style.display = ''; // Show button
+          } else {
+              headerDiv.classList.add('non-collapsible');
+              if (collapseButton) collapseButton.style.display = 'none'; // Hide button
+              // Ensure content is collapsed if it becomes non-collapsible
+              if (contentDiv) contentDiv.classList.add('collapsed');
+              if (childMessagesContainer) childMessagesContainer.style.display = 'none';
+          }
+      }
+
+
+      /**
+       * Updates an existing chat message in the chatHistory array.
+       * This is primarily for main chat messages that need persistence.
+       * @param {string} id - ID of the message to update.
+       * @param {string} [newDetail] - New message detail text (optional).
+       * @param {string} [newSummary] - New message summary (optional).
+       * @param {string} newSender - New sender.
+       * @param {string} [newMessageType] - New message type (optional).
+       */
+      function updateMainChatMessageHistory(id, newDetail, newSummary, newSender, newMessageType) {
+          const msg = chatHistory.find(m => m.id === id);
+          if (msg) {
+            msg.detail = newDetail;
+            if (newDetail !== undefined) {
+                msg.detail = newDetail;
+            }
+            if (newSummary !== undefined) { // Only update summary if provided
+                msg.summary = newSummary;
+            }
+            msg.sender = newSender;
+            if (newMessageType !== undefined) {
+                msg.messageType = newMessageType;
+            }
+            saveState();
+          }
+      }
+
+
+      /**
+       * Toggles the collapsed state of a message and updates the DOM.
        * @param {string} messageId - ID of the message to toggle.
        * @param {HTMLElement} [container=messagesContainer] - The container where the message is rendered.
        */
       function toggleMessageCollapse(messageId, container = messagesContainer) {
-        // Update state in chatHistory only if it's a main chat message
-        if (container === messagesContainer) {
-            const msg = chatHistory.find(m => m.id === messageId);
-            if (msg) {
-              msg.isCollapsed = !msg.isCollapsed;
-              saveState();
-            }
+        const el = container.querySelector(\`#message-\${messageId}\`); // Find element within the specified container
+        if (!el) return;
+
+        const contentDiv = el.querySelector('.collapsible-content');
+        const collapseButton = el.querySelector('.collapse-button');
+        const progressBarContainer = el.querySelector('.progress-bar-container'); // Get progress bar
+        const childMessagesContainer = el.querySelector('.child-messages-container'); // Get child container
+        const headerDiv = el.querySelector('.message-header'); // Get header to check non-collapsible class
+
+
+        // Only toggle if the message is actually collapsible
+        if (headerDiv.classList.contains('non-collapsible')) {
+             return;
         }
 
-        // Toggle the DOM element's class
-        const el = container.querySelector(\`#message-\${messageId}\`);
-        if (el) {
-            const contentDiv = el.querySelector('.collapsible-content');
-            const collapseButton = el.querySelector('.collapse-button');
-            if (contentDiv && collapseButton) {
-                const isCollapsed = contentDiv.classList.toggle('collapsed');
-                collapseButton.textContent = isCollapsed ? '▼' : '▲';
+        if (contentDiv && collapseButton) {
+            const isCollapsed = contentDiv.classList.toggle('collapsed');
+            collapseButton.textContent = isCollapsed ? '▼' : '▲';
+
+            // Hide progress bar when collapsed, unless it's completed or failed
+            if (progressBarContainer) {
+                 const isCompletedOrFailed = progressBarContainer.classList.contains('completed') || progressBarContainer.classList.contains('failed');
+                 progressBarContainer.style.display = (isCollapsed && !isCompletedOrFailed) ? 'none' : '';
+            }
+
+            // Hide child messages container when collapsed
+            if (childMessagesContainer) {
+                childMessagesContainer.style.display = isCollapsed ? 'none' : '';
+            }
+
+            // Update state in chatHistory only if it's a main chat message
+            if (container === messagesContainer) {
+                const msg = chatHistory.find(m => m.id === messageId);
+                if (msg) {
+                  msg.isCollapsed = isCollapsed;
+                  saveState();
+                }
             }
         }
       }
@@ -1179,6 +1424,7 @@ export default (tabId: string) => `
 
       // Debounced update for the user prompt. Sends to extension to save to workspace state.
       const updateUserPrompt = debounce((value) => {
+        localStorage.setItem(STORAGE_KEYS.userInput, value); // Save user input locally immediately
         vscode.postMessage({ command: "setUserPrompt", userPrompt: value });
       }, 3000);
 
@@ -1366,8 +1612,8 @@ export default (tabId: string) => `
         const autoFixErrors = autoFixErrorsCheckbox.checked; // Get auto fix errors state
 
         const messageId = Date.now().toString(); // Generate message ID locally
-        addChatMessage(user, "user", "user"); // Add user message to main chat history
-        showLoadingMessage(messageId); // Show loading message in main chat history
+        // addChatMessage(user, "user", "user"); // Add user message to main chat history - Handled by receiveMessage
+        // showLoadingMessage(messageId); // Show loading message in main chat history - Handled by startLoading/log
 
         vscode.postMessage({
           command: "sendMessage",
@@ -1498,6 +1744,13 @@ export default (tabId: string) => `
           vscode.postMessage({ command: "commitFiles", fileNames: openFiles });
       }
 
+      /**
+       * Handles triggering the test task logger simulation.
+       */
+      function handleTestTask() {
+          vscode.postMessage({ command: "runTestTask" });
+      }
+
 
       /**
        * Displays a temporary loading message in the chat.
@@ -1517,11 +1770,12 @@ export default (tabId: string) => `
         if (!existingLoadingMsg) {
              renderMessage({
                 id: messageId,
-                text: "Loading response...",
-                sender: "assistant",
-                messageType: "loading",
+                type: "loading",
+                summary: "Loading response...",
+                detail: "Loading response...",
+                progress: 0, // Indicate busy state
                 isCollapsed: false // Loading message should not be collapsed
-             }, container);
+             }, container); // Pass container to renderMessage
         }
       }
 
@@ -1952,9 +2206,10 @@ export default (tabId: string) => `
               contentDiv.classList.add('plan-step-content');
               contentDiv.classList.toggle('collapsed', isCollapsed);
 
-              const fullDescription = document.createElement('strong');
-              fullDescription.textContent = \`Step \${index + 1}: \${step.description}\`;
-              contentDiv.appendChild(fullDescription);
+              // REMOVED: Adding full description again in the content
+              // const fullDescription = document.createElement('strong');
+              // fullDescription.textContent = \`Step \${index + 1}: \${step.description}\`;
+              // contentDiv.appendChild(fullDescription);
 
               const subPromptPre = document.createElement('pre');
               subPromptPre.textContent = step.subPrompt;
@@ -2028,33 +2283,6 @@ export default (tabId: string) => `
                   }
               }
           }
-      }
-
-      /**
-       * Adds or updates a message within a specific plan step's message container.
-       * @param {ChatMessage} message - The message object including stepIndex.
-       */
-      function addOrUpdateStepMessage(message) {
-          if (message.stepIndex === undefined || message.stepIndex === null) {
-              console.warn("addOrUpdateStepMessage called without stepIndex", message);
-              return; // Should not happen if messages are routed correctly
-          }
-          const stepMessagesContainer = document.getElementById(\`step-messages-\${message.stepIndex}\`);
-          if (!stepMessagesContainer) {
-              console.error(\`Step messages container not found for step index \${message.stepIndex}\`);
-              return;
-          }
-
-          const existingMessageEl = stepMessagesContainer.querySelector(\`#message-\${message.id}\`);
-
-          if (existingMessageEl) {
-              // Update existing message
-              updateChatMessage(message.id, message.text, message.sender, message.messageType, stepMessagesContainer);
-          } else {
-              // Add new message
-              renderMessage(message, stepMessagesContainer);
-          }
-           scrollToBottom(); // Scroll to show new/updated message
       }
 
 
@@ -2168,11 +2396,40 @@ export default (tabId: string) => `
             toggleProviderSettingsPopup();
           }
         });
+
+        // Event delegation for message collapsing
+        messagesContainer.addEventListener('click', (event) => {
+            const header = event.target.closest('.message-header');
+            if (header) {
+                const messageEl = header.closest('.message');
+                if (messageEl && !header.classList.contains('non-collapsible')) {
+                    const messageId = messageEl.id.replace('message-', '');
+                    toggleMessageCollapse(messageId, messagesContainer);
+                }
+            }
+        });
+
+        // Event delegation for plan step message collapsing (needs to be added to step containers)
+        // This will be handled dynamically when plan steps are rendered/updated.
+        // Add a listener to the planStepsEl container and delegate
+        planStepsEl.addEventListener('click', (event) => {
+             const header = event.target.closest('.message-header');
+             if (header) {
+                 const messageEl = header.closest('.message');
+                 // Find the specific step-messages-container this message belongs to
+                 const stepMessagesContainer = header.closest('.step-messages-container');
+                 if (messageEl && stepMessagesContainer && !header.classList.contains('non-collapsible')) {
+                     const messageId = messageEl.id.replace('message-', '');
+                     toggleMessageCollapse(messageId, stepMessagesContainer);
+                 }
+             }
+        });
+
       });
 
       // Save user input to localStorage on input change
       userInputEl.addEventListener("input", (e) => {
-        localStorage.setItem(STORAGE_KEYS.userInput, e.target.value);
+        // localStorage.setItem(STORAGE_KEYS.userInput, e.target.value); // Moved into debounced function
         updateUserPrompt(e.target.value); // Update workspace user prompt
       });
 
@@ -2206,216 +2463,338 @@ export default (tabId: string) => `
       // Handle messages from the extension
       window.addEventListener("message", (event) => {
         const message = event.data;
-        // Check if the message is related to a plan step by checking for stepIndex
-        if (message.stepIndex !== undefined && message.stepIndex !== null) {
-             // Handle messages specific to a plan step
-             switch (message.command) {
-                 case "logMessage":
-                 case "receiveMessage": // If step results come as receiveMessage
-                 case "updateMessage":
-                     // Add or update the message within the specific step's container
-                     addOrUpdateStepMessage({
-                         id: message.messageId || Date.now().toString(), // Ensure message has an ID
-                         text: message.text,
-                         sender: message.sender || "assistant",
-                         messageType: message.messageType || 'log',
-                         isCollapsed: ['prompt', 'tool', 'log', 'info', 'warning', 'error'].includes(message.messageType || 'log'), // Collapse non-assistant/user messages by default
-                         stepIndex: message.stepIndex // Keep step index
-                     });
-                     break;
-                 case "endMessage":
-                     // Update the final message state within the step's container
-                      addOrUpdateStepMessage({
-                         id: message.messageId,
-                         text: message.text,
-                         sender: message.sender || "assistant",
-                         messageType: message.messageType || 'assistant', // Final type might be assistant
-                         isCollapsed: ['prompt', 'tool', 'log', 'info', 'warning', 'error'].includes(message.messageType || 'assistant'),
-                         stepIndex: message.stepIndex
-                     });
-                     // No need to reset main send button for step messages
-                     break;
-                 case "startLoading":
-                     // Show loading message within the step's container
-                     showLoadingMessage(message.messageId, message.stepIndex);
-                     break;
-                 // Other step-specific commands can be added here
-                 default:
-                     console.warn("Unknown command for plan step:", message.command, message.stepIndex);
-             }
-        } else {
-            // Handle standard chat messages (including planning phase messages)
-            switch (message.command) {
-              case "receiveMessage":
-                // This is for standard chat messages (user prompt, system prompt, tools, initial assistant message)
-                addChatMessage(message.text, message.sender || "assistant", message.messageType || "assistant"); // Default to assistant type
-                // DO NOT resetSendButton() here. It should only reset after the final 'endMessage'.
-                break;
-              case "updateMessage":
-                // This is for updating streaming responses in main chat
-                updateChatMessage(message.messageId, message.text, message.sender, message.messageType);
-                // Don't reset button here, as streaming might continue
-                break;
-              case "endMessage":
-                 // This signals the end of a streaming response in main chat
-                 resetSendButton(); // This is correct here, for the main assistant response
-                 // Ensure the final message type is set correctly if needed
-                 // updateChatMessage(message.messageId, message.text, message.sender, message.messageType); // Optional: update one last time
-                 break;
-              case "logMessage":
-                // Log messages without stepIndex go to the main chat history
-                addChatMessage(message.text, "log", message.messageType || 'log'); // Ensure messageType is passed and default to 'log'
-                break;
-              case "clearMessages":
-                clearChatHistory();
-                break;
-              case "setOpenFiles":
-                // This is received when files are added/removed via extension commands or drag/drop
-                openFiles = message.files;
-                saveState(); // Save updated file list to localStorage
-                renderSelectedFiles(); // Update UI
-                break;
-              case "startLoading":
-                // This is for standard chat loading indicator (including planning phase)
-                showLoadingMessage(message.messageId); // This should show loading for the *main* send button
-                break;
-              case "addFilesFromDialog":
-                // This is received after the user selects files in the dialog
-                // The extension has already handled adding them and sent setOpenFiles
-                // This message might be redundant if setOpenFiles is always sent after addFiles
-                // addFiles(message.filePaths); // This would add them locally again, rely on setOpenFiles instead
-                break;
-              case "systemPromptsList": // Renamed command
-                systemPrompts = message.prompts;
-                renderSystemPromptsList();
-                break;
-              case "userPromptsList": // New command
-                userPrompts = message.prompts;
-                renderUserPromptsList();
-                break;
-              case "providerSettingsList": // New command for provider settings list
-                providerSettingsList = message.providerSettingsList;
-                // currentProviderSetting is handled by sendCurrentProviderSetting
-                renderProviderSettingsPopupList();
-                // renderSelectedProvider(); // Rendered by sendCurrentProviderSetting
-                // loadState(); // Ensure currentProviderSetting is loaded from localStorage if available, after list is updated, No longer needed, rely on sendCurrentProviderSetting
-                // renderSelectedProvider(); // Re-render after loadState to reflect potentially updated currentProviderSetting - No longer needed
-                break;
-              case "initPrompts": // New case to handle initial prompts and libraries
-                currentSystemPrompt = message.systemPrompt || "";
-                currentUserPrompt = message.userPrompt || "";
-                systemPrompts = message.systemPrompts || [];
-                userPrompts = message.userPrompts || [];
-                availableTools = message.availableTools || []; // Initialize available tools
-                enabledTools = message.enabledTools || []; // Initialize enabled tools
-                currentProviderSetting = message.currentProviderSetting; // Initialize current provider setting
-                availableVendors = message.availableVendors || []; // Initialize available vendors
-                autoRemoveComments = message.autoRemoveComments ?? true; // Initialize auto remove comments
-                autoFormat = message.autoFormat ?? true; // Initialize auto format
-                autoFixErrors = message.autoFixErrors ?? true; // Initialize auto fix errors
-                planState = message.planState; // Initialize plan state
 
-                systemPromptEl.value = currentSystemPrompt;
-                userInputEl.value = currentUserPrompt;
-                autoRemoveCommentsCheckbox.checked = autoRemoveComments; // Set checkbox state from received message
-                autoFormatCheckbox.checked = autoFormat; // Set checkbox state from received message
-                autoFixErrorsCheckbox.checked = autoFixErrors; // Set auto fix errors checkbox state
+        // Handle the new 'log' command from TaskLogger
+        if (message.command === "log") {
+            const { id, parentId, message: taskLog } = message; // message.message is the TaskLog object
 
-                renderSystemPromptsList();
-                renderUserPromptsList();
-                renderEnabledTools(); // Render enabled tools on init
-                renderSelectedProvider(); // Render selected provider on init
-                renderProviderSettingsPopupList(); // Render provider settings popup list on init
-                renderVendorDropdown(); // Render vendor dropdown on init
-                // loadState(); // Load chat history, open files from localStorage after init
-                renderSelectedFiles(); // Ensure files from loadState are rendered
-                renderChatHistory(); // Ensure chat history from loadState is rendered
+            let targetContainer = messagesContainer; // Default to main container
+            let parentMessageEl = null; // The actual parent message element if parentId is a message ID
 
-                // Render plan UI if a plan is active
-                if (planState && planState.plan) {
-                    renderPlan(planState.plan);
+            if (parentId) {
+                // Try finding parent message in main container
+                parentMessageEl = messagesContainer.querySelector(\`#message-\${parentId}\`);
+
+                if (!parentMessageEl) {
+                    // If not in main container, try finding it within any plan step's message container
+                    const planSteps = planStepsEl.querySelectorAll('.plan-step');
+                    for (const stepDiv of planSteps) {
+                        const stepMessagesContainer = stepDiv.querySelector('.step-messages-container');
+                        if (stepMessagesContainer) {
+                            parentMessageEl = stepMessagesContainer.querySelector(\`#message-\${parentId}\`);
+                            if (parentMessageEl) {
+                                // Found parent message in a step's container
+                                targetContainer = stepMessagesContainer; // Log message goes into this container
+                                break; // Found it, stop searching steps
+                            }
+                        }
+                    }
                 }
-                updatePlanControls(); // Update buttons based on initial state
 
-                break;
-              case "updateEnabledTools":
-                enabledTools = message.enabledTools;
-                renderEnabledTools();
-                break;
-              case "providerSettingsUpdated":
-                vscode.postMessage({ command: "requestProviderSettings" }); // Request updated list
-                break;
-              // case "addProviderSetting": // Handled by providerSettingsList update
-              // case "updateProviderSetting": // Handled by providerSettingsList update
-              case "availableVendors":
-                availableVendors = message.availableVendors;
-                renderVendorDropdown();
-                break;
-              case "sendEnabledTools": // Receive enabled tools from extension on load
-                enabledTools = message.enabledTools;
-                renderEnabledTools();
-                break;
-              case "sendCurrentProviderSetting": // Receive current provider setting from extension on load
-                currentProviderSetting = message.currentProviderSetting;
-                renderSelectedProvider();
-                break;
+                if (parentMessageEl) {
+                    // Parent is another message element. The log message will be a child of this parent.
+                    let childMessagesContainer = parentMessageEl.querySelector('.child-messages-container');
+                    if (!childMessagesContainer) {
+                        childMessagesContainer = document.createElement('div');
+                        childMessagesContainer.classList.add('child-messages-container');
+                        // Insert it after the message body content
+                        const messageBodyContent = parentMessageEl.querySelector('.message-body-content');
+                        if (messageBodyContent) {
+                            messageBodyContent.after(childMessagesContainer);
+                        } else {
+                             // Fallback
+                             const collapsibleContent = parentMessageEl.querySelector('.collapsible-content');
+                             if (collapsibleContent) {
+                                 collapsibleContent.appendChild(childMessagesContainer);
+                             } else {
+                                 parentMessageEl.appendChild(childMessagesContainer);
+                             }
+                        }
+                    }
+                    childMessagesContainer.style.display = ''; // Make container visible
+                    targetContainer = childMessagesContainer; // Log message goes into the child container
 
-              // --- Plan Execution Messages ---
-              case "displayPlan":
-                  // When receiving a new plan, reset collapse states
-                  planState.stepCollapsedStates = Array(message.plan.steps.length).fill(true);
-                  renderPlan(message.plan);
-                  break;
-              case "updateStepStatus":
-                  updateStepStatus(message.stepIndex, message.status);
-                  break;
-              case "updatePlanState":
-                  // Preserve collapse states when updating planState
-                  const oldPlan = planState.plan;
-                  planState = message.planState;
-                  if (oldPlan && planState.plan && oldPlan.steps.length === planState.plan.steps.length) {
-                      // If plan structure is the same, keep old collapse states
-                      // This handles status updates without re-rendering the whole plan
-                  } else if (planState.plan) {
-                       // If plan structure changed or is new, reset collapse states
-                       planState.stepCollapsedStates = Array(planState.plan.steps.length).fill(true);
-                       renderPlan(planState.plan); // Re-render if plan structure changed
-                  } else {
-                       // If plan is null, clear plan UI
-                       planStepsEl.innerHTML = '';
-                       planGoalEl.textContent = 'AI Plan:';
-                       planContainer.style.display = 'none';
-                       planState.stepCollapsedStates = [];
-                  }
-                  updatePlanControls(); // Update buttons and error message
-                  // Update step statuses based on the new state (this is redundant if renderPlan is called, but safe)
-                  if (planState.plan && planState.plan.steps) {
-                      planState.plan.steps.forEach((_, index) => {
-                          let status = 'pending';
-                          if (index < planState.currentStepIndex) {
-                              status = 'completed';
-                          } else if (index === planState.currentStepIndex) {
-                              status = planState.status === 'executing' ? 'executing' : (planState.status === 'failed' ? 'failed' : 'pending');
-                          } else {
-                              status = 'pending';
-                          }
-                          updateStepStatus(index, status);
-                      });
-                  }
-                  break;
-              case "planExecutionComplete":
-                  // Handled by updatePlanState
-                  break;
-              case "planExecutionFailed":
-                  // Handled by updatePlanState
-                  break;
-              case "planExecutionStopped":
-                  // Handled by updatePlanState
-                  break;
-
-              default:
-                console.warn("Unknown command:", message.command);
+                } else {
+                     // ParentId was provided but no parent message element found.
+                     // Assume it's a log message directly associated with a plan step.
+                     const parentStepEl = document.getElementById(parentId); // Check if it's a plan step ID
+                     if (parentStepEl) {
+                         // Log message is associated with a plan step
+                         targetContainer = parentStepEl.querySelector('.step-messages-container') || messagesContainer; // Use step's container
+                     } else {
+                         console.warn(\`Log message \${id} received with unknown parentId: \${parentId}\`);
+                         // Default to main container if parent not found
+                         targetContainer = messagesContainer;
+                     }
+                }
             }
+
+            const existingEl = targetContainer.querySelector(\`#message-\${id}\`);
+
+            if (existingEl) {
+                // Update existing message element
+                updateMessageElement(id, {
+                    type: taskLog.type,
+                    summary: taskLog.summary,
+                    detail: taskLog.detail,
+                    progress: taskLog.progress
+                }, targetContainer); // Pass the found container
+            } else {
+                // Add new message element
+                renderMessage({
+                    id,
+                    type: taskLog.type,
+                    summary: taskLog.summary,
+                    detail: taskLog.detail,
+                    progress: taskLog.progress,
+                    isCollapsed: ['prompt', 'tool', 'log', 'info', 'warning', 'error'].includes(taskLog.type || 'log')
+                }, targetContainer); // Pass the found container
+            }
+
+            // After adding/updating the log message, if it had a parent *message* element,
+            // re-evaluate the parent's collapsibility.
+            if (parentMessageEl) {
+                updateMessageCollapsibility(parentMessageEl); // Pass the parent element itself
+            }
+
+            scrollToBottom();
+            return; // Processed the log command
+        }
+
+
+        // Handle existing commands - route them through the new rendering/updating functions
+        switch (message.command) {
+          case "receiveMessage":
+            // This is for standard chat messages (user prompt, system prompt, tools, initial assistant message)
+            // Add to chatHistory for persistence
+            const newMessageId = message.messageId || Date.now().toString();
+            chatHistory.push({
+                id: newMessageId,
+                detail: message.detail || message.text || "", // Use detail, fallback to text
+                summary: message.summary || (message.detail || message.text || "").split('\\n')[0], // Use summary, fallback to first line of detail/text
+                sender: message.sender,
+                messageType: message.messageType || (message.sender === 'user' ? 'user' : 'assistant'),
+                isCollapsed: message.isCollapsed ?? ['prompt', 'tool', 'log', 'info', 'warning', 'error'].includes(message.messageType || 'log')
+            });
+            saveState(); // Save updated chatHistory
+
+            // Render using the new renderMessage function (main container)
+            const addedMsg = chatHistory[chatHistory.length - 1];
+            renderMessage({
+                id: addedMsg.id,
+                type: addedMsg.messageType,
+                summary: addedMsg.summary,
+                detail: addedMsg.detail,
+                isCollapsed: addedMsg.isCollapsed
+            }); // renderMessage defaults to messagesContainer
+            scrollToBottom();
+            break;
+          case "updateMessage":
+            // This is for updating streaming responses in main chat
+            // Update chatHistory for persistence
+            // Note: Streaming updates typically only provide the new text/detail, not summary or sender/type changes
+            updateMainChatMessageHistory(message.messageId, message.detail || message.text || "", message.summary, message.sender, message.messageType);
+            // Update DOM using the new updateMessageElement function (main container)
+            updateMessageElement(message.messageId, {
+                type: message.messageType,
+                summary: message.summary, // Pass summary if provided
+                detail: message.detail || message.text || "", // Pass detail/text
+            }); // updateMessageElement defaults to messagesContainer
+            scrollToBottom();
+            break;
+          case "endMessage":
+             // This signals the end of a streaming response in main chat
+             resetSendButton(); // This is correct here, for the main assistant response
+             // Update chatHistory for persistence
+             // Ensure final state (detail, summary, type) is saved
+             updateMainChatMessageHistory(message.messageId, message.detail || message.text || "", message.summary, message.sender, message.messageType);
+             // Optional: update DOM one last time with final state if needed
+             // updateMessageElement(message.messageId, { type: message.messageType, summary: message.summary, detail: message.detail || message.text || "" });
+             scrollToBottom();
+             break;
+          case "logMessage":
+            // Log messages without stepIndex go to the main chat history
+            // Add to chatHistory for persistence
+            const newLogMessageId = message.messageId || Date.now().toString();
+            chatHistory.push({
+                id: newLogMessageId,
+                detail: message.detail || message.text || "", // Use detail, fallback to text
+                summary: message.summary || (message.detail || message.text || "").split('\\n')[0], // Use summary, fallback to first line of detail/text
+                sender: "log", // Log messages are typically from the system/process
+                messageType: message.messageType || 'log',
+                isCollapsed: message.isCollapsed ?? true // Log messages are collapsed by default
+            });
+            saveState();
+
+            // Render using the new renderMessage function (main container)
+            const addedLogMsg = chatHistory[chatHistory.length - 1];
+            renderMessage({
+                id: addedLogMsg.id,
+                type: addedLogMsg.messageType,
+                summary: addedLogMsg.summary,
+                detail: addedLogMsg.detail,
+                isCollapsed: addedLogMsg.isCollapsed
+            }); // renderMessage defaults to messagesContainer
+            scrollToBottom();
+            break;
+          case "clearMessages":
+            clearChatHistory();
+            break;
+          case "setOpenFiles":
+            // This is received when files are added/removed via extension commands or drag/drop
+            openFiles = message.files;
+            saveState(); // Save updated file list to localStorage
+            renderSelectedFiles(); // Update UI
+            break;
+          case "startLoading":
+            // This is for standard chat loading indicator (including planning phase)
+            // This seems to be replaced by the 'log' command with progress: 0
+            // If it's still used, we map it to a loading message with progress 0
+            // Note: This doesn't add to chatHistory, as it's a temporary state.
+            renderMessage({
+                id: message.messageId, // messageId should be provided by extension for the task
+                type: 'loading',
+                summary: message.summary || 'Loading...', // Use provided summary or default
+                detail: message.detail || 'Loading...', // Use provided detail or default
+                progress: 0,
+                isCollapsed: false
+            }); // renderMessage defaults to messagesContainer
+            scrollToBottom();
+            break;
+          case "addFilesFromDialog":
+            // This is received after the user selects files in the dialog
+            // The extension has already handled adding them and sent setOpenFiles
+            // This message might be redundant if setOpenFiles is always sent after addFiles
+            // addFiles(message.filePaths); // This would add them locally again, rely on setOpenFiles instead
+            break;
+          case "systemPromptsList": // Renamed command
+            systemPrompts = message.prompts;
+            renderSystemPromptsList();
+            break;
+          case "userPromptsList": // New command
+            userPrompts = message.prompts;
+            renderUserPromptsList();
+            break;
+          case "providerSettingsList": // New command for provider settings list
+            providerSettingsList = message.providerSettingsList;
+            // currentProviderSetting is handled by sendCurrentProviderSetting
+            renderProviderSettingsPopupList();
+            // renderSelectedProvider(); // Rendered by sendCurrentProviderSetting
+            // loadState(); // Ensure currentProviderSetting is loaded from localStorage if available, after list is updated, No longer needed, rely on sendCurrentProviderSetting
+            // renderSelectedProvider(); // Re-render after loadState to reflect potentially updated currentProviderSetting - No longer needed
+            break;
+          case "initPrompts": // New case to handle initial prompts and libraries
+            currentSystemPrompt = message.systemPrompt || "";
+            currentUserPrompt = message.userPrompt || "";
+            systemPrompts = message.systemPrompts || [];
+            userPrompts = message.userPrompts || [];
+            availableTools = message.availableTools || []; // Initialize available tools
+            enabledTools = message.enabledTools || []; // Initialize enabled tools
+            currentProviderSetting = message.currentProviderSetting; // Initialize current provider setting
+            availableVendors = message.availableVendors || []; // Initialize available vendors
+            autoRemoveComments = message.autoRemoveComments ?? true; // Initialize auto remove comments
+            autoFormat = message.autoFormat ?? true; // Initialize auto format
+            autoFixErrors = message.autoFixErrors ?? true; // Initialize auto fix errors
+            planState = message.planState; // Initialize plan state
+
+            systemPromptEl.value = currentSystemPrompt;
+            userInputEl.value = currentUserPrompt;
+            autoRemoveCommentsCheckbox.checked = autoRemoveComments; // Set checkbox state from received message
+            autoFormatCheckbox.checked = autoFormat; // Set checkbox state from received message
+            autoFixErrorsCheckbox.checked = autoFixErrors; // Set auto fix errors checkbox state
+
+            renderSystemPromptsList();
+            renderUserPromptsList();
+            renderEnabledTools(); // Render enabled tools on init
+            renderSelectedProvider(); // Render selected provider on init
+            renderProviderSettingsPopupList(); // Render provider settings popup list on init
+            renderVendorDropdown(); // Render vendor dropdown on init
+            // loadState(); // Load chat history, open files from localStorage after init
+            renderSelectedFiles(); // Ensure files from loadState are rendered
+            renderChatHistory(); // Ensure chat history from loadState is rendered
+
+            // Render plan UI if a plan is active
+            if (planState && planState.plan) {
+                renderPlan(planState.plan);
+            }
+            updatePlanControls(); // Update buttons based on initial state
+
+            break;
+          case "updateEnabledTools":
+            enabledTools = message.enabledTools;
+            renderEnabledTools();
+            break;
+          case "providerSettingsUpdated":
+            vscode.postMessage({ command: "requestProviderSettings" });
+            break;
+          // case "addProviderSetting": // Handled by providerSettingsList update
+          // case "updateProviderSetting": // Handled by providerSettingsList update
+          case "availableVendors":
+            availableVendors = message.availableVendors;
+            renderVendorDropdown();
+            break;
+          case "sendEnabledTools": // Receive enabled tools from extension on load
+            enabledTools = message.enabledTools;
+            renderEnabledTools();
+            break;
+          case "sendCurrentProviderSetting": // Receive current provider setting from extension on load
+            currentProviderSetting = message.currentProviderSetting;
+            renderSelectedProvider();
+            break;
+
+          // --- Plan Execution Messages ---
+          case "displayPlan":
+              // When receiving a new plan, reset collapse states
+              planState.stepCollapsedStates = Array(message.plan.steps.length).fill(true);
+              renderPlan(message.plan);
+              break;
+          case "updateStepStatus":
+              updateStepStatus(message.stepIndex, message.status);
+              break;
+          case "updatePlanState":
+              // Preserve collapse states when updating planState
+              const oldPlan = planState.plan;
+              planState = message.planState;
+              if (oldPlan && planState.plan && oldPlan.steps.length === planState.plan.steps.length) {
+                  // If plan structure is the same, keep old collapse states
+                  // This handles status updates without re-rendering the whole plan
+              } else if (planState.plan) {
+                   // If plan structure changed or is new, reset collapse states
+                   planState.stepCollapsedStates = Array(planState.plan.steps.length).fill(true);
+                   renderPlan(planState.plan); // Re-render if plan structure changed
+              } else {
+                   // If plan is null, clear plan UI
+                   planStepsEl.innerHTML = '';
+                   planGoalEl.textContent = 'AI Plan:';
+                   planContainer.style.display = 'none';
+                   planState.stepCollapsedStates = [];
+              }
+              updatePlanControls(); // Update buttons and error message
+              // Update step statuses based on the new state (this is redundant if renderPlan is called, but safe)
+              if (planState.plan && planState.plan.steps) {
+                  planState.plan.steps.forEach((_, index) => {
+                      let status = 'pending';
+                      if (index < planState.currentStepIndex) {
+                          status = 'completed';
+                      } else if (index === planState.currentStepIndex) {
+                          status = planState.status === 'executing' ? 'executing' : (planState.status === 'failed' ? 'failed' : 'pending');
+                      } else {
+                          status = 'pending';
+                      }
+                      updateStepStatus(index, status);
+                  });
+              }
+              break;
+          // case "planExecutionComplete": // Handled by updatePlanState
+          // case "planExecutionFailed": // Handled by updatePlanState
+          // case "planExecutionStopped": // Handled by updatePlanState
+          case "requestPlanState":
+              // This message is sent by the webview on load, the extension responds by sending the state
+              // The response is handled by the "initPrompts" case which includes planState
+              break;
+
+          default:
+            console.warn("Unknown command:", message.command);
         }
       });
 
@@ -2458,6 +2837,7 @@ export default (tabId: string) => `
       window.handleCommitFiles = handleCommitFiles; // Expose new function
       window.updateStepStatus = updateStepStatus; // Expose for potential manual testing/debugging
       window.togglePlanStepCollapse = togglePlanStepCollapse; // Expose new function
+      window.handleTestTask = handleTestTask; // Expose new test task function
     </script>
   </body>
 </html>
