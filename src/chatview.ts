@@ -59,6 +59,8 @@ export default (tabId: string) => `
         --plan-step-message-border: #cce7ee;
         --progress-bar-background: #ccc;
         --progress-bar-fill: #4CAF50; /* Green */
+        --cancel-button-color: #f44336; /* Red */
+        --cancel-button-hover-color: #d32f2f; /* Darker red */
       }
       @media (prefers-color-scheme: dark) {
         :root {
@@ -114,6 +116,8 @@ export default (tabId: string) => `
           --plan-step-message-border: #455a64;
           --progress-bar-background: #555;
           --progress-bar-fill: #4CAF50; /* Green */
+          --cancel-button-color: #e57373; /* Light red */
+          --cancel-button-hover-color: #ef9a9a; /* Lighter red */
         }
       }
       body {
@@ -235,10 +239,10 @@ export default (tabId: string) => `
 
       .message-header {
         display: grid; /* Changed to grid layout */
-        grid-template-columns: 1fr auto auto; /* Layout with 3 columns */
+        grid-template-columns: 1fr auto auto auto; /* Layout with 4 columns: Preview | Badge | Cancel | Collapse */
         align-items: start; /* Align items to start */
         cursor: pointer; /* Make entire header clickable */
-        position: relative; /* Needed for absolute positioning of busy/cancel */
+        position: relative; /* needed for absolute positioning of busy/cancel */
       }
       .message-header.non-collapsible {
           cursor: default; /* Change cursor for non-collapsible messages */
@@ -258,7 +262,7 @@ export default (tabId: string) => `
         color: white;
         margin-left: auto; /* Push badge to the right */
       }
-      .collapse-button {
+      .collapse-button, .cancel-button {
         background: none;
         border: none;
         color: var(--text-color);
@@ -266,11 +270,18 @@ export default (tabId: string) => `
         font-size: 0.8em;
         opacity: 0.5; /* Reduced opacity for less emphasis */
         padding: 0 5px; /* Added padding for better click area */
-        margin-left: 5px; /* Gap between badge and button */
+        margin-left: 5px; /* Gap between badge/cancel and button */
       }
-      .collapse-button:hover {
+      .cancel-button {
+          color: var(--cancel-button-color);
+      }
+      .collapse-button:hover, .cancel-button:hover {
         opacity: 1; /* Full opacity on hover */
       }
+      .cancel-button:hover {
+          color: var(--cancel-button-hover-color);
+      }
+
       .message {
         word-wrap: break-word;
         display: flex;
@@ -1158,6 +1169,19 @@ export default (tabId: string) => `
           badge.textContent = type;
           headerDiv.appendChild(badge);
 
+          // Add Cancel Button (initially hidden)
+          const cancelButton = document.createElement('button');
+          cancelButton.classList.add('cancel-button');
+          cancelButton.textContent = '✕'; // Cross icon
+          cancelButton.title = 'Cancel Task';
+          cancelButton.style.display = 'none'; // Hidden by default
+          cancelButton.onclick = (event) => {
+              event.stopPropagation(); // Prevent header click
+              handleCancelTask(id); // Call cancel handler with message ID
+          };
+          headerDiv.appendChild(cancelButton);
+
+
           const collapseButton = document.createElement('button');
           collapseButton.classList.add('collapse-button');
           collapseButton.textContent = isCollapsed ? '▼' : '▲';
@@ -1193,6 +1217,9 @@ export default (tabId: string) => `
 
           // Update collapsibility based on initial content
           updateMessageCollapsibility(el);
+          // Update cancel button visibility based on initial state
+          updateCancelButtonVisibility(el, type, progress);
+
 
           targetContainer.appendChild(el);
       }
@@ -1218,6 +1245,7 @@ export default (tabId: string) => `
           let progressBarContainer = el.querySelector('.progress-bar-container');
           let progressBarFill = el.querySelector('.progress-bar-fill');
           const childMessagesContainer = el.querySelector('.child-messages-container'); // Get child container
+          const currentType = el.classList.contains('user-message') ? 'user' : el.classList.contains('assistant-message') ? 'assistant' : el.classList.contains('system-message') ? 'system' : el.classList.contains('prompt-message') ? 'prompt' : el.classList.contains('tool-message') ? 'tool' : el.classList.contains('log-message') ? 'log' : el.classList.contains('error-message') ? 'error' : el.classList.contains('warning-message') ? 'warning' : el.classList.contains('info-message') ? 'info' : el.classList.contains('loading-message') ? 'loading' : 'log';
 
 
           if (summary !== undefined && previewSpan) {
@@ -1276,7 +1304,10 @@ export default (tabId: string) => `
                progressBarContainer.style.display = 'none';
           }
 
-          // Collapse state is handled by toggleMessageCollapse, not update
+          // Update cancel button visibility based on updated state
+          updateCancelButtonVisibility(el, type || currentType, progress);
+
+          // Collapse state is handled by toggleMessageCollapse
       }
 
       /**
@@ -1309,6 +1340,21 @@ export default (tabId: string) => `
           }
       }
 
+      /**
+       * Updates the visibility of the cancel button based on message type and progress.
+       * @param {HTMLElement} messageEl - The message element (<pre>) to update.
+       * @param {string} type - The message type. // Keep type parameter for context, but don't use it for visibility check
+       * @param {number} [progress] - The progress value.
+       */
+      function updateCancelButtonVisibility(messageEl, type, progress) { // Keep type parameter
+          if (!messageEl) return;
+          const cancelButton = messageEl.querySelector('.cancel-button');
+          if (cancelButton) {
+              // Show cancel button if progress is defined and indicates a busy state (0 <= progress < 1)
+              const isBusy = progress !== undefined && progress >= 0 && progress < 1;
+              cancelButton.style.display = isBusy ? '' : 'none'; // New logic: show if busy progress
+          }
+      }
 
       /**
        * Updates an existing chat message in the chatHistory array.
@@ -1692,6 +1738,14 @@ export default (tabId: string) => `
        */
       function handleStopPlan() {
           vscode.postMessage({ command: "stopPlan" });
+      }
+
+      /**
+       * Handles cancelling a specific task.
+       * @param {string} taskId - The ID of the task to cancel.
+       */
+      function handleCancelTask(taskId) {
+          vscode.postMessage({ command: "cancelTask", id: taskId });
       }
 
 
@@ -2402,7 +2456,8 @@ export default (tabId: string) => `
             const header = event.target.closest('.message-header');
             if (header) {
                 const messageEl = header.closest('.message');
-                if (messageEl && !header.classList.contains('non-collapsible')) {
+                // Check if the click target is NOT the cancel button
+                if (!event.target.classList.contains('cancel-button') && messageEl && !header.classList.contains('non-collapsible')) {
                     const messageId = messageEl.id.replace('message-', '');
                     toggleMessageCollapse(messageId, messagesContainer);
                 }
@@ -2418,7 +2473,8 @@ export default (tabId: string) => `
                  const messageEl = header.closest('.message');
                  // Find the specific step-messages-container this message belongs to
                  const stepMessagesContainer = header.closest('.step-messages-container');
-                 if (messageEl && stepMessagesContainer && !header.classList.contains('non-collapsible')) {
+                 // Check if the click target is NOT the cancel button
+                 if (!event.target.classList.contains('cancel-button') && messageEl && stepMessagesContainer && !header.classList.contains('non-collapsible')) {
                      const messageId = messageEl.id.replace('message-', '');
                      toggleMessageCollapse(messageId, stepMessagesContainer);
                  }
@@ -2804,6 +2860,7 @@ export default (tabId: string) => `
       window.handlePausePlan = handlePausePlan; // Expose new function
       window.handleResumePlan = handleResumePlan; // Expose new function
       window.handleStopPlan = handleStopPlan; // Expose new function
+      window.handleCancelTask = handleCancelTask; // Expose new function
       window.clearChatHistory = clearChatHistory;
       window.addFilesDialog = addFilesDialog;
       window.allowDrop = allowDrop;

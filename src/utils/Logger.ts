@@ -36,10 +36,12 @@ export type TaskLogger = <R>(
   ) => Promise<R>
 ) => Promise<R>;
 
+export type ActiveTasks = Map<string, [AbortController, string | undefined]>;
+
 export const createTask =
   (
     postMessage: (v: object) => Promise<void>,
-    activeTasks: Map<string, AbortController>,
+    activeTasks: ActiveTasks,
     parentId?: string
   ): TaskLogger =>
   async <R>(
@@ -64,7 +66,7 @@ export const createTask =
 
     if (runner) {
       const abort = new AbortController();
-      activeTasks.set(id, abort);
+      activeTasks.set(id, [abort, parentId]);
 
       try {
         await setLog({ progress: 0 });
@@ -104,3 +106,23 @@ export const createErrorLogger =
       summary: "An error occurred",
       detail: `${e instanceof Error ? e.message : String(e)}`,
     });
+
+export function cancelTask(taskId: string, activeTasks: ActiveTasks) {
+  const taskEntry = activeTasks.get(taskId);
+  if (taskEntry) {
+    const [controller] = taskEntry;
+    controller.abort();
+    activeTasks.delete(taskId);
+  }
+
+  for (const [childId, [, parentId]] of activeTasks.entries()) {
+    if (parentId === taskId) {
+      cancelTask(childId, activeTasks);
+    }
+  }
+}
+
+export function cancelAllTasks(activeTasks: ActiveTasks) {
+  activeTasks.forEach(([controller]) => controller.abort());
+  activeTasks.clear();
+}

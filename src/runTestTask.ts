@@ -1,5 +1,30 @@
 import { TaskLogger } from "./utils/Logger";
 
+async function cancellableTimeout(
+  ms: number,
+  signal: AbortSignal
+): Promise<void> {
+  return new Promise((resolve, reject) => {
+    if (signal.aborted) {
+      reject(new Error("Aborted"));
+      return;
+    }
+
+    const timeoutId = setTimeout(() => {
+      resolve();
+    }, ms);
+
+    signal.addEventListener(
+      "abort",
+      () => {
+        clearTimeout(timeoutId);
+        reject(new Error("Aborted"));
+      },
+      { once: true }
+    );
+  });
+}
+
 export async function runTestTask(logTask: TaskLogger) {
   await logTask(
     { summary: "Simulating Main Task", type: "task" },
@@ -10,7 +35,7 @@ export async function runTestTask(logTask: TaskLogger) {
         { summary: "Subtask 1: Instant step", type: "task" },
         async (setLog, subLog, signal) => {
           await setLog({ detail: "Performing instant action..." });
-          await new Promise((resolve) => setTimeout(resolve, 100));
+          await cancellableTimeout(100, signal);
           await setLog({ detail: "Instant action complete." });
         }
       );
@@ -21,10 +46,7 @@ export async function runTestTask(logTask: TaskLogger) {
         async (setLog, subLog, signal) => {
           await setLog({ detail: "Starting delayed action..." });
           for (let i = 0; i <= 10; i++) {
-            if (signal.aborted) {
-              throw new Error("Task aborted");
-            }
-            await new Promise((resolve) => setTimeout(resolve, 500));
+            await cancellableTimeout(500, signal);
             await setLog({ progress: i / 10, detail: `Progress: ${i * 10}%` });
           }
           await setLog({ detail: "Delayed action complete." });
@@ -41,7 +63,7 @@ export async function runTestTask(logTask: TaskLogger) {
             { summary: "Nested Subtask A", type: "task" },
             async (setLog, subLog, signal) => {
               await setLog({ detail: "Running nested subtask A..." });
-              await new Promise((resolve) => setTimeout(resolve, 1000));
+              await cancellableTimeout(2000, signal);
               await setLog({ detail: "Nested subtask A complete." });
             }
           );
@@ -51,7 +73,7 @@ export async function runTestTask(logTask: TaskLogger) {
             { summary: "Nested Subtask B", type: "task" },
             async (setLog, subLog, signal) => {
               await setLog({ detail: "Running nested subtask B..." });
-              await new Promise((resolve) => setTimeout(resolve, 1000));
+              await cancellableTimeout(5000, signal);
               await setLog({ detail: "Nested subtask B complete." });
             }
           );

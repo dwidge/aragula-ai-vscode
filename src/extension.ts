@@ -53,6 +53,9 @@ import {
 } from "./settings";
 import { commitStaged, stageFiles } from "./utils/git";
 import {
+  ActiveTasks,
+  cancelAllTasks,
+  cancelTask,
   createMessageLogger,
   createTask,
   Logger,
@@ -67,7 +70,7 @@ const logError: Logger = (e: unknown) => {
 };
 
 const chatPanels = new Map<string, vscode.WebviewPanel>();
-const activeTasks = new Map<string, AbortController>();
+const activeTasks: ActiveTasks = new Map();
 
 export interface PlanStep {
   description: string;
@@ -359,13 +362,8 @@ function handleWebviewMessage(
 
   switch (message.command) {
     case "cancelTask":
-      const controller = activeTasks.get(message.id);
-      if (controller) {
-        controller.abort();
-        activeTasks.delete(message.id);
-      } else {
-        log(`Task not found or already finished: ${message.id}`, "warning");
-      }
+      const taskIdToCancel = message.id;
+      cancelTask(taskIdToCancel, activeTasks);
       break;
     case "sendMessage":
       handleSendMessage(context, panel, message, tabId, log);
@@ -914,6 +912,5 @@ async function handleSetUserPrompt(
 }
 
 export function deactivate() {
-  activeTasks.forEach((controller) => controller.abort());
-  activeTasks.clear();
+  cancelAllTasks(activeTasks);
 }
