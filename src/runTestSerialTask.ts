@@ -4,8 +4,25 @@ import { createDependentTasks, TaskLogger } from "./utils/Logger";
 export async function runTestSerialTask(logTask: TaskLogger) {
   await logTask(
     { summary: "Simulating Dependent Multi-Task Test", type: "task" },
-    createDependentTasks([
-      async (setLog, subLog, signal, prevResults) => {
+    createDependentTasks<
+      [
+        {
+          count: number;
+          message: string;
+        },
+        {
+          count: number;
+          message: string;
+        },
+        {
+          count: number;
+          final: boolean;
+          message: string;
+        },
+        string
+      ]
+    >([
+      async (setLog, subLog, signal, allResults) => {
         await setLog({
           summary: "☐ Step 1: Initial step (2s)",
           detail: "Starting Step 1 (2s)...",
@@ -19,11 +36,11 @@ export async function runTestSerialTask(logTask: TaskLogger) {
         return result;
       },
 
-      async (setLog, subLog, signal, prevResults) => {
+      async (setLog, subLog, signal, allResults) => {
         await setLog({
           summary: "☐ Step 2: Process data (1s)",
         });
-        const prevResult = await prevResults[0];
+        const prevResult = await allResults[0];
         await setLog({
           detail: `Starting Step 2 (1s). Received: ${JSON.stringify(
             prevResult
@@ -42,11 +59,11 @@ export async function runTestSerialTask(logTask: TaskLogger) {
         return nextResult;
       },
 
-      async (setLog, subLog, signal, prevResults) => {
+      async (setLog, subLog, signal, allResults) => {
         await setLog({
           summary: "☐ Step 3: Nested step (3s)",
         });
-        const prevResult = await prevResults[1];
+        const prevResult = await allResults[1];
 
         await subLog(
           { summary: "☐ Nested Serial Step A", type: "task" },
@@ -95,11 +112,11 @@ export async function runTestSerialTask(logTask: TaskLogger) {
         return nextResult;
       },
 
-      async (setLog, subLog, signal, prevResults) => {
+      async (setLog, subLog, signal, allResults) => {
         await setLog({
           summary: "☐ Step 4: Final step (0.5s)",
         });
-        const prevResult = await prevResults[2];
+        const prevResult = await allResults[2];
         await setLog({
           detail: `Starting Step 4 (0.5s). Received final flag: ${prevResult.final}`,
         });

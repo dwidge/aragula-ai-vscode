@@ -174,40 +174,35 @@ export const createMultiTask =
 
 /**
  * A runner function for a task that can depend on the results of preceding tasks in an array.
- * @template R The return type of this runner.
- * @template PrevResults A tuple type representing the return types of the runners preceding this one in the array.
+ * It receives promises for the results of ALL tasks in the sequence.
+ * @template R The return type of this specific runner.
+ * @template AllResults A tuple type representing the return types of ALL runners in the sequence.
  * @param setLog Function to update the log entry for this specific task.
  * @param subLog TaskLogger for creating nested tasks within this task.
  * @param signal AbortSignal to check for cancellation.
- * @param prevResults An array of Promises, where the i-th promise resolves with the result of the i-th runner in the original array (for i < this runner's index).
- * @returns A Promise resolving with the result of this task.
+ * @param allResultPromises A tuple of Promises, where the i-th promise resolves with the result of the i-th runner. The runner should typically only await promises with indices less than its own if strict serial dependency is required, but the type allows accessing any promise.
+ * @returns A Promise resolving with the result of this task (type R).
  */
-export type DependentTaskRunner<R, PrevResults extends readonly unknown[]> = (
+export type DependentRunner<R, AllResults extends readonly unknown[]> = (
   setLog: (message: TaskLog) => Promise<void>,
   subLog: TaskLogger,
   signal: AbortSignal,
-  prevResults: { [K in keyof PrevResults]: Promise<PrevResults[K]> }
+  allResultPromises: { [K in keyof AllResults]: Promise<AllResults[K]> }
 ) => Promise<R>;
 
 /**
  * Creates a runner function that executes multiple sub-runners concurrently,
- * allowing each runner to depend on the results of preceding runners in the array.
+ * allowing each runner to depend on the results of preceding runners in the array
+ * by providing promises for ALL results to each runner.
  * The main task's progress is updated based on the number of completed sub-tasks.
  *
- * Note: All runners are started concurrently by `createMultiTask`. Dependencies are managed by
- * awaiting the promises in the `prevResults` array within each `DependentTaskRunner`.
- * Each `DependentTaskRunner` is responsible for setting its own initial summary/detail
- * and updating its status (e.g., using checkboxes in the summary) as it progresses
- * and when it completes.
- *
  * @template T The array of return types for the runners.
- * @param runners An array of dependent runner functions to execute.
- *                The i-th runner receives promises for the results of runners 0 through i-1.
+ * @param runners An array of dependent runner functions. Each receives promises for all results and returns its specific result type.
  * @returns A runner function suitable for `TaskLogger`, which returns a promise resolving with an array of results from the sub-runners.
  */
 export const createDependentTasks =
   <T extends readonly unknown[]>(runners: {
-    [K in keyof T]: DependentTaskRunner<T[K], any>;
+    [K in keyof T]: DependentRunner<T[K], T>;
   }) =>
   async (
     setLog: (message: TaskLog) => Promise<void>,
@@ -235,31 +230,27 @@ export const createDependentTasks =
       rejectFns.push(reject);
     }
 
-    const wrappedRunners: TaskRunner<any>[] = runners.map(
-      (originalRunner, index) => {
-        return async (multiSetLog, multiSubLog, multiSignal) => {
-          const prevResultsPromises = resultPromises.slice(0, index) as any;
-
-          try {
-            const result = await originalRunner(
-              multiSetLog,
-              multiSubLog,
-              multiSignal,
-              prevResultsPromises
-            );
-            resolveFns[index](result);
-            return result;
-          } catch (e) {
-            rejectFns[index](e);
-            throw e;
-          }
+    const wrappedRunners: { [K in keyof T]: TaskRunner<T[K]> } = runners.map(
+      (originalRunner, index) => async (taskSetLog, taskSubLog, taskSignal) => {
+        const allResultPromises = resultPromises as {
+          [K in keyof T]: Promise<T[K]>;
         };
-      }
-    );
 
-    return createMultiTask(wrappedRunners)(
-      setLog,
-      subLog,
-      signal
-    ) as unknown as Promise<T>;
+        try {
+          const result = await originalRunner(
+            taskSetLog,
+            taskSubLog,
+            taskSignal,
+            allResultPromises
+          );
+          resolveFns[index](result);
+          return result;
+        } catch (e) {
+          rejectFns[index](e);
+          throw e;
+        }
+      }
+    ) as { [K in keyof T]: TaskRunner<T[K]> };
+
+    return createMultiTask(wrappedRunners)(setLog, subLog, signal);
   };
