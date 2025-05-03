@@ -154,14 +154,17 @@ export const createMultiTask =
     let completed = 0;
 
     if (signal.aborted) {
-      throw new Error("AbortError");
+      const abortError = new Error("Task aborted");
+      abortError.name = "AbortError";
+      throw abortError;
     }
 
     const taskPromises = runners.map(async (runner, index) =>
-      subLog({ summary: `Task ${index + 1}`, type: "task" }, runner).finally(
-        async () => {
+      subLog({ summary: `Task ${index + 1}`, type: "task" }, runner).then(
+        async (r) => {
           completed++;
           await setLog({ progress: completed / total });
+          return r;
         }
       )
     );
