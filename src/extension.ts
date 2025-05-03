@@ -21,6 +21,8 @@ import {
   loadPlanState,
   savePlanState,
 } from "./planTool";
+import { runTestMultiTask } from "./runTestMultiTask";
+import { runTestSerialTask } from "./runTestSerialTask";
 import { runTestTask } from "./runTestTask";
 import {
   deleteProviderSettingFromStorage,
@@ -507,6 +509,12 @@ function handleWebviewMessage(
       break;
     case "runTestTask":
       runTestTask(logTask);
+      break;
+    case "runTestMultiTask":
+      runTestMultiTask(logTask);
+      break;
+    case "runTestSerialTask":
+      runTestSerialTask(logTask);
       break;
     default:
       console.warn("Unknown command from webview:", message.command);

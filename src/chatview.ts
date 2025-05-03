@@ -843,6 +843,8 @@ export default (tabId: string) => `
           <button id="fixErrorsButton" onclick="handleFixErrors()">Fix Errors</button>
           <button id="commitFilesButton" onclick="handleCommitFiles()">Commit Files</button> <!-- New Commit Files Button -->
           <button id="testTaskButton" onclick="handleTestTask()">Test Task Logger</button> <!-- New Test Task Logger Button -->
+          <button id="testMultiTaskButton" onclick="handleTestMultiTask()">Test Multi Task</button> <!-- New Test Multi Task Button -->
+          <button id="testSerialTaskButton" onclick="handleTestSerialTask()">Test Serial Task</button> <!-- New Test Serial Task Button -->
         </div>
       </div>
 
@@ -1009,6 +1011,8 @@ export default (tabId: string) => `
       const autoFixErrorsCheckbox = document.getElementById('autoFixErrorsCheckbox'); // New checkbox for auto fix errors
       const commitFilesButton = document.getElementById('commitFilesButton'); // New Commit Files Button
       const testTaskButton = document.getElementById('testTaskButton'); // New Test Task Logger Button
+      const testMultiTaskButton = document.getElementById('testMultiTaskButton'); // New Test Multi Task Button
+      const testSerialTaskButton = document.getElementById('testSerialTaskButton'); // New Test Serial Task Button
 
 
       // Plan UI elements
@@ -1803,6 +1807,20 @@ export default (tabId: string) => `
        */
       function handleTestTask() {
           vscode.postMessage({ command: "runTestTask" });
+      }
+
+      /**
+       * Handles triggering the test multi-task logger simulation.
+       */
+      function handleTestMultiTask() {
+          vscode.postMessage({ command: "runTestMultiTask" });
+      }
+
+      /**
+       * Handles triggering the test serial-task logger simulation.
+       */
+      function handleTestSerialTask() {
+          vscode.postMessage({ command: "runTestSerialTask" });
       }
 
 
@@ -2895,6 +2913,8 @@ export default (tabId: string) => `
       window.updateStepStatus = updateStepStatus; // Expose for potential manual testing/debugging
       window.togglePlanStepCollapse = togglePlanStepCollapse; // Expose new function
       window.handleTestTask = handleTestTask; // Expose new test task function
+      window.handleTestMultiTask = handleTestMultiTask; // Expose new test multi-task function
+      window.handleTestSerialTask = handleTestSerialTask; // Expose new test serial-task function
     </script>
   </body>
 </html>
