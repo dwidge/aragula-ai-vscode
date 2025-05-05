@@ -46,20 +46,20 @@
         --form-input-background: var(--textarea-background);
         --form-input-border: var(--textarea-border);
         --form-input-text-color: var(--text-color);
-        --plan-step-background: #e0f2f7; /* Light blue */
-        --plan-step-completed-background: #c8e6c9; /* Light green */
-        --plan-step-executing-background: #fff9c4; /* Light yellow */
-        --plan-step-failed-background: #ffcdd2; /* Light red */
+        --plan-step-background: #e0f2f7;
+        --plan-step-completed-background: #c8e6c9;
+        --plan-step-executing-background: #fff9c4;
+        --plan-step-failed-background: #ffcdd2;
         --plan-step-border: #b2ebf2;
         --plan-step-completed-border: #a5d6a7;
         --plan-step-executing-border: #ffe082;
         --plan-step-failed-border: #ef9a9a;
-        --plan-step-message-background: #f0f4f6; /* Slightly darker than step background */
+        --plan-step-message-background: #f0f4f6;
         --plan-step-message-border: #cce7ee;
         --progress-bar-background: #ccc;
-        --progress-bar-fill: #4caf50; /* Green */
-        --cancel-button-color: #f44336; /* Red */
-        --cancel-button-hover-color: #d32f2f; /* Darker red */
+        --progress-bar-fill: #4caf50;
+        --cancel-button-color: #f44336;
+        --cancel-button-hover-color: #d32f2f;
       }
       @media (prefers-color-scheme: dark) {
         :root {
@@ -103,20 +103,20 @@
           --form-input-background: var(--textarea-background);
           --form-input-border: var(--textarea-border);
           --form-input-text-color: var(--text-color);
-          --plan-step-background: #263238; /* Dark blue-grey */
-          --plan-step-completed-background: #33691e; /* Dark green */
-          --plan-step-executing-background: #f57f17; /* Dark yellow */
-          --plan-step-failed-background: #b71c1c; /* Dark red */
+          --plan-step-background: #263238;
+          --plan-step-completed-background: #33691e;
+          --plan-step-executing-background: #f57f17;
+          --plan-step-failed-background: #b71c1c;
           --plan-step-border: #37474f;
           --plan-step-completed-border: #558b2f;
           --plan-step-executing-border: #fbc02d;
           --plan-step-failed-border: #c62828;
-          --plan-step-message-background: #37474f; /* Darker blue-grey */
+          --plan-step-message-background: #37474f;
           --plan-step-message-border: #455a64;
           --progress-bar-background: #555;
-          --progress-bar-fill: #4caf50; /* Green */
-          --cancel-button-color: #e57373; /* Light red */
-          --cancel-button-hover-color: #ef9a9a; /* Lighter red */
+          --progress-bar-fill: #4caf50;
+          --cancel-button-color: #e57373;
+          --cancel-button-hover-color: #ef9a9a;
         }
       }
       body {
@@ -161,13 +161,13 @@
         cursor: pointer;
         padding: 0 5px;
         border-radius: 3px;
-        font-size: 1em; /* Increased for better visibility */
-        line-height: 1; /* Adjust line-height to vertically center */
+        font-size: 1em;
+        line-height: 1;
         display: flex;
         align-items: center;
         justify-content: center;
-        width: 18px; /* Fixed width for the button */
-        height: 18px; /* Fixed height for the button */
+        width: 18px;
+        height: 18px;
       }
 
       .file-button .remove-file-button:hover,
@@ -184,8 +184,8 @@
       .input-row {
         display: flex;
         gap: 10px;
-        align-items: flex-start; /* Align items to the start to position buttons correctly */
-        position: relative; /* needed for popup positioning */
+        align-items: flex-start;
+        position: relative;
       }
       textarea,
       .form-input,
@@ -203,17 +203,17 @@
         display: flex;
         flex-direction: column;
         gap: 5px;
-        align-self: stretch; /* Make buttons container stretch to textarea height */
+        align-self: stretch;
       }
       .prompt-buttons button {
-        flex-grow: 1; /* Distribute space evenly */
-        padding: 8px 10px; /* Slightly smaller padding for prompt buttons */
+        flex-grow: 1;
+        padding: 8px 10px;
         font-size: 0.9em;
       }
       .button-row {
         display: flex;
         gap: 10px;
-        flex-wrap: wrap; /* Allow buttons to wrap */
+        flex-wrap: wrap;
       }
       button {
         padding: 10px 15px;
@@ -234,11 +234,10 @@
         color: var(--text-color);
         overflow-x: auto;
         position: relative;
-        display: flex; /* Enable flex layout for badge and collapse button alignment */
-        flex-direction: column; /* Stack progress bar, then content wrapper */
+        display: flex;
+        flex-direction: column;
       }
 
-      /* Wrapper for content below the progress bar */
       .message-content-wrapper {
         padding: 8px;
         display: flex;
@@ -248,29 +247,28 @@
       }
 
       .message-header {
-        display: grid; /* Changed to grid layout */
-        grid-template-columns: 1fr auto auto auto; /* Layout with 4 columns: Preview | Badge | Cancel | Collapse */
-        align-items: start; /* Align items to start */
-        cursor: pointer; /* Make entire header clickable */
-        position: relative; /* needed for absolute positioning of busy/cancel */
+        display: grid;
+        grid-template-columns: 1fr auto auto auto;
+        align-items: start;
+        cursor: pointer;
+        position: relative;
       }
       .message-header.non-collapsible {
-        cursor: default; /* Change cursor for non-collapsible messages */
+        cursor: default;
       }
       .message-preview {
-        overflow: hidden; /* Hide overflowing text */
-        text-overflow: ellipsis; /* Ellipsis for overflow */
-        white-space: nowrap; /* Prevent text wrapping */
-        margin-right: 10px; /* Add some spacing to the right */
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        margin-right: 10px;
       }
-      /* Hide message preview when expanded */
       .message-type-badge {
         padding: 2px 5px;
         border-radius: 3px;
         font-size: 0.7em;
         background-color: rgba(0, 0, 0, 0.2);
         color: white;
-        margin-left: auto; /* Push badge to the right */
+        margin-left: auto;
       }
       .collapse-button,
       .cancel-button {
@@ -279,16 +277,16 @@
         color: var(--text-color);
         cursor: pointer;
         font-size: 0.8em;
-        opacity: 0.5; /* Reduced opacity for less emphasis */
-        padding: 0 5px; /* Added padding for better click area */
-        margin-left: 5px; /* Gap between badge/cancel and button */
+        opacity: 0.5;
+        padding: 0 5px;
+        margin-left: 5px;
       }
       .cancel-button {
         color: var(--cancel-button-color);
       }
       .collapse-button:hover,
       .cancel-button:hover {
-        opacity: 1; /* Full opacity on hover */
+        opacity: 1;
       }
       .cancel-button:hover {
         color: var(--cancel-button-hover-color);
@@ -301,10 +299,9 @@
         gap: 8px;
       }
 
-      /* New wrapper for detail text and child messages, below the header */
       .message-body-content {
-        padding-top: 8px; /* Space above content */
-        border-top: 1px dashed var(--pre-border); /* The dotted line */
+        padding-top: 8px;
+        border-top: 1px dashed var(--pre-border);
       }
 
       .collapsible-content {
@@ -316,10 +313,9 @@
         padding-top: 0;
         padding-bottom: 0;
         margin-bottom: 0;
-        overflow: hidden; /* Ensure hidden content doesn't cause scroll */
+        overflow: hidden;
       }
 
-      /* Container for main chat messages */
       #messages-container {
         display: flex;
         flex-direction: column;
@@ -340,7 +336,7 @@
       }
       .tool-message {
         background-color: var(--prompt-message-background);
-      } /* Style for tool messages */
+      }
       .log-message {
         background-color: var(--log-message-background);
       }
@@ -396,7 +392,7 @@
         border: 1px solid var(--pre-border);
         border-top: none;
         border-radius: 0 0 5px 5px;
-        overflow: hidden; /* Ensure rounded corners are visible */
+        overflow: hidden;
       }
       .prompt-item {
         background-color: var(--prompt-item-background);
@@ -404,10 +400,10 @@
         border-bottom: 1px solid var(--pre-border);
         display: flex;
         justify-content: space-between;
-        align-items: flex-start; /* changed from center to start to align multiline text nicely */
+        align-items: flex-start;
         cursor: pointer;
-        word-wrap: break-word; /* Allow text to wrap */
-        white-space: normal; /* Ensure text wraps within item */
+        word-wrap: break-word;
+        white-space: normal;
       }
       .prompt-item:last-child {
         border-bottom: none;
@@ -437,32 +433,32 @@
       .prompt-text {
         flex-grow: 1;
         margin-right: 10px;
-        word-wrap: break-word; /* Ensure text wrapping in text span too */
+        word-wrap: break-word;
       }
 
       .prompt-popup,
       .tool-popup,
       .provider-popup {
-        position: fixed; /* Changed to fixed */
-        z-index: 10; /* Ensure it's on top of other content */
+        position: fixed;
+        z-index: 10;
         background-color: var(--popup-background);
         border: 1px solid var(--popup-border);
         border-radius: 5px;
         box-shadow: var(--popup-shadow);
         padding: 10px;
-        display: none; /* Hidden by default */
-        top: 0; /* Placeholder, will be set by JS */
-        right: 0; /* Placeholder, will be set by JS */
-        max-height: 300px; /* Added max height for popup */
-        overflow-y: auto; /* Added scroll if popup is too tall */
-        max-width: 80vw; /* Limit popup width to viewport width */
+        display: none;
+        top: 0;
+        right: 0;
+        max-height: 300px;
+        overflow-y: auto;
+        max-width: 80vw;
       }
       .prompt-popup .prompts-list,
       .tool-popup .tool-list,
       .provider-popup .provider-list {
-        border: none; /* Remove border from list inside popup as it has its own border */
-        overflow-y: auto; /* Enable scroll for list within popup if needed - redundant because popup has scroll now */
-        max-height: unset; /* Remove max height from list inside popup - popup controls height now */
+        border: none;
+        overflow-y: auto;
+        max-height: unset;
       }
       .tool-popup .tool-list .tool-item {
         background-color: var(--prompt-item-background);
@@ -470,10 +466,10 @@
         border-bottom: 1px solid var(--pre-border);
         display: flex;
         justify-content: space-between;
-        align-items: flex-start; /* changed from center to start to align multiline text nicely */
+        align-items: flex-start;
         cursor: pointer;
-        word-wrap: break-word; /* Allow text to wrap */
-        white-space: normal; /* Ensure text wraps within item */
+        word-wrap: break-word;
+        white-space: normal;
       }
       .tool-popup .tool-list .tool-item:last-child {
         border-bottom: none;
@@ -487,10 +483,10 @@
         border-bottom: 1px solid var(--pre-border);
         display: flex;
         justify-content: space-between;
-        align-items: flex-start; /* changed from center to start to align multiline text nicely */
+        align-items: flex-start;
         cursor: pointer;
-        word-wrap: break-word; /* Allow text to wrap */
-        white-space: normal; /* Ensure text wraps within item */
+        word-wrap: break-word;
+        white-space: normal;
       }
       .provider-popup .provider-list .provider-item:last-child {
         border-bottom: none;
@@ -506,10 +502,10 @@
         margin-bottom: 10px;
       }
       .provider-popup-header button {
-        display: none; /* Hide the add button in header */
+        display: none;
       }
       .provider-form {
-        display: flex; /* Always visible now */
+        display: flex;
         flex-direction: column;
         gap: 10px;
         margin-top: 10px;
@@ -519,7 +515,7 @@
         font-weight: bold;
       }
       .provider-form input {
-        margin-bottom: 0; /* Reduced bottom margin */
+        margin-bottom: 0;
         padding: 8px;
         border-radius: 5px;
         border: 1px solid var(--form-input-border);
@@ -527,19 +523,19 @@
         color: var(--form-input-text-color);
       }
       .provider-form select {
-        margin-bottom: 0; /* Reduced bottom margin */
+        margin-bottom: 0;
         padding: 8px;
         border-radius: 5px;
         border: 1px solid var(--form-input-border);
         background-color: var(--form-input-background);
         color: var(--form-input-text-color);
-        appearance: none; /* Remove default arrow in some browsers */
-        -webkit-appearance: none; /* For Safari */
+        appearance: none;
+        -webkit-appearance: none;
         background-image: url('data:image/svg+xml;utf8,<svg fill="black" height="24" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg"><path d="M7 10l5 5 5-5z"/><path d="0 0h24v24H0z" fill="none"/></svg>');
         background-repeat: no-repeat;
         background-position-x: 100%;
-        background-position-y: 5px; /* Adjust as needed for vertical alignment */
-        padding-right: 30px; /* Space for the arrow */
+        background-position-y: 5px;
+        padding-right: 30px;
       }
       @media (prefers-color-scheme: dark) {
         .provider-form select {
@@ -548,7 +544,7 @@
       }
 
       .provider-form-buttons {
-        display: flex; /* Always visible now */
+        display: flex;
         gap: 10px;
         justify-content: flex-end;
         margin-top: 10px;
@@ -557,7 +553,7 @@
         color: red;
         font-size: 0.8em;
         margin-top: 2px;
-        display: none; /* Initially hidden */
+        display: none;
       }
       .select-provider-button,
       .duplicate-provider-button {
@@ -578,9 +574,7 @@
       .select-provider-button:hover,
       .duplicate-provider-button:hover {
         color: white;
-        background-color: var(
-          --button-background
-        ); /* Or a more suitable color */
+        background-color: var(--button-background);
       }
 
       .auto-checkbox {
@@ -593,14 +587,13 @@
         margin: 0;
       }
 
-      /* Plan UI Styles */
       #plan-container {
         margin-top: 20px;
         padding: 10px;
         border: 1px solid var(--pre-border);
         border-radius: 5px;
         background-color: var(--pre-background);
-        display: none; /* Hidden by default */
+        display: none;
       }
       #plan-container h3 {
         margin-top: 0;
@@ -615,18 +608,18 @@
         border: 1px solid var(--plan-step-border);
         background-color: var(--plan-step-background);
         display: flex;
-        flex-direction: column; /* Stack header and content */
+        flex-direction: column;
       }
       .plan-step-header {
-        display: grid; /* Use grid for status, preview, button */
-        grid-template-columns: auto 1fr auto; /* Status | Preview | Button */
+        display: grid;
+        grid-template-columns: auto 1fr auto;
         align-items: center;
         gap: 10px;
         cursor: pointer;
       }
       .plan-step-status {
         font-size: 1.2em;
-        min-width: 20px; /* Ensure consistent spacing */
+        min-width: 20px;
         text-align: center;
       }
       .plan-step-preview {
@@ -655,9 +648,8 @@
       }
       .plan-step-content pre {
         margin-top: 0;
-        padding: 8px; /* Slightly less padding than main pre */
+        padding: 8px;
       }
-      /* Hide full description inside content when collapsed */
       .plan-step:has(.plan-step-content.collapsed) .plan-step-content strong {
         display: none;
       }
@@ -688,36 +680,24 @@
         display: none;
       }
 
-      /* Styles for messages within plan steps */
       .step-messages-container {
         padding-top: 8px;
-        border-top: 1px dashed var(--pre-border); /* Separator */
+        border-top: 1px dashed var(--pre-border);
         display: flex;
         flex-direction: column;
         gap: 8px;
       }
       .step-messages-container .message {
-        background-color: var(
-          --plan-step-message-background
-        ); /* Different background */
-        border: 1px solid var(--plan-step-message-border); /* Different border */
+        background-color: var(--plan-step-message-background);
+        border: 1px solid var(--plan-step-message-border);
         display: flex;
         flex-direction: column;
         gap: 8px;
       }
       .step-messages-container .message .message-content-wrapper {
-        padding: 8px; /* Apply padding inside the wrapper */
-      }
-      .step-messages-container .message:last-child {
-      }
-      .step-messages-container .message .message-header {
-      }
-      .step-messages-container .message .message-type-badge {
-      }
-      .step-messages-container .message .collapse-button {
+        padding: 8px;
       }
 
-      /* Styles for nested task logs (outside of plan steps) */
       .child-messages-container {
         display: flex;
         flex-direction: column;
@@ -730,48 +710,36 @@
         gap: 8px;
       }
       .child-messages-container .message .message-content-wrapper {
-        padding: 8px; /* Apply padding inside the wrapper */
-      }
-      .child-messages-container .message:last-child {
-      }
-      .child-messages-container .message .message-header {
-      }
-      .child-messages-container .message .message-type-badge {
-      }
-      .child-messages-container .message .collapse-button {
+        padding: 8px;
       }
 
-      /* Styles for Task Logger Progress Bar */
       .progress-bar-container {
         width: 100%;
-        height: 5px; /* Height of the progress bar */
+        height: 5px;
         background-color: var(--progress-bar-background);
-        /* border-radius: 2.5px; /* Half of height for rounded ends */ /* Removed for top border look */
-        overflow: hidden; /* Hide overflow of the fill */
-        margin-top: 0; /* Position at the very top */
-        margin-bottom: 0; /* No margin below, padding is in the wrapper */
-        border-top-left-radius: 5px; /* Match pre border radius */
-        border-top-right-radius: 5px; /* Match pre border radius */
+
+        overflow: hidden;
+        margin-top: 0;
+        margin-bottom: 0;
+        border-top-left-radius: 5px;
+        border-top-right-radius: 5px;
       }
 
       .progress-bar-fill {
         height: 100%;
         background-color: var(--progress-bar-fill);
-        width: 0%; /* Initial width */
-        transition: width 0.3s ease-in-out; /* Smooth transition */
+        width: 0%;
+        transition: width 0.3s ease-in-out;
       }
 
-      /* Optional: Style for failed progress */
       .progress-bar-container.failed .progress-bar-fill {
-        background-color: #f44336; /* Red color for failed */
+        background-color: #f44336;
       }
-      /* Optional: Style for completed progress */
       .progress-bar-container.completed .progress-bar-fill {
-        background-color: #4caf50; /* Green color for completed */
+        background-color: #4caf50;
       }
-      /* Optional: Style for busy progress */
       .progress-bar-container.busy .progress-bar-fill {
-        background-color: #ffeb3b; /* Yellow color for busy */
+        background-color: #ffeb3b;
       }
     </style>
   </head>
@@ -1002,7 +970,6 @@
       <div id="messages-container"></div>
     </main>
     <script>
-      // @ts-ignore
       const vscode = acquireVsCodeApi();
       const tabId = "${tabId}";
 
@@ -1022,35 +989,35 @@
       /** @type {string[]} */
       let openFiles = [];
       /** @type {string[]} */
-      let systemPrompts = []; // Will be updated by message
+      let systemPrompts = [];
       /** @type {string[]} */
-      let userPrompts = []; // Will be updated by message
+      let userPrompts = [];
       /** @type {string[]} */
-      let availableTools = []; // Will be updated by message on init
+      let availableTools = [];
       /** @type {string[]} */
-      let enabledTools = []; // Will be updated by message on init and user actions
+      let enabledTools = [];
       /** @type {Array<AiProviderSettings>} */
-      let providerSettingsList = []; // Will be updated by message on init
+      let providerSettingsList = [];
       /** @type {AiProviderSettings | undefined} */
-      let currentProviderSetting = undefined; // Will be updated by message on init
+      let currentProviderSetting = undefined;
       /** @type {string[]} */
-      let availableVendors = []; // Will be updated by message on init
+      let availableVendors = [];
       let systemPromptsPopupVisible = false;
       let userPromptsPopupVisible = false;
       let toolPopupVisible = false;
       let providerSettingsPopupVisible = false;
-      let editingProviderName = null; // Track which provider is being edited
+      let editingProviderName = null;
       /** @type {string} */
-      let currentSystemPrompt = ""; // Placeholder, will be initialized by message
+      let currentSystemPrompt = "";
       /** @type {string} */
-      let currentUserPrompt = ""; // Placeholder, will be initialized by message
-      let providerFormChanged = false; // Flag to track if provider form has changed since last save/load
+      let currentUserPrompt = "";
+      let providerFormChanged = false;
       /** @type {boolean} */
-      let autoRemoveComments = true; // Will be initialized by message
+      let autoRemoveComments = true;
       /** @type {boolean} */
-      let autoFormat = true; // Will be initialized by message
+      let autoFormat = true;
       /** @type {boolean} */
-      let autoFixErrors = true; // Will be initialized by message
+      let autoFixErrors = true;
 
       /**
        * @typedef {Object} PlanStep
@@ -1088,38 +1055,37 @@
         autoRemoveComments: true,
         autoFormat: true,
         autoFixErrors: true,
-        stepCollapsedStates: [], // Initialize collapse states
-        tabId: tabId, // Initialize tabId
+        stepCollapsedStates: [],
+        tabId: tabId,
       };
 
       const STORAGE_KEYS = {
         chatHistory: `chatMessages-${tabId}`,
         userInput: `userInput-${tabId}`,
         openFiles: `openFiles-${tabId}`,
-        enabledTools: "enabledTools", // Key for enabled tools (Global)
-        currentProviderSettingName: "currentProviderSettingName", // Key for current provider setting name (Global)
-        autoRemoveComments: `autoRemoveComments-${tabId}`, // Key for auto remove comments checkbox state (Workspace)
-        autoFormat: `autoFormat-${tabId}`, // Key for auto format checkbox state (Workspace)
-        autoFixErrors: `autoFixErrors-${tabId}`, // Key for auto fix errors checkbox state (Workspace)
-        planState: `planState-${tabId}`, // Key for plan state (Workspace)
+        enabledTools: "enabledTools",
+        currentProviderSettingName: "currentProviderSettingName",
+        autoRemoveComments: `autoRemoveComments-${tabId}`,
+        autoFormat: `autoFormat-${tabId}`,
+        autoFixErrors: `autoFixErrors-${tabId}`,
+        planState: `planState-${tabId}`,
       };
 
-      // DOM elements
       const messagesContainer = document.getElementById("messages-container");
       const userInputEl = document.getElementById("userInput");
       const systemPromptEl = document.getElementById("systemPromptInput");
       const sendButton = document.getElementById("sendButton");
       const buttonText = document.getElementById("buttonText");
       const loader = document.getElementById("loader");
-      const planButton = document.getElementById("planButton"); // New plan button
-      const planButtonText = document.getElementById("planButtonText"); // Text span for plan button
-      const planLoader = document.getElementById("planLoader"); // Loader for plan button
+      const planButton = document.getElementById("planButton");
+      const planButtonText = document.getElementById("planButtonText");
+      const planLoader = document.getElementById("planLoader");
       const selectedFilesContainer = document.getElementById(
         "selected-files-container"
       );
       const enabledToolsContainer = document.getElementById(
         "enabled-tools-container"
-      ); // Enabled tools container
+      );
       const systemPromptsPopupEl = document.getElementById(
         "system-prompts-popup"
       );
@@ -1159,7 +1125,7 @@
         document.getElementById("provider-maxTokens");
       const providerTemperatureInput = document.getElementById(
         "provider-temperature"
-      ); // New input for temperature
+      );
       const providerNameError = document.getElementById("provider-name-error");
       const providerVendorError = document.getElementById(
         "provider-vendor-error"
@@ -1172,29 +1138,28 @@
       );
       const providerTemperatureError = document.getElementById(
         "provider-temperature-error"
-      ); // New error for temperature
+      );
       const removeCommentsButton = document.getElementById(
         "removeCommentsButton"
       );
       const formatButton = document.getElementById("formatButton");
-      const fixErrorsButton = document.getElementById("fixErrorsButton"); // New button for fix errors
+      const fixErrorsButton = document.getElementById("fixErrorsButton");
       const autoRemoveCommentsCheckbox = document.getElementById(
         "autoRemoveCommentsCheckbox"
       );
       const autoFormatCheckbox = document.getElementById("autoFormatCheckbox");
       const autoFixErrorsCheckbox = document.getElementById(
         "autoFixErrorsCheckbox"
-      ); // New checkbox for auto fix errors
-      const commitFilesButton = document.getElementById("commitFilesButton"); // New Commit Files Button
-      const testTaskButton = document.getElementById("testTaskButton"); // New Test Task Logger Button
+      );
+      const commitFilesButton = document.getElementById("commitFilesButton");
+      const testTaskButton = document.getElementById("testTaskButton");
       const testMultiTaskButton = document.getElementById(
         "testMultiTaskButton"
-      ); // New Test Multi Task Button
+      );
       const testSerialTaskButton = document.getElementById(
         "testSerialTaskButton"
-      ); // New Test Serial Task Button
+      );
 
-      // Plan UI elements
       const planContainer = document.getElementById("plan-container");
       const planGoalEl = document.getElementById("plan-goal");
       const planStepsEl = document.getElementById("plan-steps");
@@ -1220,20 +1185,6 @@
       function loadState() {
         chatHistory = loadFromLocalStorage(STORAGE_KEYS.chatHistory, []);
         openFiles = loadFromLocalStorage(STORAGE_KEYS.openFiles, []);
-        // enabledTools and currentProviderSetting are now primarily managed by globalState in extension.ts
-        // and sent via initPrompts/sendEnabledTools/sendCurrentProviderSetting messages.
-        // We keep localStorage for backward compatibility or if globalState isn't available immediately.
-        // enabledTools = loadFromLocalStorage(STORAGE_KEYS.enabledTools, []); // Removed - rely on extension state
-        // const currentProviderSettingName = localStorage.getItem(STORAGE_KEYS.currentProviderSettingName); // Removed - rely on extension state
-        // if (currentProviderSettingName && providerSettingsList.length > 0) {
-        //   currentProviderSetting = providerSettingsList.find(p => p.name === currentProviderSettingName);
-        // } else if (providerSettingsList.length > 0) {
-        //   currentProviderSetting = providerSettingsList[0]; // Default to first if available and none selected
-        // }
-
-        // Checkbox states are loaded from workspaceState via initPrompts message.
-        // The initial state from initPrompts will set the checkbox values.
-        // We don't load them from localStorage here anymore to avoid conflicts.
       }
 
       /**
@@ -1259,11 +1210,6 @@
       function saveState() {
         saveToLocalStorage(STORAGE_KEYS.chatHistory, chatHistory);
         saveToLocalStorage(STORAGE_KEYS.openFiles, openFiles);
-        // saveToLocalStorage(STORAGE_KEYS.enabledTools, enabledTools); // Removed - rely on extension state
-        // if (currentProviderSetting) { // Removed - rely on extension state
-        //   localStorage.setItem(STORAGE_KEYS.currentProviderSettingName, currentProviderSetting.name);
-        // }
-        // Checkbox states and plan state are saved via messages to extension
       }
 
       /**
@@ -1279,16 +1225,15 @@
        * Renders the entire chat history to the DOM.
        */
       function renderChatHistory() {
-        messagesContainer.innerHTML = ""; // Clear existing messages
+        messagesContainer.innerHTML = "";
         chatHistory.forEach((msg) => {
-          // Use stored summary and detail
           renderMessage({
             id: msg.id,
             type: msg.messageType,
-            summary: msg.summary, // Use stored summary
-            detail: msg.detail, // Use stored detail
+            summary: msg.summary,
+            detail: msg.detail,
             isCollapsed: msg.isCollapsed,
-          }); // renderMessage defaults to messagesContainer
+          });
         });
         scrollToBottom();
       }
@@ -1314,9 +1259,8 @@
         if (["prompt", "tool"].includes(type)) {
           el.classList.add("tool-message");
         }
-        if (id) el.id = `message-${id}`; // Add ID to the message element
+        if (id) el.id = `message-${id}`;
 
-        // Add Progress Bar if progress is defined
         if (progress !== undefined) {
           const progressBarContainer = document.createElement("div");
           progressBarContainer.classList.add("progress-bar-container");
@@ -1332,10 +1276,9 @@
             progressBarContainer.classList.add("busy");
           }
           progressBarContainer.appendChild(progressBarFill);
-          el.appendChild(progressBarContainer); // Append progress bar first, inside the message element
+          el.appendChild(progressBarContainer);
         }
 
-        // Create a wrapper for the content below the progress bar
         const messageContentWrapper = document.createElement("div");
         messageContentWrapper.classList.add("message-content-wrapper");
 
@@ -1344,7 +1287,6 @@
 
         const previewSpan = document.createElement("span");
         previewSpan.classList.add("message-preview");
-        // Use provided summary for preview
         previewSpan.textContent = summary !== undefined ? summary : "";
         headerDiv.appendChild(previewSpan);
 
@@ -1353,15 +1295,14 @@
         badge.textContent = type;
         headerDiv.appendChild(badge);
 
-        // Add Cancel Button (initially hidden)
         const cancelButton = document.createElement("button");
         cancelButton.classList.add("cancel-button");
-        cancelButton.textContent = "✕"; // Cross icon
+        cancelButton.textContent = "✕";
         cancelButton.title = "Cancel Task";
-        cancelButton.style.display = "none"; // Hidden by default
+        cancelButton.style.display = "none";
         cancelButton.onclick = (event) => {
-          event.stopPropagation(); // Prevent header click
-          handleCancelTask(id); // Call cancel handler with message ID
+          event.stopPropagation();
+          handleCancelTask(id);
         };
         headerDiv.appendChild(cancelButton);
 
@@ -1370,36 +1311,31 @@
         collapseButton.textContent = isCollapsed ? "▼" : "▲";
         headerDiv.appendChild(collapseButton);
 
-        messageContentWrapper.appendChild(headerDiv); // Append header to the wrapper
+        messageContentWrapper.appendChild(headerDiv);
 
         const contentDiv = document.createElement("div");
         contentDiv.classList.add("collapsible-content");
-        contentDiv.classList.toggle("collapsed", isCollapsed); // Set initial collapsed state
+        contentDiv.classList.toggle("collapsed", isCollapsed);
 
-        // Create wrapper for detail text and child messages, below the header
         const messageBodyContentDiv = document.createElement("div");
         messageBodyContentDiv.classList.add("message-body-content");
 
-        // Create wrapper for detail text
         const messageDetailTextDiv = document.createElement("div");
         messageDetailTextDiv.classList.add("message-detail-text");
-        messageDetailTextDiv.textContent = detail || ""; // Use provided detail for content
-        messageBodyContentDiv.appendChild(messageDetailTextDiv); // Append detail text wrapper
+        messageDetailTextDiv.textContent = detail || "";
+        messageBodyContentDiv.appendChild(messageDetailTextDiv);
 
-        // Add container for child messages (hidden by default)
         const childMessagesContainer = document.createElement("div");
         childMessagesContainer.classList.add("child-messages-container");
-        childMessagesContainer.style.display = isCollapsed ? "none" : ""; // Hide child container if collapsed
-        messageBodyContentDiv.appendChild(childMessagesContainer); // Append child container
+        childMessagesContainer.style.display = isCollapsed ? "none" : "";
+        messageBodyContentDiv.appendChild(childMessagesContainer);
 
-        contentDiv.appendChild(messageBodyContentDiv); // Append the body content wrapper to collapsible content
-        messageContentWrapper.appendChild(contentDiv); // Append collapsible content to the wrapper
+        contentDiv.appendChild(messageBodyContentDiv);
+        messageContentWrapper.appendChild(contentDiv);
 
-        el.appendChild(messageContentWrapper); // Append the wrapper to the message element
+        el.appendChild(messageContentWrapper);
 
-        // Update collapsibility based on initial content
         updateMessageCollapsibility(el);
-        // Update cancel button visibility based on initial state
         updateCancelButtonVisibility(el, type, progress);
 
         targetContainer.appendChild(el);
@@ -1420,18 +1356,18 @@
         { type, summary, detail, progress },
         container = messagesContainer
       ) {
-        const el = container.querySelector(`#message-${id}`); // Find element within the specified container
+        const el = container.querySelector(`#message-${id}`);
         if (!el) return;
 
         const contentDiv = el.querySelector(".collapsible-content");
         const previewSpan = el.querySelector(".message-preview");
         const badge = el.querySelector(".message-type-badge");
-        const messageDetailTextDiv = el.querySelector(".message-detail-text"); // Get the detail text wrapper
+        const messageDetailTextDiv = el.querySelector(".message-detail-text");
         let progressBarContainer = el.querySelector(".progress-bar-container");
         let progressBarFill = el.querySelector(".progress-bar-fill");
         const childMessagesContainer = el.querySelector(
           ".child-messages-container"
-        ); // Get child container
+        );
         const currentType = el.classList.contains("user-message")
           ? "user"
           : el.classList.contains("assistant-message")
@@ -1455,17 +1391,15 @@
           : "log";
 
         if (summary !== undefined && previewSpan) {
-          previewSpan.textContent = summary; // Use provided summary
+          previewSpan.textContent = summary;
         }
 
         if (detail !== undefined && messageDetailTextDiv) {
-          messageDetailTextDiv.textContent = detail; // Update detail text
-          // Re-evaluate collapsibility after detail update
+          messageDetailTextDiv.textContent = detail;
           updateMessageCollapsibility(el);
         }
         if (type !== undefined && badge) {
           badge.textContent = type;
-          // Update classes for styling
           el.classList.remove(
             "user-message",
             "assistant-message",
@@ -1484,26 +1418,22 @@
           }
         }
 
-        // Update Progress Bar if progress is defined
         if (progress !== undefined) {
           if (!progressBarContainer) {
-            // Create progress bar if it doesn't exist
             progressBarContainer = document.createElement("div");
             progressBarContainer.classList.add("progress-bar-container");
             progressBarFill = document.createElement("div");
             progressBarFill.classList.add("progress-bar-fill");
             progressBarContainer.appendChild(progressBarFill);
-            // Insert the progress bar container before the content wrapper
             const messageContentWrapper = el.querySelector(
               ".message-content-wrapper"
             );
             if (messageContentWrapper) {
               messageContentWrapper.before(progressBarContainer);
             } else {
-              el.prepend(progressBarContainer); // Fallback
+              el.prepend(progressBarContainer);
             }
           } else {
-            // Ensure it's visible if it was hidden by collapse
             progressBarContainer.style.display = "";
           }
 
@@ -1519,14 +1449,10 @@
             progressBarContainer.classList.add("busy");
           }
         } else if (progressBarContainer) {
-          // If progress is undefined but bar exists, hide it.
           progressBarContainer.style.display = "none";
         }
 
-        // Update cancel button visibility based on updated state
         updateCancelButtonVisibility(el, type || currentType, progress);
-
-        // Collapse state is handled by toggleMessageCollapse
       }
 
       /**
@@ -1553,11 +1479,10 @@
 
         if (isCollapsible) {
           headerDiv.classList.remove("non-collapsible");
-          if (collapseButton) collapseButton.style.display = ""; // Show button
+          if (collapseButton) collapseButton.style.display = "";
         } else {
           headerDiv.classList.add("non-collapsible");
-          if (collapseButton) collapseButton.style.display = "none"; // Hide button
-          // Ensure content is collapsed if it becomes non-collapsible
+          if (collapseButton) collapseButton.style.display = "none";
           if (contentDiv) contentDiv.classList.add("collapsed");
           if (childMessagesContainer)
             childMessagesContainer.style.display = "none";
@@ -1571,14 +1496,12 @@
        * @param {number} [progress] - The progress value.
        */
       function updateCancelButtonVisibility(messageEl, type, progress) {
-        // Keep type parameter
         if (!messageEl) return;
         const cancelButton = messageEl.querySelector(".cancel-button");
         if (cancelButton) {
-          // Show cancel button if progress is defined and indicates a busy state (0 <= progress < 1)
           const isBusy =
             progress !== undefined && progress >= 0 && progress < 1;
-          cancelButton.style.display = isBusy ? "" : "none"; // New logic: show if busy progress
+          cancelButton.style.display = isBusy ? "" : "none";
         }
       }
 
@@ -1605,7 +1528,6 @@
             msg.detail = newDetail;
           }
           if (newSummary !== undefined) {
-            // Only update summary if provided
             msg.summary = newSummary;
           }
           msg.sender = newSender;
@@ -1622,20 +1544,19 @@
        * @param {HTMLElement} [container=messagesContainer] - The container where the message is rendered.
        */
       function toggleMessageCollapse(messageId, container = messagesContainer) {
-        const el = container.querySelector(`#message-${messageId}`); // Find element within the specified container
+        const el = container.querySelector(`#message-${messageId}`);
         if (!el) return;
 
         const contentDiv = el.querySelector(".collapsible-content");
         const collapseButton = el.querySelector(".collapse-button");
         const progressBarContainer = el.querySelector(
           ".progress-bar-container"
-        ); // Get progress bar
+        );
         const childMessagesContainer = el.querySelector(
           ".child-messages-container"
-        ); // Get child container
-        const headerDiv = el.querySelector(".message-header"); // Get header to check non-collapsible class
+        );
+        const headerDiv = el.querySelector(".message-header");
 
-        // Only toggle if the message is actually collapsible
         if (headerDiv.classList.contains("non-collapsible")) {
           return;
         }
@@ -1644,7 +1565,6 @@
           const isCollapsed = contentDiv.classList.toggle("collapsed");
           collapseButton.textContent = isCollapsed ? "▼" : "▲";
 
-          // Hide progress bar when collapsed, unless it's completed or failed
           if (progressBarContainer) {
             const isCompletedOrFailed =
               progressBarContainer.classList.contains("completed") ||
@@ -1653,12 +1573,10 @@
               isCollapsed && !isCompletedOrFailed ? "none" : "";
           }
 
-          // Hide child messages container when collapsed
           if (childMessagesContainer) {
             childMessagesContainer.style.display = isCollapsed ? "none" : "";
           }
 
-          // Update state in chatHistory only if it's a main chat message
           if (container === messagesContainer) {
             const msg = chatHistory.find((m) => m.id === messageId);
             if (msg) {
@@ -1675,7 +1593,7 @@
       function clearChatHistory() {
         chatHistory = [];
         localStorage.removeItem(STORAGE_KEYS.chatHistory);
-        messagesContainer.innerHTML = ""; // Clear DOM directly
+        messagesContainer.innerHTML = "";
       }
 
       /**
@@ -1683,7 +1601,7 @@
        */
       function scrollToBottom() {
         messagesContainer.scrollTop = messagesContainer.scrollHeight;
-        planContainer.scrollTop = planContainer.scrollHeight; // Also scroll plan container
+        planContainer.scrollTop = planContainer.scrollHeight;
       }
 
       /**
@@ -1700,24 +1618,21 @@
         };
       }
 
-      // Debounced update for the system prompt. Sends to extension to save to workspace state.
       const updateSystemPrompt = debounce((value) => {
         vscode.postMessage({ command: "setSystemPrompt", systemPrompt: value });
       }, 3000);
 
-      // Debounced update for the user prompt. Sends to extension to save to workspace state.
       const updateUserPrompt = debounce((value) => {
-        localStorage.setItem(STORAGE_KEYS.userInput, value); // Save user input locally immediately
+        localStorage.setItem(STORAGE_KEYS.userInput, value);
         vscode.postMessage({ command: "setUserPrompt", userPrompt: value });
       }, 3000);
 
-      // Debounced update for provider settings form
       const updateProviderSettingDebounced = debounce(() => {
         if (providerFormChanged) {
           handleSaveProviderSettings();
-          providerFormChanged = false; // Reset flag after saving
+          providerFormChanged = false;
         }
-      }, 500); // 500ms debounce delay for provider settings
+      }, 500);
 
       /**
        * Resets the send button state to enable and hide loader.
@@ -1761,7 +1676,7 @@
        * Renders the enabled tools in the UI.
        */
       function renderEnabledTools() {
-        enabledToolsContainer.innerHTML = ""; // Clear old buttons first
+        enabledToolsContainer.innerHTML = "";
         enabledTools.forEach((toolName) => {
           const toolButton = document.createElement("div");
           toolButton.classList.add("tool-button");
@@ -1781,7 +1696,7 @@
        * Renders the selected provider in the UI.
        */
       function renderSelectedProvider() {
-        selectedProviderContainer.innerHTML = ""; // Clear old buttons first
+        selectedProviderContainer.innerHTML = "";
         if (currentProviderSetting) {
           const providerButton = document.createElement("div");
           providerButton.classList.add("provider-button");
@@ -1796,12 +1711,10 @@
        * @param {string} filePath - Path of the file to remove.
        */
       function removeFile(filePath) {
-        // Update local state immediately for responsiveness
         openFiles = openFiles.filter((file) => file !== filePath);
-        saveState(); // Save updated file list to localStorage
-        renderSelectedFiles(); // Update UI
+        saveState();
+        renderSelectedFiles();
 
-        // Notify extension to update its state (workspaceState)
         vscode.postMessage({ command: "removeFile", filePath: filePath });
       }
 
@@ -1815,12 +1728,10 @@
           (filePath) => !openFiles.includes(filePath)
         );
         if (newFiles.length > 0) {
-          // Update local state immediately for responsiveness
           openFiles.push(...newFiles);
-          saveState(); // Save updated file list to localStorage
-          renderSelectedFiles(); // Update UI
+          saveState();
+          renderSelectedFiles();
 
-          // Notify extension to update its state (workspaceState)
           vscode.postMessage({ command: "addFiles", filePaths: newFiles });
         }
       }
@@ -1848,11 +1759,9 @@
         event.preventDefault();
         let filePaths = [];
         if (event.dataTransfer.items) {
-          // Use DataTransferItemList interface to access the file system
           const items = Array.from(event.dataTransfer.items);
           filePaths = await Promise.all(
             items.map((item) => {
-              // Changed to await Promise.all
               if (item.kind === "file") {
                 const file = item.getAsFile();
                 return file ? file.path : null;
@@ -1861,14 +1770,12 @@
             })
           ).then((paths) => paths.filter((path) => path !== null));
         } else {
-          // Use DataTransfer interface to access file URI list
           filePaths = Array.from(event.dataTransfer.files).map(
             (file) => file.path
           );
         }
 
         if (filePaths.length > 0) {
-          // Send file paths to extension to handle adding and updating webview state
           vscode.postMessage({
             command: "addFilesFromDialog",
             filePaths: filePaths,
@@ -1896,14 +1803,11 @@
         loader.style.display = "inline-block";
         buttonText.textContent = "";
 
-        // Get checkbox states
         const autoRemoveComments = autoRemoveCommentsCheckbox.checked;
         const autoFormat = autoFormatCheckbox.checked;
-        const autoFixErrors = autoFixErrorsCheckbox.checked; // Get auto fix errors state
+        const autoFixErrors = autoFixErrorsCheckbox.checked;
 
-        const messageId = Date.now().toString(); // Generate message ID locally
-        // addChatMessage(user, "user", "user"); // Add user message to main chat history - Handled by receiveMessage
-        // showLoadingMessage(messageId); // Show loading message in main chat history - Handled by startLoading/log
+        const messageId = Date.now().toString();
 
         vscode.postMessage({
           command: "sendMessage",
@@ -1912,10 +1816,10 @@
           fileNames: openFiles,
           toolNames: enabledTools,
           providerSetting: currentProviderSetting,
-          messageId, // Pass messageId
-          autoRemoveComments: autoRemoveComments, // Add checkbox state
-          autoFormat: autoFormat, // Add checkbox state
-          autoFixErrors: autoFixErrors, // Add auto fix errors state
+          messageId,
+          autoRemoveComments: autoRemoveComments,
+          autoFormat: autoFormat,
+          autoFixErrors: autoFixErrors,
         });
       }
 
@@ -1941,23 +1845,21 @@
         planLoader.style.display = "inline-block";
         planButtonText.textContent = "";
 
-        // Get checkbox states
         const autoRemoveComments = autoRemoveCommentsCheckbox.checked;
         const autoFormat = autoFormatCheckbox.checked;
         const autoFixErrors = autoFixErrorsCheckbox.checked;
 
-        // Clear previous plan UI
         planStepsEl.innerHTML = "";
         planGoalEl.textContent = "AI Plan:";
         planErrorEl.style.display = "none";
         planControlsEl.innerHTML = "";
-        planContainer.style.display = "block"; // Show the plan container
+        planContainer.style.display = "block";
 
         vscode.postMessage({
           command: "planAndExecute",
           user: user,
           system: system,
-          fileNames: openFiles, // Pass current open files for context
+          fileNames: openFiles,
           providerSetting: currentProviderSetting,
           autoRemoveComments: autoRemoveComments,
           autoFormat: autoFormat,
@@ -2049,7 +1951,6 @@
           alert("No files selected to commit.");
           return;
         }
-        // You might want to prompt for a commit message here or generate one
         vscode.postMessage({ command: "commitFiles", fileNames: openFiles });
       }
 
@@ -2080,7 +1981,6 @@
        * @param {number} [stepIndex] - Optional step index if message belongs to a plan step.
        */
       function showLoadingMessage(messageId, stepIndex = undefined) {
-        // Determine the correct container based on stepIndex
         const container =
           stepIndex != undefined
             ? document.querySelector(
@@ -2090,7 +1990,6 @@
 
         if (!container) return;
 
-        // Check if a loading message with this ID already exists in this container
         const existingLoadingMsg = container.querySelector(
           `#message-${messageId}`
         );
@@ -2101,11 +2000,11 @@
               type: "loading",
               summary: "Loading response...",
               detail: "Loading response...",
-              progress: 0, // Indicate busy state
-              isCollapsed: false, // Loading message should not be collapsed
+              progress: 0,
+              isCollapsed: false,
             },
             container
-          ); // Pass container to renderMessage
+          );
         }
       }
 
@@ -2118,13 +2017,13 @@
           const textSpan = document.createElement("span");
           textSpan.classList.add("prompt-text");
           textSpan.textContent = prompt;
-          listItem.onclick = () => insertSystemPrompt(prompt); // Insert prompt on click - whole item clickable now
+          listItem.onclick = () => insertSystemPrompt(prompt);
 
           const deleteButton = document.createElement("button");
           deleteButton.classList.add("prompt-delete-button");
           deleteButton.textContent = "✕";
           deleteButton.onclick = (event) => {
-            event.stopPropagation(); // Prevent item click when delete is clicked
+            event.stopPropagation();
             deleteSystemPrompt(prompt);
           };
 
@@ -2143,13 +2042,13 @@
           const textSpan = document.createElement("span");
           textSpan.classList.add("prompt-text");
           textSpan.textContent = prompt;
-          listItem.onclick = () => insertUserPrompt(prompt); // Insert prompt on click - whole item clickable now
+          listItem.onclick = () => insertUserPrompt(prompt);
 
           const deleteButton = document.createElement("button");
           deleteButton.classList.add("prompt-delete-button");
           deleteButton.textContent = "✕";
           deleteButton.onclick = (event) => {
-            event.stopPropagation(); // Prevent item click when delete is clicked
+            event.stopPropagation();
             deleteUserPrompt(prompt);
           };
 
@@ -2163,11 +2062,10 @@
         toolPopupListEl.innerHTML = "";
         availableTools.forEach((toolName) => {
           if (!enabledTools.includes(toolName)) {
-            // Only show tools that are not already enabled
             const listItem = document.createElement("li");
             listItem.classList.add("tool-item");
             listItem.textContent = toolName;
-            listItem.onclick = () => enableTool(toolName); // Enable tool on click
+            listItem.onclick = () => enableTool(toolName);
             toolPopupListEl.appendChild(listItem);
           }
         });
@@ -2182,20 +2080,20 @@
           const textSpan = document.createElement("span");
           textSpan.classList.add("prompt-text");
           textSpan.textContent = providerSetting.name;
-          listItem.onclick = () => selectProviderSetting(providerSetting.name); // Select provider on click
+          listItem.onclick = () => selectProviderSetting(providerSetting.name);
 
           const editButton = document.createElement("button");
           editButton.classList.add("select-provider-button");
-          editButton.textContent = "✏️"; // Pencil emoji
+          editButton.textContent = "✏️";
           editButton.title = "Edit";
           editButton.onclick = (event) => {
             event.stopPropagation();
-            loadProviderSettingToForm(providerSetting); // Load provider to form, don't close popup
+            loadProviderSettingToForm(providerSetting);
           };
 
           const duplicateButton = document.createElement("button");
           duplicateButton.classList.add("duplicate-provider-button");
-          duplicateButton.textContent = "📄"; // Copy document emoji
+          duplicateButton.textContent = "📄";
           duplicateButton.title = "Duplicate";
           duplicateButton.onclick = (event) => {
             event.stopPropagation();
@@ -2204,10 +2102,10 @@
 
           const deleteButton = document.createElement("button");
           deleteButton.classList.add("prompt-delete-button");
-          deleteButton.textContent = "🗑️"; // Trash can emoji
+          deleteButton.textContent = "🗑️";
           deleteButton.title = "Delete";
           deleteButton.onclick = (event) => {
-            event.stopPropagation(); // Prevent item click when delete is clicked
+            event.stopPropagation();
             deleteProviderSetting(providerSetting.name);
           };
 
@@ -2221,7 +2119,7 @@
 
       function renderVendorDropdown() {
         providerVendorInput.innerHTML =
-          '<option value="">Select Vendor</option>'; // Clear existing options and add default
+          '<option value="">Select Vendor</option>';
         availableVendors.forEach((vendor) => {
           const option = document.createElement("option");
           option.value = vendor;
@@ -2236,7 +2134,7 @@
           ? "block"
           : "none";
         if (systemPromptsPopupVisible) {
-          renderSystemPromptsList(); // Re-render list every time popup is opened to ensure it's up-to-date
+          renderSystemPromptsList();
           positionSystemPromptsPopup();
         }
       }
@@ -2247,7 +2145,7 @@
           ? "block"
           : "none";
         if (userPromptsPopupVisible) {
-          renderUserPromptsList(); // Re-render list every time popup is opened to ensure it's up-to-date
+          renderUserPromptsList();
           positionUserPromptsPopup();
         }
       }
@@ -2269,7 +2167,7 @@
         if (providerSettingsPopupVisible) {
           renderProviderSettingsPopupList();
           positionProviderSettingsPopup();
-          renderVendorDropdown(); // Ensure dropdown is rendered when popup opens
+          renderVendorDropdown();
         }
       }
 
@@ -2277,36 +2175,36 @@
         const buttonRect = systemPromptLoadButton.getBoundingClientRect();
         systemPromptsPopupEl.style.top = `${
           buttonRect.bottom + window.scrollY
-        }px`; // Position below the button
+        }px`;
         systemPromptsPopupEl.style.right = `${
           window.innerWidth - buttonRect.right
-        }px`; // Align right edges
+        }px`;
       }
 
       function positionUserPromptsPopup() {
         const buttonRect = userPromptLoadButton.getBoundingClientRect();
         userPromptsPopupEl.style.top = `${
           buttonRect.bottom + window.scrollY
-        }px`; // Position below the button
+        }px`;
         userPromptsPopupEl.style.right = `${
           window.innerWidth - buttonRect.right
-        }px`; // Align right edges
+        }px`;
       }
 
       function positionToolPopup() {
-        const buttonRect = addToolButton.getBoundingClientRect(); // Position relative to "Add Tool" button
-        toolPopupEl.style.top = `${buttonRect.bottom + window.scrollY}px`; // Position below the button
-        toolPopupEl.style.right = `${window.innerWidth - buttonRect.right}px`; // Align right edges
+        const buttonRect = addToolButton.getBoundingClientRect();
+        toolPopupEl.style.top = `${buttonRect.bottom + window.scrollY}px`;
+        toolPopupEl.style.right = `${window.innerWidth - buttonRect.right}px`;
       }
 
       function positionProviderSettingsPopup() {
-        const buttonRect = providerSettingsButton.getBoundingClientRect(); // Position relative to "Providers" button
+        const buttonRect = providerSettingsButton.getBoundingClientRect();
         providerSettingsPopupEl.style.top = `${
           buttonRect.bottom + window.scrollY
-        }px`; // Position below the button
+        }px`;
         providerSettingsPopupEl.style.right = `${
           window.innerWidth - buttonRect.right
-        }px`; // Align right edges
+        }px`;
       }
 
       function addSystemPromptToLibrary() {
@@ -2355,8 +2253,8 @@
         vscode.postMessage({
           command: "useSystemPromptFromLibrary",
           prompt: prompt,
-        }); // Send message to update MRU
-        toggleSystemPromptsPopup(); // Close popup after inserting
+        });
+        toggleSystemPromptsPopup();
       }
 
       function insertUserPrompt(prompt) {
@@ -2364,25 +2262,25 @@
         vscode.postMessage({
           command: "useUserPromptFromLibrary",
           prompt: prompt,
-        }); // Send message to update MRU
-        toggleUserPromptsPopup(); // Close popup after inserting
+        });
+        toggleUserPromptsPopup();
       }
 
       function enableTool(toolName) {
         if (!enabledTools.includes(toolName)) {
-          enabledTools = [...enabledTools, toolName]; // Create a new array
-          saveState(); // Save to localStorage (for backward compatibility, main state is in extension)
+          enabledTools = [...enabledTools, toolName];
+          saveState();
           renderEnabledTools();
-          vscode.postMessage({ command: "enableTool", toolName: toolName }); // Notify extension
+          vscode.postMessage({ command: "enableTool", toolName: toolName });
         }
-        toggleToolPopup(); // Close tool popup after enabling
+        toggleToolPopup();
       }
 
       function disableTool(toolName) {
         enabledTools = enabledTools.filter((tool) => tool !== toolName);
-        saveState(); // Save to localStorage (for backward compatibility, main state is in extension)
+        saveState();
         renderEnabledTools();
-        vscode.postMessage({ command: "disableTool", toolName: toolName }); // Notify extension
+        vscode.postMessage({ command: "disableTool", toolName: toolName });
       }
 
       function selectProviderSetting(providerSettingName) {
@@ -2391,19 +2289,19 @@
         );
         if (providerSetting) {
           currentProviderSetting = providerSetting;
-          saveState(); // Save to localStorage (for backward compatibility, main state is in extension)
+          saveState();
           renderSelectedProvider();
           vscode.postMessage({
             command: "useProviderSettingFromLibrary",
             providerSettingName: providerSettingName,
-          }); // Notify extension
+          });
         }
-        toggleProviderSettingsPopup(); // Close provider popup after selecting
+        toggleProviderSettingsPopup();
       }
 
       function loadProviderSettingToForm(providerSetting) {
         if (providerSetting) {
-          editingProviderName = providerSetting.name; // Set editing mode
+          editingProviderName = providerSetting.name;
           providerNameInput.value = providerSetting.name;
           providerVendorInput.value = providerSetting.vendor;
           providerApiKeyInput.value = providerSetting.apiKey;
@@ -2416,10 +2314,10 @@
           providerTemperatureInput.value =
             providerSetting.temperature !== undefined
               ? String(providerSetting.temperature)
-              : ""; // Load temperature
+              : "";
           clearProviderFormErrors();
         }
-        providerFormChanged = false; // Reset form changed flag when loading
+        providerFormChanged = false;
       }
 
       function handleDuplicateProviderSetting(providerSettingName) {
@@ -2428,30 +2326,27 @@
         );
         if (originalProviderSetting) {
           const newProviderSetting = { ...originalProviderSetting };
-          newProviderSetting.name = `${originalProviderSetting.name} Copy`; // Create new name
-          // Send as a new save command, not update, as it's a new setting
+          newProviderSetting.name = `${originalProviderSetting.name} Copy`;
           vscode.postMessage({
             command: "saveProviderSetting",
             providerSetting: newProviderSetting,
           });
-          // Load the duplicated provider to the form for immediate editing
           loadProviderSettingToForm(newProviderSetting);
         }
       }
 
       function handleAddProviderButton() {
-        editingProviderName = null; // Clear editing provider name
-        // Clear form fields
+        editingProviderName = null;
         providerNameInput.value = "";
         providerVendorInput.value = "";
         providerApiKeyInput.value = "";
         providerBaseURLInput.value = "";
         providerModelInput.value = "";
-        providerVendorInput.value = ""; // Reset dropdown too
+        providerVendorInput.value = "";
         providerMaxTokensInput.value = "";
-        providerTemperatureInput.value = ""; // Clear temperature
+        providerTemperatureInput.value = "";
         clearProviderFormErrors();
-        providerFormChanged = false; // Reset form changed flag when adding new
+        providerFormChanged = false;
       }
 
       function clearProviderFormErrors() {
@@ -2459,7 +2354,7 @@
         providerVendorError.style.display = "none";
         providerApiKeyError.style.display = "none";
         providerModelError.style.display = "none";
-        providerTemperatureError.style.display = "none"; // Clear temperature error
+        providerTemperatureError.style.display = "none";
       }
 
       function handleSaveProviderSettings() {
@@ -2474,7 +2369,7 @@
             : undefined,
           temperature: providerTemperatureInput.value.trim()
             ? parseFloat(providerTemperatureInput.value.trim())
-            : undefined, // Parse temperature as float
+            : undefined,
         };
 
         clearProviderFormErrors();
@@ -2485,7 +2380,6 @@
           providerNameError.style.display = "block";
           isValid = false;
         } else {
-          // Check for duplicate name only if adding a new provider (editingProviderName is null)
           if (editingProviderName === null) {
             const existingProvider = providerSettingsList.find(
               (p) => p.name === providerSetting.name
@@ -2529,31 +2423,25 @@
         }
 
         if (editingProviderName) {
-          // If editing, send update command
           vscode.postMessage({
             command: "updateProviderSetting",
             oldProviderSettingName: editingProviderName,
             providerSetting: providerSetting,
           });
         } else {
-          // If adding new, send save command
           vscode.postMessage({
             command: "saveProviderSetting",
             providerSetting: providerSetting,
           });
         }
 
-        editingProviderName = null; // Exit editing mode
-        // Optionally close the popup or clear the form after saving
-        // toggleProviderSettingsPopup(); // Auto-closing might be annoying
-        handleAddProviderButton(); // Clear form for next entry
+        editingProviderName = null;
+        handleAddProviderButton();
       }
 
       function handleCancelProviderSettings() {
-        editingProviderName = null; // Exit editing mode
-        handleAddProviderButton(); // Clear form
-        // Optionally close the popup
-        // toggleProviderSettingsPopup();
+        editingProviderName = null;
+        handleAddProviderButton();
       }
 
       /**
@@ -2563,40 +2451,39 @@
       function renderPlan(plan) {
         planContainer.style.display = "block";
         planGoalEl.textContent = `AI Plan: ${plan.overallGoal}`;
-        planStepsEl.innerHTML = ""; // Clear existing steps
+        planStepsEl.innerHTML = "";
 
-        // Initialize collapse states if not already present or if plan changed
         if (
           !planState.stepCollapsedStates ||
           planState.stepCollapsedStates.length !== plan.steps.length
         ) {
-          planState.stepCollapsedStates = Array(plan.steps.length).fill(true); // All collapsed by default
+          planState.stepCollapsedStates = Array(plan.steps.length).fill(true);
         }
 
         plan.steps.forEach((step, index) => {
           const stepDiv = document.createElement("div");
           stepDiv.classList.add("plan-step");
-          stepDiv.id = `plan-step-${index}`; // Add ID for easy updating
+          stepDiv.id = `plan-step-${index}`;
 
-          const isCollapsed = planState.stepCollapsedStates[index] ?? true; // Default to collapsed
+          const isCollapsed = planState.stepCollapsedStates[index] ?? true;
 
           const headerDiv = document.createElement("div");
           headerDiv.classList.add("plan-step-header");
-          headerDiv.onclick = () => togglePlanStepCollapse(index); // Make header clickable
+          headerDiv.onclick = () => togglePlanStepCollapse(index);
 
           const statusSpan = document.createElement("span");
           statusSpan.classList.add("plan-step-status");
-          statusSpan.textContent = "☐"; // Default unchecked box
+          statusSpan.textContent = "☐";
           headerDiv.appendChild(statusSpan);
 
           const previewSpan = document.createElement("span");
           previewSpan.classList.add("plan-step-preview");
-          previewSpan.textContent = `Step ${index + 1}: ${step.description}`; // Preview text
+          previewSpan.textContent = `Step ${index + 1}: ${step.description}`;
           headerDiv.appendChild(previewSpan);
 
           const collapseButton = document.createElement("button");
           collapseButton.classList.add("collapse-button");
-          collapseButton.textContent = isCollapsed ? "▼" : "▲"; // Toggle icon
+          collapseButton.textContent = isCollapsed ? "▼" : "▲";
           headerDiv.appendChild(collapseButton);
 
           stepDiv.appendChild(headerDiv);
@@ -2605,16 +2492,10 @@
           contentDiv.classList.add("plan-step-content");
           contentDiv.classList.toggle("collapsed", isCollapsed);
 
-          // REMOVED: Adding full description again in the content
-          // const fullDescription = document.createElement('strong');
-          // fullDescription.textContent = `Step ${index + 1}: ${step.description}`;
-          // contentDiv.appendChild(fullDescription);
-
           const subPromptPre = document.createElement("pre");
           subPromptPre.textContent = step.subPrompt;
           contentDiv.appendChild(subPromptPre);
 
-          // Add container for messages specific to this step
           const stepMessagesContainer = document.createElement("div");
           stepMessagesContainer.classList.add("step-messages-container");
           stepMessagesContainer.id = `step-messages-${index}`;
@@ -2624,7 +2505,7 @@
 
           planStepsEl.appendChild(stepDiv);
         });
-        scrollToBottom(); // Scroll to show the plan
+        scrollToBottom();
       }
 
       /**
@@ -2640,15 +2521,11 @@
             const isCollapsed = contentDiv.classList.toggle("collapsed");
             collapseButton.textContent = isCollapsed ? "▼" : "▲";
 
-            // Update state array (optional, but good for persistence if needed)
             if (
               planState.stepCollapsedStates &&
               planState.stepCollapsedStates.length > stepIndex
             ) {
               planState.stepCollapsedStates[stepIndex] = isCollapsed;
-              // Note: We don't save planState to extension storage on every collapse toggle
-              // to avoid excessive messaging. This state is ephemeral within the webview session.
-              // If persistence across sessions is needed, add a postMessage here.
             }
           }
         }
@@ -2678,13 +2555,13 @@
                 break;
               case "executing":
                 statusSpan.innerHTML =
-                  '<span class="loader" style="width: 1em; height: 1em; border-width: 2px;"></span>'; // Small loader
+                  '<span class="loader" style="width: 1em; height: 1em; border-width: 2px;"></span>';
                 break;
               case "completed":
-                statusSpan.textContent = "✅"; // Checkmark
+                statusSpan.textContent = "✅";
                 break;
               case "failed":
-                statusSpan.textContent = "❌"; // Cross mark
+                statusSpan.textContent = "❌";
                 break;
             }
           }
@@ -2695,56 +2572,53 @@
        * Updates the visibility and state of plan control buttons based on plan state.
        */
       function updatePlanControls() {
-        planControlsEl.innerHTML = ""; // Clear existing buttons
+        planControlsEl.innerHTML = "";
         planErrorEl.style.display = planState.error ? "block" : "none";
         planErrorEl.textContent = planState.error || "";
 
         let buttonsHtml = "";
         switch (planState.status) {
           case "idle":
-            // No buttons needed, Plan & Execute button is visible
-            planContainer.style.display = "none"; // Hide plan container when idle
+            planContainer.style.display = "none";
             resetPlanButton();
             break;
           case "planning":
-            // No buttons needed, loader is visible on Plan & Execute button
             planButton.disabled = true;
             planLoader.style.display = "inline-block";
             planButtonText.textContent = "";
-            planContainer.style.display = "block"; // Show plan container
+            planContainer.style.display = "block";
             break;
           case "executing":
             buttonsHtml =
               '<button onclick="handlePausePlan()">Pause</button><button onclick="handleStopPlan()">Stop</button>';
-            planButton.disabled = true; // Disable Plan button while executing
-            resetPlanButton(); // Ensure plan button is not showing loader
-            planContainer.style.display = "block"; // Show plan container
+            planButton.disabled = true;
+            resetPlanButton();
+            planContainer.style.display = "block";
             break;
           case "paused":
             buttonsHtml =
               '<button onclick="handleResumePlan()">Resume</button><button onclick="handleStopPlan()">Stop</button>';
-            planButton.disabled = true; // Disable Plan button while paused
-            resetPlanButton(); // Ensure plan button is not showing loader
-            planContainer.style.display = "block"; // Show plan container
+            planButton.disabled = true;
+            resetPlanButton();
+            planContainer.style.display = "block";
             break;
           case "failed":
             buttonsHtml =
               '<button onclick="handleResumePlan()">Resume from Failed Step</button><button onclick="handleStopPlan()">Stop & Reset</button>';
-            planButton.disabled = false; // Re-enable Plan button after failure
+            planButton.disabled = false;
             resetPlanButton();
-            planContainer.style.display = "block"; // Show plan container
+            planContainer.style.display = "block";
             break;
           case "completed":
             buttonsHtml =
-              '<button onclick="handleStopPlan()">Reset Plan</button>'; // Stop & Reset effectively
-            planButton.disabled = false; // Re-enable Plan button after completion
+              '<button onclick="handleStopPlan()">Reset Plan</button>';
+            planButton.disabled = false;
             resetPlanButton();
-            planContainer.style.display = "block"; // Show plan container
+            planContainer.style.display = "block";
             break;
         }
         planControlsEl.innerHTML = buttonsHtml;
 
-        // Update step statuses in the UI based on the current state
         if (planState.plan && planState.plan.steps) {
           planState.plan.steps.forEach((_, index) => {
             let status = "pending";
@@ -2765,34 +2639,20 @@
         }
       }
 
-      // --- Event Listeners ---
-
-      // Restore state and input values on window load
       window.addEventListener("load", () => {
         userInputEl.value = localStorage.getItem(STORAGE_KEYS.userInput) || "";
-        // systemPromptEl.value = localStorage.getItem(STORAGE_KEYS.systemPrompt) || ""; // No longer loading systemPrompt from localStorage
-        loadState(); // Load chat history, open files from localStorage
+        loadState();
         renderChatHistory();
         renderSelectedFiles();
-        // renderEnabledTools(); // Render enabled tools on load - now done after initPrompts
-        // renderSelectedProvider(); // Render selected provider on load - now done after initPrompts
-        // renderSystemPromptsList(); // Render system prompts on load - now done after initPrompts
-        // renderUserPromptsList(); // Render user prompts on load - now done after initPrompts
-        // renderProviderSettingsPopupList(); // Render provider settings list on load - now done after initPrompts
-        // renderVendorDropdown(); // Render vendor dropdown on load - now done after initPrompts
 
-        // Request initial state from extension, including workspace state like prompts, auto settings, and plan state
-        // These requests will trigger messages back to the webview (e.g., initPrompts, sendEnabledTools, etc.)
-        // which will then render the UI elements.
-        vscode.postMessage({ command: "requestSystemPrompts" }); // Request latest prompts from extension
-        vscode.postMessage({ command: "requestUserPrompts" }); // Request latest user prompts from extension
-        vscode.postMessage({ command: "requestProviderSettings" }); // Request provider settings
-        vscode.postMessage({ command: "requestAvailableVendors" }); // Request available vendors
-        vscode.postMessage({ command: "requestEnabledTools" }); // Request enabled tools on load
-        vscode.postMessage({ command: "requestCurrentProviderSetting" }); // Request current provider setting on load
+        vscode.postMessage({ command: "requestSystemPrompts" });
+        vscode.postMessage({ command: "requestUserPrompts" });
+        vscode.postMessage({ command: "requestProviderSettings" });
+        vscode.postMessage({ command: "requestAvailableVendors" });
+        vscode.postMessage({ command: "requestEnabledTools" });
+        vscode.postMessage({ command: "requestCurrentProviderSetting" });
 
         document.addEventListener("click", function (event) {
-          // Close popups if click is outside
           if (
             systemPromptsPopupVisible &&
             !systemPromptsPopupEl.contains(event.target) &&
@@ -2822,17 +2682,14 @@
             event.target !== providerSettingsButton &&
             !providerFormEl.contains(event.target)
           ) {
-            // Also check if click is outside the form itself
             toggleProviderSettingsPopup();
           }
         });
 
-        // Event delegation for message collapsing
         messagesContainer.addEventListener("click", (event) => {
           const header = event.target.closest(".message-header");
           if (header) {
             const messageEl = header.closest(".message");
-            // Check if the click target is NOT the cancel button
             if (
               !event.target.classList.contains("cancel-button") &&
               messageEl &&
@@ -2844,18 +2701,13 @@
           }
         });
 
-        // Event delegation for plan step message collapsing (needs to be added to step containers)
-        // This will be handled dynamically when plan steps are rendered/updated.
-        // Add a listener to the planStepsEl container and delegate
         planStepsEl.addEventListener("click", (event) => {
           const header = event.target.closest(".message-header");
           if (header) {
             const messageEl = header.closest(".message");
-            // Find the specific step-messages-container this message belongs to
             const stepMessagesContainer = header.closest(
               ".step-messages-container"
             );
-            // Check if the click target is NOT the cancel button
             if (
               !event.target.classList.contains("cancel-button") &&
               messageEl &&
@@ -2869,18 +2721,14 @@
         });
       });
 
-      // Save user input to localStorage on input change
       userInputEl.addEventListener("input", (e) => {
-        // localStorage.setItem(STORAGE_KEYS.userInput, e.target.value); // Moved into debounced function
-        updateUserPrompt(e.target.value); // Update workspace user prompt
+        updateUserPrompt(e.target.value);
       });
 
-      // Update system prompt on input change (debounced)
       systemPromptEl.addEventListener("input", (e) => {
         updateSystemPrompt(e.target.value);
       });
 
-      // Save checkbox states on change (send to extension to save in workspaceState)
       autoRemoveCommentsCheckbox.addEventListener("change", () => {
         vscode.postMessage({
           command: "setAutoRemoveComments",
@@ -2900,7 +2748,6 @@
         });
       });
 
-      // Provider form input change listeners for debounced save
       providerNameInput.addEventListener("input", () => {
         providerFormChanged = true;
         updateProviderSettingDebounced();
@@ -2908,7 +2755,7 @@
       providerVendorInput.addEventListener("change", () => {
         providerFormChanged = true;
         updateProviderSettingDebounced();
-      }); // 'change' for select
+      });
       providerApiKeyInput.addEventListener("input", () => {
         providerFormChanged = true;
         updateProviderSettingDebounced();
@@ -2928,27 +2775,23 @@
       providerTemperatureInput.addEventListener("input", () => {
         providerFormChanged = true;
         updateProviderSettingDebounced();
-      }); // New input listener for temperature
+      });
 
-      // Handle messages from the extension
       window.addEventListener("message", (event) => {
         const message = event.data;
 
-        // Handle the new 'log' command from TaskLogger
         if (message.command === "log") {
-          const { id, parentId, message: taskLog } = message; // message.message is the TaskLog object
+          const { id, parentId, message: taskLog } = message;
 
-          let targetContainer = messagesContainer; // Default to main container
-          let parentMessageEl = null; // The actual parent message element if parentId is a message ID
+          let targetContainer = messagesContainer;
+          let parentMessageEl = null;
 
           if (parentId) {
-            // Try finding parent message in main container
             parentMessageEl = messagesContainer.querySelector(
               `#message-${parentId}`
             );
 
             if (!parentMessageEl) {
-              // If not in main container, try finding it within any plan step's message container
               const planSteps = planStepsEl.querySelectorAll(".plan-step");
               for (const stepDiv of planSteps) {
                 const stepMessagesContainer = stepDiv.querySelector(
@@ -2959,16 +2802,14 @@
                     `#message-${parentId}`
                   );
                   if (parentMessageEl) {
-                    // Found parent message in a step's container
-                    targetContainer = stepMessagesContainer; // Log message goes into this container
-                    break; // Found it, stop searching steps
+                    targetContainer = stepMessagesContainer;
+                    break;
                   }
                 }
               }
             }
 
             if (parentMessageEl) {
-              // Parent is another message element. The log message will be a child of this parent.
               let childMessagesContainer = parentMessageEl.querySelector(
                 ".child-messages-container"
               );
@@ -2977,14 +2818,12 @@
                 childMessagesContainer.classList.add(
                   "child-messages-container"
                 );
-                // Insert it after the message body content
                 const messageBodyContent = parentMessageEl.querySelector(
                   ".message-body-content"
                 );
                 if (messageBodyContent) {
                   messageBodyContent.after(childMessagesContainer);
                 } else {
-                  // Fallback
                   const collapsibleContent = parentMessageEl.querySelector(
                     ".collapsible-content"
                   );
@@ -2995,22 +2834,18 @@
                   }
                 }
               }
-              childMessagesContainer.style.display = ""; // Make container visible
-              targetContainer = childMessagesContainer; // Log message goes into the child container
+              childMessagesContainer.style.display = "";
+              targetContainer = childMessagesContainer;
             } else {
-              // ParentId was provided but no parent message element found.
-              // Assume it's a log message directly associated with a plan step.
-              const parentStepEl = document.getElementById(parentId); // Check if it's a plan step ID
+              const parentStepEl = document.getElementById(parentId);
               if (parentStepEl) {
-                // Log message is associated with a plan step
                 targetContainer =
                   parentStepEl.querySelector(".step-messages-container") ||
-                  messagesContainer; // Use step's container
+                  messagesContainer;
               } else {
                 console.warn(
                   `Log message ${id} received with unknown parentId: ${parentId}`
                 );
-                // Default to main container if parent not found
                 targetContainer = messagesContainer;
               }
             }
@@ -3019,7 +2854,6 @@
           const existingEl = targetContainer.querySelector(`#message-${id}`);
 
           if (existingEl) {
-            // Update existing message element
             updateMessageElement(
               id,
               {
@@ -3029,9 +2863,8 @@
                 progress: taskLog.progress,
               },
               targetContainer
-            ); // Pass the found container
+            );
           } else {
-            // Add new message element
             renderMessage(
               {
                 id,
@@ -3049,31 +2882,26 @@
                 ].includes(taskLog.type || "log"),
               },
               targetContainer
-            ); // Pass the found container
+            );
           }
 
-          // After adding/updating the log message, if it had a parent *message* element,
-          // re-evaluate the parent's collapsibility.
           if (parentMessageEl) {
-            updateMessageCollapsibility(parentMessageEl); // Pass the parent element itself
+            updateMessageCollapsibility(parentMessageEl);
           }
 
           scrollToBottom();
-          return; // Processed the log command
+          return;
         }
 
-        // Handle existing commands - route them through the new rendering/updating functions
         switch (message.command) {
           case "receiveMessage":
-            // This is for standard chat messages (user prompt, system prompt, tools, initial assistant message)
-            // Add to chatHistory for persistence
             const newMessageId = message.messageId || Date.now().toString();
             chatHistory.push({
               id: newMessageId,
-              detail: message.detail || message.text || "", // Use detail, fallback to text
+              detail: message.detail || message.text || "",
               summary:
                 message.summary ||
-                (message.detail || message.text || "").split("\\n")[0], // Use summary, fallback to first line of detail/text
+                (message.detail || message.text || "").split("\\n")[0],
               sender: message.sender,
               messageType:
                 message.messageType ||
@@ -3084,9 +2912,8 @@
                   message.messageType || "log"
                 ),
             });
-            saveState(); // Save updated chatHistory
+            saveState();
 
-            // Render using the new renderMessage function (main container)
             const addedMsg = chatHistory[chatHistory.length - 1];
             renderMessage({
               id: addedMsg.id,
@@ -3094,13 +2921,10 @@
               summary: addedMsg.summary,
               detail: addedMsg.detail,
               isCollapsed: addedMsg.isCollapsed,
-            }); // renderMessage defaults to messagesContainer
+            });
             scrollToBottom();
             break;
           case "updateMessage":
-            // This is for updating streaming responses in main chat
-            // Update chatHistory for persistence
-            // Note: Streaming updates typically only provide the new text/detail, not summary or sender/type changes
             updateMainChatMessageHistory(
               message.messageId,
               message.detail || message.text || "",
@@ -3108,19 +2932,15 @@
               message.sender,
               message.messageType
             );
-            // Update DOM using the new updateMessageElement function (main container)
             updateMessageElement(message.messageId, {
               type: message.messageType,
-              summary: message.summary, // Pass summary if provided
-              detail: message.detail || message.text || "", // Pass detail/text
-            }); // updateMessageElement defaults to messagesContainer
+              summary: message.summary,
+              detail: message.detail || message.text || "",
+            });
             scrollToBottom();
             break;
           case "endMessage":
-            // This signals the end of a streaming response in main chat
-            resetSendButton(); // This is correct here, for the main assistant response
-            // Update chatHistory for persistence
-            // Ensure final state (detail, summary, type) is saved
+            resetSendButton();
             updateMainChatMessageHistory(
               message.messageId,
               message.detail || message.text || "",
@@ -3128,27 +2948,22 @@
               message.sender,
               message.messageType
             );
-            // Optional: update DOM one last time with final state if needed
-            // updateMessageElement(message.messageId, { type: message.messageType, summary: message.summary, detail: message.detail || message.text || "" });
             scrollToBottom();
             break;
           case "logMessage":
-            // Log messages without stepIndex go to the main chat history
-            // Add to chatHistory for persistence
             const newLogMessageId = message.messageId || Date.now().toString();
             chatHistory.push({
               id: newLogMessageId,
-              detail: message.detail || message.text || "", // Use detail, fallback to text
+              detail: message.detail || message.text || "",
               summary:
                 message.summary ||
-                (message.detail || message.text || "").split("\\n")[0], // Use summary, fallback to first line of detail/text
-              sender: "log", // Log messages are typically from the system/process
+                (message.detail || message.text || "").split("\\n")[0],
+              sender: "log",
               messageType: message.messageType || "log",
-              isCollapsed: message.isCollapsed ?? true, // Log messages are collapsed by default
+              isCollapsed: message.isCollapsed ?? true,
             });
             saveState();
 
-            // Render using the new renderMessage function (main container)
             const addedLogMsg = chatHistory[chatHistory.length - 1];
             renderMessage({
               id: addedLogMsg.id,
@@ -3156,90 +2971,76 @@
               summary: addedLogMsg.summary,
               detail: addedLogMsg.detail,
               isCollapsed: addedLogMsg.isCollapsed,
-            }); // renderMessage defaults to messagesContainer
+            });
             scrollToBottom();
             break;
           case "clearMessages":
             clearChatHistory();
             break;
           case "setOpenFiles":
-            // This is received when files are added/removed via extension commands or drag/drop
             openFiles = message.files;
-            saveState(); // Save updated file list to localStorage
-            renderSelectedFiles(); // Update UI
+            saveState();
+            renderSelectedFiles();
             break;
           case "startLoading":
-            // This is for standard chat loading indicator (including planning phase)
-            // This seems to be replaced by the 'log' command with progress: 0
-            // If it's still used, we map it to a loading message with progress 0
-            // Note: This doesn't add to chatHistory, as it's a temporary state.
             renderMessage({
-              id: message.messageId, // messageId should be provided by extension for the task
+              id: message.messageId,
               type: "loading",
-              summary: message.summary || "Loading...", // Use provided summary or default
-              detail: message.detail || "Loading...", // Use provided detail or default
+              summary: message.summary || "Loading...",
+              detail: message.detail || "Loading...",
               progress: 0,
               isCollapsed: false,
-            }); // renderMessage defaults to messagesContainer
+            });
             scrollToBottom();
             break;
           case "addFilesFromDialog":
-            // This is received after the user selects files in the dialog
-            // The extension has already handled adding them and sent setOpenFiles
-            // This message might be redundant if setOpenFiles is always sent after addFiles
-            addFiles(message.filePaths); // This would add them locally again, rely on setOpenFiles instead
+            addFiles(message.filePaths);
             break;
-          case "systemPromptsList": // Renamed command
+          case "systemPromptsList":
             systemPrompts = message.prompts;
             renderSystemPromptsList();
             break;
-          case "userPromptsList": // New command
+          case "userPromptsList":
             userPrompts = message.prompts;
             renderUserPromptsList();
             break;
-          case "providerSettingsList": // New command for provider settings list
+          case "providerSettingsList":
             providerSettingsList = message.providerSettingsList;
-            // currentProviderSetting is handled by sendCurrentProviderSetting
             renderProviderSettingsPopupList();
-            // renderSelectedProvider(); // Rendered by sendCurrentProviderSetting
-            // loadState(); // Ensure currentProviderSetting is loaded from localStorage if available, after list is updated, No longer needed, rely on sendCurrentProviderSetting
-            // renderSelectedProvider(); // Re-render after loadState to reflect potentially updated currentProviderSetting - No longer needed
             break;
-          case "initPrompts": // New case to handle initial prompts and libraries
+          case "initPrompts":
             currentSystemPrompt = message.systemPrompt || "";
             currentUserPrompt = message.userPrompt || "";
             systemPrompts = message.systemPrompts || [];
             userPrompts = message.userPrompts || [];
-            availableTools = message.availableTools || []; // Initialize available tools
-            enabledTools = message.enabledTools || []; // Initialize enabled tools
-            currentProviderSetting = message.currentProviderSetting; // Initialize current provider setting
-            availableVendors = message.availableVendors || []; // Initialize available vendors
-            autoRemoveComments = message.autoRemoveComments ?? true; // Initialize auto remove comments
-            autoFormat = message.autoFormat ?? true; // Initialize auto format
-            autoFixErrors = message.autoFixErrors ?? true; // Initialize auto fix errors
-            planState = message.planState; // Initialize plan state
+            availableTools = message.availableTools || [];
+            enabledTools = message.enabledTools || [];
+            currentProviderSetting = message.currentProviderSetting;
+            availableVendors = message.availableVendors || [];
+            autoRemoveComments = message.autoRemoveComments ?? true;
+            autoFormat = message.autoFormat ?? true;
+            autoFixErrors = message.autoFixErrors ?? true;
+            planState = message.planState;
 
             systemPromptEl.value = currentSystemPrompt;
             userInputEl.value = currentUserPrompt;
-            autoRemoveCommentsCheckbox.checked = autoRemoveComments; // Set checkbox state from received message
-            autoFormatCheckbox.checked = autoFormat; // Set checkbox state from received message
-            autoFixErrorsCheckbox.checked = autoFixErrors; // Set auto fix errors checkbox state
+            autoRemoveCommentsCheckbox.checked = autoRemoveComments;
+            autoFormatCheckbox.checked = autoFormat;
+            autoFixErrorsCheckbox.checked = autoFixErrors;
 
             renderSystemPromptsList();
             renderUserPromptsList();
-            renderEnabledTools(); // Render enabled tools on init
-            renderSelectedProvider(); // Render selected provider on init
-            renderProviderSettingsPopupList(); // Render provider settings popup list on init
-            renderVendorDropdown(); // Render vendor dropdown on init
-            // loadState(); // Load chat history, open files from localStorage after init
-            renderSelectedFiles(); // Ensure files from loadState are rendered
-            renderChatHistory(); // Ensure chat history from loadState is rendered
+            renderEnabledTools();
+            renderSelectedProvider();
+            renderProviderSettingsPopupList();
+            renderVendorDropdown();
+            renderSelectedFiles();
+            renderChatHistory();
 
-            // Render plan UI if a plan is active
             if (planState && planState.plan) {
               renderPlan(planState.plan);
             }
-            updatePlanControls(); // Update buttons based on initial state
+            updatePlanControls();
 
             break;
           case "updateEnabledTools":
@@ -3249,24 +3050,20 @@
           case "providerSettingsUpdated":
             vscode.postMessage({ command: "requestProviderSettings" });
             break;
-          // case "addProviderSetting": // Handled by providerSettingsList update
-          // case "updateProviderSetting": // Handled by providerSettingsList update
           case "availableVendors":
             availableVendors = message.availableVendors;
             renderVendorDropdown();
             break;
-          case "sendEnabledTools": // Receive enabled tools from extension on load
+          case "sendEnabledTools":
             enabledTools = message.enabledTools;
             renderEnabledTools();
             break;
-          case "sendCurrentProviderSetting": // Receive current provider setting from extension on load
+          case "sendCurrentProviderSetting":
             currentProviderSetting = message.currentProviderSetting;
             renderSelectedProvider();
             break;
 
-          // --- Plan Execution Messages ---
           case "displayPlan":
-            // When receiving a new plan, reset collapse states
             planState.stepCollapsedStates = Array(
               message.plan.steps.length
             ).fill(true);
@@ -3276,7 +3073,6 @@
             updateStepStatus(message.stepIndex, message.status);
             break;
           case "updatePlanState":
-            // Preserve collapse states when updating planState
             const oldPlan = planState.plan;
             planState = message.planState;
             if (
@@ -3284,23 +3080,18 @@
               planState.plan &&
               oldPlan.steps.length === planState.plan.steps.length
             ) {
-              // If plan structure is the same, keep old collapse states
-              // This handles status updates without re-rendering the whole plan
             } else if (planState.plan) {
-              // If plan structure changed or is new, reset collapse states
               planState.stepCollapsedStates = Array(
                 planState.plan.steps.length
               ).fill(true);
-              renderPlan(planState.plan); // Re-render if plan structure changed
+              renderPlan(planState.plan);
             } else {
-              // If plan is null, clear plan UI
               planStepsEl.innerHTML = "";
               planGoalEl.textContent = "AI Plan:";
               planContainer.style.display = "none";
               planState.stepCollapsedStates = [];
             }
-            updatePlanControls(); // Update buttons and error message
-            // Update step statuses based on the new state (this is redundant if renderPlan is called, but safe)
+            updatePlanControls();
             if (planState.plan && planState.plan.steps) {
               planState.plan.steps.forEach((_, index) => {
                 let status = "pending";
@@ -3326,13 +3117,12 @@
         }
       });
 
-      // Expose functions to the global scope.
       window.handleSendMessage = handleSendMessage;
-      window.handlePlanAndExecute = handlePlanAndExecute; // Expose new function
-      window.handlePausePlan = handlePausePlan; // Expose new function
-      window.handleResumePlan = handleResumePlan; // Expose new function
-      window.handleStopPlan = handleStopPlan; // Expose new function
-      window.handleCancelTask = handleCancelTask; // Expose new function
+      window.handlePlanAndExecute = handlePlanAndExecute;
+      window.handlePausePlan = handlePausePlan;
+      window.handleResumePlan = handleResumePlan;
+      window.handleStopPlan = handleStopPlan;
+      window.handleCancelTask = handleCancelTask;
       window.clearChatHistory = clearChatHistory;
       window.addFilesDialog = addFilesDialog;
       window.allowDrop = allowDrop;
@@ -3354,21 +3144,19 @@
       window.loadProviderSettingToForm = loadProviderSettingToForm;
       window.handleAddProviderButton = handleAddProviderButton;
       window.handleDuplicateProviderSetting = handleDuplicateProviderSetting;
-      window.handleCancelProviderSettings = handleCancelProviderSettings; // Expose cancel
+      window.handleCancelProviderSettings = handleCancelProviderSettings;
       window.clearProviderFormErrors = clearProviderFormErrors;
-      window.handleSaveProviderSettings = handleSaveProviderSettings; // Expose save
-      // window.handleAddProviderSetting = handleAddProviderSetting; // Internal helper, not needed globally
-      // window.handleUpdateProviderSetting = handleUpdateProviderSetting; // Internal helper, not needed globally
+      window.handleSaveProviderSettings = handleSaveProviderSettings;
       window.toggleMessageCollapse = toggleMessageCollapse;
-      window.handleRemoveComments = handleRemoveComments; // Expose new function
-      window.handleFormat = handleFormat; // Expose new function
-      window.handleFixErrors = handleFixErrors; // Expose new function
-      window.handleCommitFiles = handleCommitFiles; // Expose new function
-      window.updateStepStatus = updateStepStatus; // Expose for potential manual testing/debugging
-      window.togglePlanStepCollapse = togglePlanStepCollapse; // Expose new function
-      window.handleTestTask = handleTestTask; // Expose new test task function
-      window.handleTestMultiTask = handleTestMultiTask; // Expose new test multi-task function
-      window.handleTestSerialTask = handleTestSerialTask; // Expose new test serial-task function
+      window.handleRemoveComments = handleRemoveComments;
+      window.handleFormat = handleFormat;
+      window.handleFixErrors = handleFixErrors;
+      window.handleCommitFiles = handleCommitFiles;
+      window.updateStepStatus = updateStepStatus;
+      window.togglePlanStepCollapse = togglePlanStepCollapse;
+      window.handleTestTask = handleTestTask;
+      window.handleTestMultiTask = handleTestMultiTask;
+      window.handleTestSerialTask = handleTestSerialTask;
     </script>
   </body>
 </html>
