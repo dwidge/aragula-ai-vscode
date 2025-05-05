@@ -2739,7 +2739,7 @@ export default (tabId: string) => `
             // This is received after the user selects files in the dialog
             // The extension has already handled adding them and sent setOpenFiles
             // This message might be redundant if setOpenFiles is always sent after addFiles
-            // addFiles(message.filePaths); // This would add them locally again, rely on setOpenFiles instead
+            addFiles(message.filePaths); // This would add them locally again, rely on setOpenFiles instead
             break;
           case "systemPromptsList": // Renamed command
             systemPrompts = message.prompts;
