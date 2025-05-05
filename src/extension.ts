@@ -63,7 +63,12 @@ const logError: Logger = (e: unknown) => {
   vscode.window.showErrorMessage(`${e}`);
 };
 
-const chatPanels = new Map<string, vscode.WebviewPanel>();
+interface ChatPanelInfo {
+  panel: vscode.WebviewPanel;
+  activeTasks: ActiveTasks;
+}
+
+const chatPanels = new Map<string, ChatPanelInfo>();
 
 export interface PlanStep {
   description: string;
@@ -96,14 +101,14 @@ export function activate(context: vscode.ExtensionContext) {
   const addFiles = async (multi: vscode.Uri[]) => {
     const openFilePaths = await readOpenFilePaths(multi);
     let tabId = Date.now().toString();
-    let existingPanel: vscode.WebviewPanel | undefined = undefined;
+    let existingPanelInfo: ChatPanelInfo | undefined = undefined;
 
-    for (const panel of chatPanels.values()) {
-      if (!panel) {
+    for (const panelInfo of chatPanels.values()) {
+      if (!panelInfo || !panelInfo.panel) {
         continue;
       }
-      existingPanel = panel;
-      tabId = panel.title.split(" - ")[1];
+      existingPanelInfo = panelInfo;
+      tabId = panelInfo.panel.title.split(" - ")[1];
       break;
     }
 
@@ -132,9 +137,9 @@ export function activate(context: vscode.ExtensionContext) {
     const autoFixErrors =
       getAutoFixErrorsFromWorkspace(context, tabId) ?? false;
 
-    if (existingPanel) {
-      existingPanel.reveal(vscode.ViewColumn.One);
-      sendFilesToExistingChat(existingPanel, openFilePaths);
+    if (existingPanelInfo) {
+      existingPanelInfo.panel.reveal(vscode.ViewColumn.One);
+      sendFilesToExistingChat(existingPanelInfo.panel, openFilePaths);
     } else {
       await openChatWindow(
         context,
@@ -278,16 +283,17 @@ async function openChatWindow(
     vscode.ViewColumn.One,
     { enableScripts: true, retainContextWhenHidden: true }
   );
-
-  chatPanels.set(tabId, panel);
-
-  (panel.webview as any).activeTasks = new Map<string, AbortController>();
+  const activeTasks: ActiveTasks = new Map<
+    string,
+    [AbortController, string | undefined]
+  >();
+  chatPanels.set(tabId, { panel, activeTasks });
 
   panel.onDidDispose(() => {
     try {
-      cancelAllTasks((panel.webview as any).activeTasks);
+      cancelAllTasks(activeTasks);
     } catch (e) {
-      console.log("onDidDispose1", e);
+      console.log("onDidDisposeE1", e);
     }
     chatPanels.delete(tabId);
   });
@@ -351,7 +357,11 @@ function handleWebviewMessage(
   openedFilePaths: string[],
   tabId: string
 ) {
-  const activeTasks: ActiveTasks = (panel.webview as any).activeTasks;
+  const panelInfo = chatPanels.get(tabId);
+  if (!panelInfo) {
+    throw new Error(`Panel info not found for tabId: ${tabId}`);
+  }
+  const activeTasks = panelInfo.activeTasks;
 
   const logTask: TaskLogger = createTask(async (v) => {
     await panel.webview.postMessage({ ...v, tabId });
@@ -892,7 +902,7 @@ async function handleSetUserPrompt(
 }
 
 export function deactivate() {
-  chatPanels.forEach((panel) => {
-    cancelAllTasks((panel.webview as any).activeTasks);
+  chatPanels.forEach((panelInfo) => {
+    cancelAllTasks(panelInfo.activeTasks);
   });
 }
