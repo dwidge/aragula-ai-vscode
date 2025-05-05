@@ -12,15 +12,7 @@ import {
 import { handleFormatFilesInFiles } from "./handleFormatFilesInFiles";
 import { handleRemoveCommentsInFiles } from "./handleRemoveCommentsInFiles";
 import { handleSendMessage } from "./handleSendMessage";
-import {
-  handlePausePlan,
-  handlePlanAndExecute,
-  handleRequestPlanState,
-  handleResumePlan,
-  handleStopPlan,
-  loadPlanState,
-  savePlanState,
-} from "./planTool";
+import { handlePlanAndExecute } from "./planTool";
 import { runTestMultiTask } from "./runTestMultiTask";
 import { runTestSerialTask } from "./runTestSerialTask";
 import { runTestTask } from "./runTestTask";
@@ -72,7 +64,6 @@ const logError: Logger = (e: unknown) => {
 };
 
 const chatPanels = new Map<string, vscode.WebviewPanel>();
-const activeTasks: ActiveTasks = new Map();
 
 export interface PlanStep {
   description: string;
@@ -290,7 +281,14 @@ async function openChatWindow(
 
   chatPanels.set(tabId, panel);
 
+  (panel.webview as any).activeTasks = new Map<string, AbortController>();
+
   panel.onDidDispose(() => {
+    try {
+      cancelAllTasks((panel.webview as any).activeTasks);
+    } catch (e) {
+      console.log("onDidDispose1", e);
+    }
     chatPanels.delete(tabId);
   });
 
@@ -303,8 +301,6 @@ async function openChatWindow(
     undefined,
     context.subscriptions
   );
-
-  const planState = loadPlanState(context, tabId);
 
   panel.webview.postMessage({
     command: "initPrompts",
@@ -320,7 +316,6 @@ async function openChatWindow(
     autoRemoveComments: autoRemoveComments,
     autoFormat: autoFormat,
     autoFixErrors: autoFixErrors,
-    planState: planState,
   });
 
   panel.webview.postMessage({
@@ -356,6 +351,8 @@ function handleWebviewMessage(
   openedFilePaths: string[],
   tabId: string
 ) {
+  const activeTasks: ActiveTasks = (panel.webview as any).activeTasks;
+
   const logTask: TaskLogger = createTask(async (v) => {
     await panel.webview.postMessage({ ...v, tabId });
   }, activeTasks);
@@ -493,19 +490,7 @@ function handleWebviewMessage(
       handleCommitFiles(context, message.fileNames, logTask);
       break;
     case "planAndExecute":
-      handlePlanAndExecute(context, panel, message, tabId, log);
-      break;
-    case "pausePlan":
-      handlePausePlan(context, panel, tabId, log);
-      break;
-    case "resumePlan":
-      handleResumePlan(context, panel, tabId, log);
-      break;
-    case "stopPlan":
-      handleStopPlan(context, panel, tabId, log);
-      break;
-    case "requestPlanState":
-      handleRequestPlanState(context, panel, tabId);
+      handlePlanAndExecute(message, logTask);
       break;
     case "runTestTask":
       runTestTask(logTask);
@@ -628,19 +613,6 @@ async function handleUseProviderSettingFromLibrary(
   const currentProviderSetting = updatedProviderSettings.find(
     (p) => p.name === providerSettingName
   );
-
-  const planState = loadPlanState(context, tabId);
-  if (planState.status === "paused" || planState.status === "failed") {
-    const newPlanState = {
-      ...planState,
-      providerSetting: currentProviderSetting || null,
-    };
-    savePlanState(context, tabId, newPlanState);
-    panel.webview.postMessage({
-      command: "updatePlanState",
-      planState: newPlanState,
-    });
-  }
 
   panel.webview.postMessage({
     command: "providerSettingsList",
@@ -920,5 +892,7 @@ async function handleSetUserPrompt(
 }
 
 export function deactivate() {
-  cancelAllTasks(activeTasks);
+  chatPanels.forEach((panel) => {
+    cancelAllTasks((panel.webview as any).activeTasks);
+  });
 }

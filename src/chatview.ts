@@ -2450,7 +2450,6 @@ export default (tabId: string) => `
         vscode.postMessage({ command: "requestAvailableVendors" }); // Request available vendors
         vscode.postMessage({ command: "requestEnabledTools" }); // Request enabled tools on load
         vscode.postMessage({ command: "requestCurrentProviderSetting" }); // Request current provider setting on load
-        vscode.postMessage({ command: "requestPlanState" }); // Request plan state on load
 
 
         document.addEventListener('click', function(event) {
@@ -2858,13 +2857,6 @@ export default (tabId: string) => `
                       updateStepStatus(index, status);
                   });
               }
-              break;
-          // case "planExecutionComplete": // Handled by updatePlanState
-          // case "planExecutionFailed": // Handled by updatePlanState
-          // case "planExecutionStopped": // Handled by updatePlanState
-          case "requestPlanState":
-              // This message is sent by the webview on load, the extension responds by sending the state
-              // The response is handled by the "initPrompts" case which includes planState
               break;
 
           default:

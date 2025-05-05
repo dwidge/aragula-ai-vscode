@@ -51,6 +51,12 @@ export const checkAndFixErrors = async (
     { logger: log, signal: abortController.signal }
   );
   await executeToolCalls(response.tools, enabledTools, log);
+
+  log("Checking for errors...", "info");
+  const moreErrors = await findErrors(filePaths, log);
+  if (moreErrors.length) {
+    throw new Error("Could not fix all errors");
+  }
 };
 
 export const findErrors = async (filePaths: string[], log: Logger) => {

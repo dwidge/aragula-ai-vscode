@@ -163,6 +163,17 @@ export async function performAiRequest(
   return response;
 }
 
+export type CallAiProps = {
+  user: string;
+  system: string;
+  fileNames: string[];
+  toolNames: string[];
+  providerSetting: AiApiSettings;
+  autoRemoveComments: boolean;
+  autoFormat: boolean;
+  autoFixErrors: boolean;
+};
+
 /**
  * Calls the AI API with specific parameters, handles tool calls, and cleanup.
  * This function is designed for plan step execution.
@@ -171,16 +182,7 @@ export async function performAiRequest(
  * @returns Promise resolving to the AI response object ({ assistant: string; tools?: ToolCall[]; modifiedFiles?: string[] }).
  */
 export async function callAI(
-  message: {
-    user: string;
-    system: string;
-    fileNames: string[];
-    toolNames: string[];
-    providerSetting: AiApiSettings;
-    autoRemoveComments: boolean;
-    autoFormat: boolean;
-    autoFixErrors: boolean;
-  },
+  message: CallAiProps,
   log: Logger
 ): Promise<{
   assistant: string;
