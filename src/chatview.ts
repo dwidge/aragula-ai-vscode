@@ -298,7 +298,6 @@ export default (tabId: string) => `
       .collapsible-content {
         overflow: hidden;
         transition: max-height 0.3s ease-out;
-        max-height: 1000px; /* Set a large max-height when not collapsed */
       }
       .collapsible-content.collapsed {
         max-height: 0;
@@ -573,7 +572,6 @@ export default (tabId: string) => `
       .plan-step-content {
         overflow: hidden;
         transition: max-height 0.3s ease-out;
-        max-height: 1000px; /* Set a large max-height when not collapsed */
         display: flex;
         flex-direction: column;
         gap: 8px;
