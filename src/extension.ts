@@ -1,8 +1,8 @@
 import * as fs from "fs/promises";
+import path from "path";
 import * as vscode from "vscode";
 import { AiApiSettings } from "./aiTools/AiApi";
 import { availableToolNames, availableVendors } from "./availableToolNames";
-import chatview from "./chatview";
 import { checkAndFixErrors } from "./checkAndFixErrors";
 import { generateCommitMessage } from "./generateCommitMessage";
 import {
@@ -94,6 +94,18 @@ export interface PlanState {
 }
 
 export const PLAN_STATE_KEY = (tabId: string) => `planState-${tabId}`;
+
+const getTextAsset = async (extensionPath: string, assetFileName: string) => {
+  try {
+    const assetPathInDist = path.join(extensionPath, "dist", assetFileName);
+    const fileUri = vscode.Uri.file(assetPathInDist);
+    return await fs.readFile(fileUri.fsPath, "utf8");
+  } catch (error) {
+    throw new Error(
+      `getTextAssetE1: Could not read asset file: ${assetFileName}: ${error}`
+    );
+  }
+};
 
 export function activate(context: vscode.ExtensionContext) {
   console.log('Extension "aragula-ai" active');
@@ -298,7 +310,11 @@ async function openChatWindow(
     chatPanels.delete(tabId);
   });
 
-  panel.webview.html = chatview(tabId);
+  const htmlContent = await getTextAsset(
+    context.extensionPath,
+    "chatview.html"
+  );
+  panel.webview.html = htmlContent.replace("${tabId}", tabId);
   sendInitialSystemMessage(panel, openedFilePaths);
 
   panel.webview.onDidReceiveMessage(

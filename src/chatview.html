@@ -1,4 +1,3 @@
-export default (tabId: string) => `
 <!DOCTYPE html>
 <html lang="en">
   <head>
@@ -35,7 +34,7 @@ export default (tabId: string) => `
         --prompt-delete-button-hover: #f44336;
         --popup-background: var(--background-color);
         --popup-border: var(--pre-border);
-        --popup-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        --popup-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
         --tool-button-background: var(--file-button-background);
         --tool-button-hover: var(--tool-button-hover);
         --tool-button-remove-hover: var(--tool-button-remove-hover);
@@ -58,7 +57,7 @@ export default (tabId: string) => `
         --plan-step-message-background: #f0f4f6; /* Slightly darker than step background */
         --plan-step-message-border: #cce7ee;
         --progress-bar-background: #ccc;
-        --progress-bar-fill: #4CAF50; /* Green */
+        --progress-bar-fill: #4caf50; /* Green */
         --cancel-button-color: #f44336; /* Red */
         --cancel-button-hover-color: #d32f2f; /* Darker red */
       }
@@ -92,7 +91,7 @@ export default (tabId: string) => `
           --prompt-delete-button-hover: #e57373;
           --popup-background: var(--background-color);
           --popup-border: var(--pre-border);
-          --popup-shadow: 0 4px 8px rgba(0,0,0,0.2);
+          --popup-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
           --tool-button-background: var(--file-button-background);
           --tool-button-hover: var(--tool-button-hover);
           --tool-button-remove-hover: var(--tool-button-remove-hover);
@@ -115,7 +114,7 @@ export default (tabId: string) => `
           --plan-step-message-background: #37474f; /* Darker blue-grey */
           --plan-step-message-border: #455a64;
           --progress-bar-background: #555;
-          --progress-bar-fill: #4CAF50; /* Green */
+          --progress-bar-fill: #4caf50; /* Green */
           --cancel-button-color: #e57373; /* Light red */
           --cancel-button-hover-color: #ef9a9a; /* Lighter red */
         }
@@ -127,13 +126,17 @@ export default (tabId: string) => `
         background-color: var(--background-color);
         color: var(--text-color);
       }
-      #selected-files-container, #enabled-tools-container, #selected-provider-container {
+      #selected-files-container,
+      #enabled-tools-container,
+      #selected-provider-container {
         display: flex;
         gap: 5px;
         margin-bottom: 10px;
         flex-wrap: wrap;
       }
-      .file-button, .tool-button, .provider-button {
+      .file-button,
+      .tool-button,
+      .provider-button {
         background-color: var(--provider-button-background);
         color: var(--provider-button-text-color);
         border: none;
@@ -144,10 +147,14 @@ export default (tabId: string) => `
         gap: 5px;
         font-size: 0.9em;
       }
-      .file-button:hover, .tool-button:hover, .provider-button:hover {
+      .file-button:hover,
+      .tool-button:hover,
+      .provider-button:hover {
         background-color: var(--provider-button-hover);
       }
-      .file-button .remove-file-button, .tool-button .remove-tool-button, .provider-button .remove-provider-button {
+      .file-button .remove-file-button,
+      .tool-button .remove-tool-button,
+      .provider-button .remove-provider-button {
         background: none;
         border: none;
         color: var(--provider-button-text-color);
@@ -163,8 +170,9 @@ export default (tabId: string) => `
         height: 18px; /* Fixed height for the button */
       }
 
-
-      .file-button .remove-file-button:hover, .tool-button .remove-tool-button:hover, .provider-button .remove-provider-button:hover {
+      .file-button .remove-file-button:hover,
+      .tool-button .remove-tool-button:hover,
+      .provider-button .remove-provider-button:hover {
         color: white;
         background-color: var(--provider-button-remove-hover);
       }
@@ -179,7 +187,9 @@ export default (tabId: string) => `
         align-items: flex-start; /* Align items to the start to position buttons correctly */
         position: relative; /* needed for popup positioning */
       }
-      textarea, .form-input, select {
+      textarea,
+      .form-input,
+      select {
         box-sizing: border-box;
         width: 100%;
         padding: 10px;
@@ -230,11 +240,11 @@ export default (tabId: string) => `
 
       /* Wrapper for content below the progress bar */
       .message-content-wrapper {
-          padding: 8px;
-          display: flex;
-          flex-direction: column;
-          flex-grow: 1;
-          gap: 8px;
+        padding: 8px;
+        display: flex;
+        flex-direction: column;
+        flex-grow: 1;
+        gap: 8px;
       }
 
       .message-header {
@@ -245,7 +255,7 @@ export default (tabId: string) => `
         position: relative; /* needed for absolute positioning of busy/cancel */
       }
       .message-header.non-collapsible {
-          cursor: default; /* Change cursor for non-collapsible messages */
+        cursor: default; /* Change cursor for non-collapsible messages */
       }
       .message-preview {
         overflow: hidden; /* Hide overflowing text */
@@ -262,7 +272,8 @@ export default (tabId: string) => `
         color: white;
         margin-left: auto; /* Push badge to the right */
       }
-      .collapse-button, .cancel-button {
+      .collapse-button,
+      .cancel-button {
         background: none;
         border: none;
         color: var(--text-color);
@@ -273,13 +284,14 @@ export default (tabId: string) => `
         margin-left: 5px; /* Gap between badge/cancel and button */
       }
       .cancel-button {
-          color: var(--cancel-button-color);
+        color: var(--cancel-button-color);
       }
-      .collapse-button:hover, .cancel-button:hover {
+      .collapse-button:hover,
+      .cancel-button:hover {
         opacity: 1; /* Full opacity on hover */
       }
       .cancel-button:hover {
-          color: var(--cancel-button-hover-color);
+        color: var(--cancel-button-hover-color);
       }
 
       .message {
@@ -309,22 +321,41 @@ export default (tabId: string) => `
 
       /* Container for main chat messages */
       #messages-container {
-          display: flex;
-          flex-direction: column;
-          gap: 8px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
       }
 
-
-      .user-message { background-color: var(--user-message-background); }
-      .assistant-message { background-color: var(--assistant-message-background); }
-      .system-message { background-color: var(--system-message-background); }
-      .prompt-message { background-color: var(--prompt-message-background); }
-      .tool-message { background-color: var(--prompt-message-background); } /* Style for tool messages */
-      .log-message { background-color: var(--log-message-background); }
-      .error-message { background-color: var(--error-message-background); }
-      .warning-message { background-color: var(--warning-message-background); }
-      .info-message { background-color: var(--info-message-background); }
-      .loading-message { background-color: var(--loading-message-background); }
+      .user-message {
+        background-color: var(--user-message-background);
+      }
+      .assistant-message {
+        background-color: var(--assistant-message-background);
+      }
+      .system-message {
+        background-color: var(--system-message-background);
+      }
+      .prompt-message {
+        background-color: var(--prompt-message-background);
+      }
+      .tool-message {
+        background-color: var(--prompt-message-background);
+      } /* Style for tool messages */
+      .log-message {
+        background-color: var(--log-message-background);
+      }
+      .error-message {
+        background-color: var(--error-message-background);
+      }
+      .warning-message {
+        background-color: var(--warning-message-background);
+      }
+      .info-message {
+        background-color: var(--info-message-background);
+      }
+      .loading-message {
+        background-color: var(--loading-message-background);
+      }
       .loader {
         width: 20px;
         height: 20px;
@@ -334,9 +365,18 @@ export default (tabId: string) => `
         animation: spin 1s linear infinite;
         display: inline-block;
       }
-      @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+      @keyframes spin {
+        0% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(360deg);
+        }
+      }
 
-      .prompts-section { margin-bottom: 15px; }
+      .prompts-section {
+        margin-bottom: 15px;
+      }
       .prompts-header {
         background-color: var(--prompts-header-background);
         padding: 10px;
@@ -346,7 +386,9 @@ export default (tabId: string) => `
         justify-content: space-between;
         align-items: center;
       }
-      .prompts-header:hover { background-color: var(--prompts-header-hover); }
+      .prompts-header:hover {
+        background-color: var(--prompts-header-hover);
+      }
       .prompts-list {
         list-style: none;
         padding: 0;
@@ -367,8 +409,12 @@ export default (tabId: string) => `
         word-wrap: break-word; /* Allow text to wrap */
         white-space: normal; /* Ensure text wraps within item */
       }
-      .prompt-item:last-child { border-bottom: none; }
-      .prompt-item:hover { background-color: var(--prompt-item-hover); }
+      .prompt-item:last-child {
+        border-bottom: none;
+      }
+      .prompt-item:hover {
+        background-color: var(--prompt-item-hover);
+      }
       .prompt-delete-button {
         background: none;
         border: none;
@@ -388,9 +434,15 @@ export default (tabId: string) => `
         color: white;
         background-color: var(--prompt-delete-button-hover);
       }
-      .prompt-text { flex-grow: 1; margin-right: 10px;  word-wrap: break-word; /* Ensure text wrapping in text span too */}
+      .prompt-text {
+        flex-grow: 1;
+        margin-right: 10px;
+        word-wrap: break-word; /* Ensure text wrapping in text span too */
+      }
 
-      .prompt-popup, .tool-popup, .provider-popup {
+      .prompt-popup,
+      .tool-popup,
+      .provider-popup {
         position: fixed; /* Changed to fixed */
         z-index: 10; /* Ensure it's on top of other content */
         background-color: var(--popup-background);
@@ -405,7 +457,9 @@ export default (tabId: string) => `
         overflow-y: auto; /* Added scroll if popup is too tall */
         max-width: 80vw; /* Limit popup width to viewport width */
       }
-      .prompt-popup .prompts-list, .tool-popup .tool-list, .provider-popup .provider-list {
+      .prompt-popup .prompts-list,
+      .tool-popup .tool-list,
+      .provider-popup .provider-list {
         border: none; /* Remove border from list inside popup as it has its own border */
         overflow-y: auto; /* Enable scroll for list within popup if needed - redundant because popup has scroll now */
         max-height: unset; /* Remove max height from list inside popup - popup controls height now */
@@ -421,8 +475,12 @@ export default (tabId: string) => `
         word-wrap: break-word; /* Allow text to wrap */
         white-space: normal; /* Ensure text wraps within item */
       }
-      .tool-popup .tool-list .tool-item:last-child { border-bottom: none; }
-      .tool-popup .tool-list .tool-item:hover { background-color: var(--prompt-item-hover); }
+      .tool-popup .tool-list .tool-item:last-child {
+        border-bottom: none;
+      }
+      .tool-popup .tool-list .tool-item:hover {
+        background-color: var(--prompt-item-hover);
+      }
       .provider-popup .provider-list .provider-item {
         background-color: var(--prompt-item-background);
         padding: 10px;
@@ -434,8 +492,12 @@ export default (tabId: string) => `
         word-wrap: break-word; /* Allow text to wrap */
         white-space: normal; /* Ensure text wraps within item */
       }
-      .provider-popup .provider-list .provider-item:last-child { border-bottom: none; }
-      .provider-popup .provider-list .provider-item:hover { background-color: var(--prompt-item-hover); }
+      .provider-popup .provider-list .provider-item:last-child {
+        border-bottom: none;
+      }
+      .provider-popup .provider-list .provider-item:hover {
+        background-color: var(--prompt-item-hover);
+      }
 
       .provider-popup-header {
         display: flex;
@@ -485,7 +547,6 @@ export default (tabId: string) => `
         }
       }
 
-
       .provider-form-buttons {
         display: flex; /* Always visible now */
         gap: 10px;
@@ -498,7 +559,8 @@ export default (tabId: string) => `
         margin-top: 2px;
         display: none; /* Initially hidden */
       }
-      .select-provider-button, .duplicate-provider-button {
+      .select-provider-button,
+      .duplicate-provider-button {
         background: none;
         border: none;
         color: var(--file-button-text-color);
@@ -513,9 +575,12 @@ export default (tabId: string) => `
         align-items: center;
         justify-content: center;
       }
-      .select-provider-button:hover, .duplicate-provider-button:hover {
+      .select-provider-button:hover,
+      .duplicate-provider-button:hover {
         color: white;
-        background-color: var(--button-background); /* Or a more suitable color */
+        background-color: var(
+          --button-background
+        ); /* Or a more suitable color */
       }
 
       .auto-checkbox {
@@ -584,17 +649,17 @@ export default (tabId: string) => `
         overflow: hidden;
       }
       .plan-step-content p {
-          margin-top: 0;
-          margin-bottom: 5px;
-          font-weight: bold;
+        margin-top: 0;
+        margin-bottom: 5px;
+        font-weight: bold;
       }
       .plan-step-content pre {
-          margin-top: 0;
-          padding: 8px; /* Slightly less padding than main pre */
+        margin-top: 0;
+        padding: 8px; /* Slightly less padding than main pre */
       }
       /* Hide full description inside content when collapsed */
       .plan-step:has(.plan-step-content.collapsed) .plan-step-content strong {
-          display: none;
+        display: none;
       }
 
       .plan-step.completed {
@@ -605,7 +670,7 @@ export default (tabId: string) => `
         background-color: var(--plan-step-executing-background);
         border-color: var(--plan-step-executing-border);
       }
-       .plan-step.failed {
+      .plan-step.failed {
         background-color: var(--plan-step-failed-background);
         border-color: var(--plan-step-failed-border);
       }
@@ -625,22 +690,24 @@ export default (tabId: string) => `
 
       /* Styles for messages within plan steps */
       .step-messages-container {
-          padding-top: 8px;
-          border-top: 1px dashed var(--pre-border); /* Separator */
-          display: flex;
-          flex-direction: column;
-          gap: 8px;
+        padding-top: 8px;
+        border-top: 1px dashed var(--pre-border); /* Separator */
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
       }
       .step-messages-container .message {
-          background-color: var(--plan-step-message-background); /* Different background */
-          border: 1px solid var(--plan-step-message-border); /* Different border */
-          display: flex;
-          flex-direction: column;
-          gap: 8px;
+        background-color: var(
+          --plan-step-message-background
+        ); /* Different background */
+        border: 1px solid var(--plan-step-message-border); /* Different border */
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
       }
-       .step-messages-container .message .message-content-wrapper {
-           padding: 8px; /* Apply padding inside the wrapper */
-       }
+      .step-messages-container .message .message-content-wrapper {
+        padding: 8px; /* Apply padding inside the wrapper */
+      }
       .step-messages-container .message:last-child {
       }
       .step-messages-container .message .message-header {
@@ -652,18 +719,18 @@ export default (tabId: string) => `
 
       /* Styles for nested task logs (outside of plan steps) */
       .child-messages-container {
-          display: flex;
-          flex-direction: column;
-          gap: 8px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
       }
       .child-messages-container .message {
-          border: 1px solid var(--plan-step-message-border);
-          display: flex;
-          flex-direction: column;
-          gap: 8px;
+        border: 1px solid var(--plan-step-message-border);
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
       }
       .child-messages-container .message .message-content-wrapper {
-          padding: 8px; /* Apply padding inside the wrapper */
+        padding: 8px; /* Apply padding inside the wrapper */
       }
       .child-messages-container .message:last-child {
       }
@@ -676,70 +743,80 @@ export default (tabId: string) => `
 
       /* Styles for Task Logger Progress Bar */
       .progress-bar-container {
-          width: 100%;
-          height: 5px; /* Height of the progress bar */
-          background-color: var(--progress-bar-background);
-          /* border-radius: 2.5px; /* Half of height for rounded ends */ /* Removed for top border look */
-          overflow: hidden; /* Hide overflow of the fill */
-          margin-top: 0; /* Position at the very top */
-          margin-bottom: 0; /* No margin below, padding is in the wrapper */
-          border-top-left-radius: 5px; /* Match pre border radius */
-          border-top-right-radius: 5px; /* Match pre border radius */
+        width: 100%;
+        height: 5px; /* Height of the progress bar */
+        background-color: var(--progress-bar-background);
+        /* border-radius: 2.5px; /* Half of height for rounded ends */ /* Removed for top border look */
+        overflow: hidden; /* Hide overflow of the fill */
+        margin-top: 0; /* Position at the very top */
+        margin-bottom: 0; /* No margin below, padding is in the wrapper */
+        border-top-left-radius: 5px; /* Match pre border radius */
+        border-top-right-radius: 5px; /* Match pre border radius */
       }
 
       .progress-bar-fill {
-          height: 100%;
-          background-color: var(--progress-bar-fill);
-          width: 0%; /* Initial width */
-          transition: width 0.3s ease-in-out; /* Smooth transition */
+        height: 100%;
+        background-color: var(--progress-bar-fill);
+        width: 0%; /* Initial width */
+        transition: width 0.3s ease-in-out; /* Smooth transition */
       }
 
       /* Optional: Style for failed progress */
       .progress-bar-container.failed .progress-bar-fill {
-          background-color: #f44336; /* Red color for failed */
+        background-color: #f44336; /* Red color for failed */
       }
       /* Optional: Style for completed progress */
       .progress-bar-container.completed .progress-bar-fill {
-          background-color: #4CAF50; /* Green color for completed */
+        background-color: #4caf50; /* Green color for completed */
       }
       /* Optional: Style for busy progress */
       .progress-bar-container.busy .progress-bar-fill {
-          background-color: #ffeb3b; /* Yellow color for busy */
+        background-color: #ffeb3b; /* Yellow color for busy */
       }
     </style>
   </head>
   <body ondragover="allowDrop(event)" ondrop="dropHandler(event)">
     <main>
-
-      <div class="prompts-section" style="display:none;"> <!-- Hiding old header section -->
+      <div class="prompts-section" style="display: none">
+        <!-- Hiding old header section -->
         <div class="prompts-header" onclick="toggleSystemPromptsList()">
           <span>System Prompt Library</span>
           <span id="system-prompts-toggle-icon">▼</span>
         </div>
-        <ul id="system-prompts-list" class="prompts-list" style="display: none;"></ul>
+        <ul
+          id="system-prompts-list"
+          class="prompts-list"
+          style="display: none"
+        ></ul>
       </div>
 
-      <div class="prompts-section" style="display:none;"> <!-- Hiding old header section -->
+      <div class="prompts-section" style="display: none">
+        <!-- Hiding old header section -->
         <div class="prompts-header" onclick="toggleUserPromptsList()">
           <span>User Prompt Library</span>
           <span id="user-prompts-toggle-icon">▼</span>
         </div>
-        <ul id="user-prompts-list" class="prompts-list" style="display: none;"></ul>
+        <ul
+          id="user-prompts-list"
+          class="prompts-list"
+          style="display: none"
+        ></ul>
       </div>
 
-      <div id="enabled-tools-container">
-      </div>
+      <div id="enabled-tools-container"></div>
       <div id="tool-popup" class="tool-popup">
         <ul id="tool-popup-list" class="tool-list"></ul>
       </div>
 
-      <div id="selected-provider-container">
-      </div>
+      <div id="selected-provider-container"></div>
       <div id="provider-popup" class="provider-popup">
         <div class="provider-popup-header">
           <span>Providers</span>
           <div>
-            <button style="display:none;" onclick="handleAddProviderButton()">Add</button> <!-- Hiding header add button -->
+            <button style="display: none" onclick="handleAddProviderButton()">
+              Add
+            </button>
+            <!-- Hiding header add button -->
           </div>
         </div>
         <ul id="provider-popup-list" class="provider-list"></ul>
@@ -747,7 +824,12 @@ export default (tabId: string) => `
         <div id="provider-form" class="provider-form">
           <h3>Add/Edit Provider</h3>
           <label for="provider-name">Name:</label>
-          <input type="text" id="provider-name" class="form-input" placeholder="Provider Name" />
+          <input
+            type="text"
+            id="provider-name"
+            class="form-input"
+            placeholder="Provider Name"
+          />
           <div class="error-message-inline" id="provider-name-error"></div>
 
           <label for="provider-vendor">Vendor:</label>
@@ -757,24 +839,55 @@ export default (tabId: string) => `
           <div class="error-message-inline" id="provider-vendor-error"></div>
 
           <label for="provider-apiKey">API Key:</label>
-          <input type="text" id="provider-apiKey" class="form-input" placeholder="API Key" />
+          <input
+            type="text"
+            id="provider-apiKey"
+            class="form-input"
+            placeholder="API Key"
+          />
           <div class="error-message-inline" id="provider-apiKey-error"></div>
 
           <label for="provider-baseURL">Base URL (optional):</label>
-          <input type="text" id="provider-baseURL" class="form-input" placeholder="Base URL (for custom servers)" />
+          <input
+            type="text"
+            id="provider-baseURL"
+            class="form-input"
+            placeholder="Base URL (for custom servers)"
+          />
           <div class="error-message-inline" id="provider-baseURL-error"></div>
 
           <label for="provider-model">Model:</label>
-          <input type="text" id="provider-model" class="form-input" placeholder="Model Name (e.g., gpt-4, claude-v1.3)" />
+          <input
+            type="text"
+            id="provider-model"
+            class="form-input"
+            placeholder="Model Name (e.g., gpt-4, claude-v1.3)"
+          />
           <div class="error-message-inline" id="provider-model-error"></div>
 
           <label for="provider-maxTokens">Max Tokens (optional):</label>
-          <input type="number" id="provider-maxTokens" class="form-input" placeholder="Max Tokens" />
+          <input
+            type="number"
+            id="provider-maxTokens"
+            class="form-input"
+            placeholder="Max Tokens"
+          />
           <div class="error-message-inline" id="provider-maxTokens-error"></div>
 
           <label for="provider-temperature">Temperature (optional, 0-2):</label>
-          <input type="number" id="provider-temperature" class="form-input" placeholder="Temperature (e.g., 0.7)" step="0.1" min="0" max="2" />
-          <div class="error-message-inline" id="provider-temperature-error"></div>
+          <input
+            type="number"
+            id="provider-temperature"
+            class="form-input"
+            placeholder="Temperature (e.g., 0.7)"
+            step="0.1"
+            min="0"
+            max="2"
+          />
+          <div
+            class="error-message-inline"
+            id="provider-temperature-error"
+          ></div>
 
           <div class="provider-form-buttons">
             <button onclick="handleSaveProviderSettings()">Save</button>
@@ -783,12 +896,14 @@ export default (tabId: string) => `
         </div>
       </div>
 
-
       <div id="selected-files-container"></div>
       <div class="input-area">
-
         <div class="input-row">
-          <textarea id="systemPromptInput" rows="2" placeholder="Edit system prompt here..."></textarea>
+          <textarea
+            id="systemPromptInput"
+            rows="2"
+            placeholder="Edit system prompt here..."
+          ></textarea>
           <div class="prompt-buttons">
             <button onclick="toggleSystemPromptsPopup()">Load</button>
             <button onclick="addSystemPromptToLibrary()">Save</button>
@@ -798,9 +913,12 @@ export default (tabId: string) => `
           <ul id="system-prompts-popup-list" class="prompts-list"></ul>
         </div>
 
-
         <div class="input-row">
-          <textarea id="userInput" rows="4" placeholder="Type your message here..."></textarea>
+          <textarea
+            id="userInput"
+            rows="4"
+            placeholder="Type your message here..."
+          ></textarea>
           <div class="prompt-buttons">
             <button onclick="toggleUserPromptsPopup()">Load</button>
             <button onclick="addUserPromptToLibrary()">Save</button>
@@ -810,39 +928,63 @@ export default (tabId: string) => `
           <ul id="user-prompts-popup-list" class="prompts-list"></ul>
         </div>
 
-
         <div class="button-row">
           <button id="sendButton" onclick="handleSendMessage()">
             <span id="buttonText">Send</span>
-            <span id="loader" class="loader" style="display:none;"></span>
+            <span id="loader" class="loader" style="display: none"></span>
           </button>
           <button id="planButton" onclick="handlePlanAndExecute()">
-             <span id="planButtonText">Plan & Execute</span>
-             <span id="planLoader" class="loader" style="display:none;"></span>
+            <span id="planButtonText">Plan & Execute</span>
+            <span id="planLoader" class="loader" style="display: none"></span>
           </button>
           <button id="clearButton" onclick="clearChatHistory()">Clear</button>
-          <button id="addFilesButton" onclick="addFilesDialog()">Add Files</button>
-          <button id="addToolButton" onclick="toggleToolPopup()">Add Tool</button>
-          <button id="providerSettingsButton" onclick="toggleProviderSettingsPopup()">Providers</button>
+          <button id="addFilesButton" onclick="addFilesDialog()">
+            Add Files
+          </button>
+          <button id="addToolButton" onclick="toggleToolPopup()">
+            Add Tool
+          </button>
+          <button
+            id="providerSettingsButton"
+            onclick="toggleProviderSettingsPopup()"
+          >
+            Providers
+          </button>
           <div class="auto-checkbox">
-            <input type="checkbox" id="autoRemoveCommentsCheckbox">
+            <input type="checkbox" id="autoRemoveCommentsCheckbox" />
             <label for="autoRemoveCommentsCheckbox">Auto Remove Comments</label>
           </div>
-          <button id="removeCommentsButton" onclick="handleRemoveComments()">Remove Comments</button>
+          <button id="removeCommentsButton" onclick="handleRemoveComments()">
+            Remove Comments
+          </button>
           <div class="auto-checkbox">
-            <input type="checkbox" id="autoFormatCheckbox">
+            <input type="checkbox" id="autoFormatCheckbox" />
             <label for="autoFormatCheckbox">Auto Format</label>
           </div>
           <button id="formatButton" onclick="handleFormat()">Format</button>
           <div class="auto-checkbox">
-            <input type="checkbox" id="autoFixErrorsCheckbox">
+            <input type="checkbox" id="autoFixErrorsCheckbox" />
             <label for="autoFixErrorsCheckbox">Auto Fix Errors</label>
           </div>
-          <button id="fixErrorsButton" onclick="handleFixErrors()">Fix Errors</button>
-          <button id="commitFilesButton" onclick="handleCommitFiles()">Commit Files</button> <!-- New Commit Files Button -->
-          <button id="testTaskButton" onclick="handleTestTask()">Test Task Logger</button> <!-- New Test Task Logger Button -->
-          <button id="testMultiTaskButton" onclick="handleTestMultiTask()">Test Multi Task</button> <!-- New Test Multi Task Button -->
-          <button id="testSerialTaskButton" onclick="handleTestSerialTask()">Test Serial Task</button> <!-- New Test Serial Task Button -->
+          <button id="fixErrorsButton" onclick="handleFixErrors()">
+            Fix Errors
+          </button>
+          <button id="commitFilesButton" onclick="handleCommitFiles()">
+            Commit Files
+          </button>
+          <!-- New Commit Files Button -->
+          <button id="testTaskButton" onclick="handleTestTask()">
+            Test Task Logger
+          </button>
+          <!-- New Test Task Logger Button -->
+          <button id="testMultiTaskButton" onclick="handleTestMultiTask()">
+            Test Multi Task
+          </button>
+          <!-- New Test Multi Task Button -->
+          <button id="testSerialTaskButton" onclick="handleTestSerialTask()">
+            Test Serial Task
+          </button>
+          <!-- New Test Serial Task Button -->
         </div>
       </div>
 
@@ -932,12 +1074,12 @@ export default (tabId: string) => `
        * @property {boolean} autoRemoveComments
        * @property {boolean} autoFormat
        * @property {boolean} autoFixErrors
-      * @property {boolean[]} [stepCollapsedStates] - Array to store collapse state for each step
-      * @property {string} tabId - The tab ID this plan state belongs to
+       * @property {boolean[]} [stepCollapsedStates] - Array to store collapse state for each step
+       * @property {string} tabId - The tab ID this plan state belongs to
        */
       /** @type {PlanState} */
       let planState = {
-        status: 'idle',
+        status: "idle",
         currentStepIndex: -1,
         plan: null,
         error: null,
@@ -947,20 +1089,19 @@ export default (tabId: string) => `
         autoFormat: true,
         autoFixErrors: true,
         stepCollapsedStates: [], // Initialize collapse states
-        tabId: tabId // Initialize tabId
+        tabId: tabId, // Initialize tabId
       };
 
-
       const STORAGE_KEYS = {
-        chatHistory: \`chatMessages-\${tabId}\`,
-        userInput: \`userInput-\${tabId}\`,
-        openFiles: \`openFiles-\${tabId}\`,
-        enabledTools: 'enabledTools', // Key for enabled tools (Global)
-        currentProviderSettingName: 'currentProviderSettingName', // Key for current provider setting name (Global)
-        autoRemoveComments: \`autoRemoveComments-\${tabId}\`, // Key for auto remove comments checkbox state (Workspace)
-        autoFormat: \`autoFormat-\${tabId}\`, // Key for auto format checkbox state (Workspace)
-        autoFixErrors: \`autoFixErrors-\${tabId}\`, // Key for auto fix errors checkbox state (Workspace)
-        planState: \`planState-\${tabId}\`, // Key for plan state (Workspace)
+        chatHistory: `chatMessages-${tabId}`,
+        userInput: `userInput-${tabId}`,
+        openFiles: `openFiles-${tabId}`,
+        enabledTools: "enabledTools", // Key for enabled tools (Global)
+        currentProviderSettingName: "currentProviderSettingName", // Key for current provider setting name (Global)
+        autoRemoveComments: `autoRemoveComments-${tabId}`, // Key for auto remove comments checkbox state (Workspace)
+        autoFormat: `autoFormat-${tabId}`, // Key for auto format checkbox state (Workspace)
+        autoFixErrors: `autoFixErrors-${tabId}`, // Key for auto fix errors checkbox state (Workspace)
+        planState: `planState-${tabId}`, // Key for plan state (Workspace)
       };
 
       // DOM elements
@@ -973,53 +1114,92 @@ export default (tabId: string) => `
       const planButton = document.getElementById("planButton"); // New plan button
       const planButtonText = document.getElementById("planButtonText"); // Text span for plan button
       const planLoader = document.getElementById("planLoader"); // Loader for plan button
-      const selectedFilesContainer = document.getElementById("selected-files-container");
-      const enabledToolsContainer = document.getElementById("enabled-tools-container"); // Enabled tools container
-      const systemPromptsPopupEl = document.getElementById("system-prompts-popup");
+      const selectedFilesContainer = document.getElementById(
+        "selected-files-container"
+      );
+      const enabledToolsContainer = document.getElementById(
+        "enabled-tools-container"
+      ); // Enabled tools container
+      const systemPromptsPopupEl = document.getElementById(
+        "system-prompts-popup"
+      );
       const userPromptsPopupEl = document.getElementById("user-prompts-popup");
-      const systemPromptsPopupListEl = document.getElementById("system-prompts-popup-list");
-      const userPromptsPopupListEl = document.getElementById("user-prompts-popup-list");
-      const systemPromptLoadButton = document.querySelector('#systemPromptInput + .prompt-buttons > button:nth-child(1)');
-      const userPromptLoadButton = document.querySelector('#userInput + .prompt-buttons > button:nth-child(1)');
+      const systemPromptsPopupListEl = document.getElementById(
+        "system-prompts-popup-list"
+      );
+      const userPromptsPopupListEl = document.getElementById(
+        "user-prompts-popup-list"
+      );
+      const systemPromptLoadButton = document.querySelector(
+        "#systemPromptInput + .prompt-buttons > button:nth-child(1)"
+      );
+      const userPromptLoadButton = document.querySelector(
+        "#userInput + .prompt-buttons > button:nth-child(1)"
+      );
       const toolPopupEl = document.getElementById("tool-popup");
       const toolPopupListEl = document.getElementById("tool-popup-list");
       const addToolButton = document.getElementById("addToolButton");
-      const selectedProviderContainer = document.getElementById("selected-provider-container");
+      const selectedProviderContainer = document.getElementById(
+        "selected-provider-container"
+      );
       const providerSettingsPopupEl = document.getElementById("provider-popup");
-      const providerSettingsPopupListEl = document.getElementById("provider-popup-list");
-      const providerSettingsButton = document.getElementById("providerSettingsButton");
-      const providerFormEl = document.getElementById('provider-form');
-      const providerNameInput = document.getElementById('provider-name');
-      const providerVendorInput = document.getElementById('provider-vendor');
-      const providerApiKeyInput = document.getElementById('provider-apiKey');
-      const providerBaseURLInput = document.getElementById('provider-baseURL');
-      const providerModelInput = document.getElementById('provider-model');
-      const providerMaxTokensInput = document.getElementById('provider-maxTokens');
-      const providerTemperatureInput = document.getElementById('provider-temperature'); // New input for temperature
-      const providerNameError = document.getElementById('provider-name-error');
-      const providerVendorError = document.getElementById('provider-vendor-error');
-      const providerApiKeyError = document.getElementById('provider-apiKey-error');
-      const providerModelError = document.getElementById('provider-model-error');
-      const providerTemperatureError = document.getElementById('provider-temperature-error'); // New error for temperature
-      const removeCommentsButton = document.getElementById('removeCommentsButton');
-      const formatButton = document.getElementById('formatButton');
-      const fixErrorsButton = document.getElementById('fixErrorsButton'); // New button for fix errors
-      const autoRemoveCommentsCheckbox = document.getElementById('autoRemoveCommentsCheckbox');
-      const autoFormatCheckbox = document.getElementById('autoFormatCheckbox');
-      const autoFixErrorsCheckbox = document.getElementById('autoFixErrorsCheckbox'); // New checkbox for auto fix errors
-      const commitFilesButton = document.getElementById('commitFilesButton'); // New Commit Files Button
-      const testTaskButton = document.getElementById('testTaskButton'); // New Test Task Logger Button
-      const testMultiTaskButton = document.getElementById('testMultiTaskButton'); // New Test Multi Task Button
-      const testSerialTaskButton = document.getElementById('testSerialTaskButton'); // New Test Serial Task Button
-
+      const providerSettingsPopupListEl = document.getElementById(
+        "provider-popup-list"
+      );
+      const providerSettingsButton = document.getElementById(
+        "providerSettingsButton"
+      );
+      const providerFormEl = document.getElementById("provider-form");
+      const providerNameInput = document.getElementById("provider-name");
+      const providerVendorInput = document.getElementById("provider-vendor");
+      const providerApiKeyInput = document.getElementById("provider-apiKey");
+      const providerBaseURLInput = document.getElementById("provider-baseURL");
+      const providerModelInput = document.getElementById("provider-model");
+      const providerMaxTokensInput =
+        document.getElementById("provider-maxTokens");
+      const providerTemperatureInput = document.getElementById(
+        "provider-temperature"
+      ); // New input for temperature
+      const providerNameError = document.getElementById("provider-name-error");
+      const providerVendorError = document.getElementById(
+        "provider-vendor-error"
+      );
+      const providerApiKeyError = document.getElementById(
+        "provider-apiKey-error"
+      );
+      const providerModelError = document.getElementById(
+        "provider-model-error"
+      );
+      const providerTemperatureError = document.getElementById(
+        "provider-temperature-error"
+      ); // New error for temperature
+      const removeCommentsButton = document.getElementById(
+        "removeCommentsButton"
+      );
+      const formatButton = document.getElementById("formatButton");
+      const fixErrorsButton = document.getElementById("fixErrorsButton"); // New button for fix errors
+      const autoRemoveCommentsCheckbox = document.getElementById(
+        "autoRemoveCommentsCheckbox"
+      );
+      const autoFormatCheckbox = document.getElementById("autoFormatCheckbox");
+      const autoFixErrorsCheckbox = document.getElementById(
+        "autoFixErrorsCheckbox"
+      ); // New checkbox for auto fix errors
+      const commitFilesButton = document.getElementById("commitFilesButton"); // New Commit Files Button
+      const testTaskButton = document.getElementById("testTaskButton"); // New Test Task Logger Button
+      const testMultiTaskButton = document.getElementById(
+        "testMultiTaskButton"
+      ); // New Test Multi Task Button
+      const testSerialTaskButton = document.getElementById(
+        "testSerialTaskButton"
+      ); // New Test Serial Task Button
 
       // Plan UI elements
-      const planContainer = document.getElementById('plan-container');
-      const planGoalEl = document.getElementById('plan-goal');
-      const planStepsEl = document.getElementById('plan-steps');
-      const planErrorEl = document.getElementById('plan-error');
-      const planControlsEl = document.getElementById('plan-controls');
-
+      const planContainer = document.getElementById("plan-container");
+      const planGoalEl = document.getElementById("plan-goal");
+      const planStepsEl = document.getElementById("plan-steps");
+      const planErrorEl = document.getElementById("plan-error");
+      const planControlsEl = document.getElementById("plan-controls");
 
       /**
        * @typedef {Object} AiProviderSettings
@@ -1031,7 +1211,6 @@ export default (tabId: string) => `
        * @property {number} [max_tokens]
        * @property {number} [temperature]
        */
-
 
       /**
        * Loads state from localStorage: chat history, open files.
@@ -1068,7 +1247,7 @@ export default (tabId: string) => `
         try {
           return data ? JSON.parse(data) : defaultValue;
         } catch (e) {
-          console.error(\`Error parsing localStorage key \${key}: \`, e);
+          console.error(`Error parsing localStorage key ${key}: `, e);
           return defaultValue;
         }
       }
@@ -1101,15 +1280,15 @@ export default (tabId: string) => `
        */
       function renderChatHistory() {
         messagesContainer.innerHTML = ""; // Clear existing messages
-        chatHistory.forEach(msg => {
-            // Use stored summary and detail
-            renderMessage({
-                id: msg.id,
-                type: msg.messageType,
-                summary: msg.summary, // Use stored summary
-                detail: msg.detail,   // Use stored detail
-                isCollapsed: msg.isCollapsed
-            }); // renderMessage defaults to messagesContainer
+        chatHistory.forEach((msg) => {
+          // Use stored summary and detail
+          renderMessage({
+            id: msg.id,
+            type: msg.messageType,
+            summary: msg.summary, // Use stored summary
+            detail: msg.detail, // Use stored detail
+            isCollapsed: msg.isCollapsed,
+          }); // renderMessage defaults to messagesContainer
         });
         scrollToBottom();
       }
@@ -1125,105 +1304,105 @@ export default (tabId: string) => `
        * @param {boolean} [params.isCollapsed=false] - Initial collapsed state.
        * @param {HTMLElement} [targetContainer=messagesContainer] - The container to append the message to.
        */
-      function renderMessage({ id, type = 'log', summary, detail, progress, isCollapsed = false }, targetContainer = messagesContainer) {
-          const el = document.createElement('pre');
-          el.classList.add('message');
-          el.classList.add(\`\${type}-message\`);
-          if (['prompt', 'tool'].includes(type)) {
-            el.classList.add('tool-message');
+      function renderMessage(
+        { id, type = "log", summary, detail, progress, isCollapsed = false },
+        targetContainer = messagesContainer
+      ) {
+        const el = document.createElement("pre");
+        el.classList.add("message");
+        el.classList.add(`${type}-message`);
+        if (["prompt", "tool"].includes(type)) {
+          el.classList.add("tool-message");
+        }
+        if (id) el.id = `message-${id}`; // Add ID to the message element
+
+        // Add Progress Bar if progress is defined
+        if (progress !== undefined) {
+          const progressBarContainer = document.createElement("div");
+          progressBarContainer.classList.add("progress-bar-container");
+          const progressBarFill = document.createElement("div");
+          progressBarFill.classList.add("progress-bar-fill");
+          const width = Math.max(0, Math.min(1, progress)) * 100;
+          progressBarFill.style.width = `${width}%`;
+          if (progress < 0) {
+            progressBarContainer.classList.add("failed");
+          } else if (progress === 1) {
+            progressBarContainer.classList.add("completed");
+          } else if (progress > 0 && progress < 1) {
+            progressBarContainer.classList.add("busy");
           }
-          if (id) el.id = \`message-\${id}\`; // Add ID to the message element
+          progressBarContainer.appendChild(progressBarFill);
+          el.appendChild(progressBarContainer); // Append progress bar first, inside the message element
+        }
 
-          // Add Progress Bar if progress is defined
-          if (progress !== undefined) {
-              const progressBarContainer = document.createElement('div');
-              progressBarContainer.classList.add('progress-bar-container');
-              const progressBarFill = document.createElement('div');
-              progressBarFill.classList.add('progress-bar-fill');
-              const width = Math.max(0, Math.min(1, progress)) * 100;
-              progressBarFill.style.width = \`\${width}%\`;
-               if (progress < 0) {
-                   progressBarContainer.classList.add('failed');
-               } else if (progress === 1) {
-                   progressBarContainer.classList.add('completed');
-               } else if (progress > 0 && progress < 1) {
-                   progressBarContainer.classList.add('busy');
-               }
-              progressBarContainer.appendChild(progressBarFill);
-              el.appendChild(progressBarContainer); // Append progress bar first, inside the message element
-          }
+        // Create a wrapper for the content below the progress bar
+        const messageContentWrapper = document.createElement("div");
+        messageContentWrapper.classList.add("message-content-wrapper");
 
-          // Create a wrapper for the content below the progress bar
-          const messageContentWrapper = document.createElement('div');
-          messageContentWrapper.classList.add('message-content-wrapper');
+        const headerDiv = document.createElement("div");
+        headerDiv.classList.add("message-header");
 
-          const headerDiv = document.createElement('div');
-          headerDiv.classList.add('message-header');
+        const previewSpan = document.createElement("span");
+        previewSpan.classList.add("message-preview");
+        // Use provided summary for preview
+        previewSpan.textContent = summary !== undefined ? summary : "";
+        headerDiv.appendChild(previewSpan);
 
-          const previewSpan = document.createElement('span');
-          previewSpan.classList.add('message-preview');
-          // Use provided summary for preview
-          previewSpan.textContent = summary !== undefined ? summary : '';
-          headerDiv.appendChild(previewSpan);
+        const badge = document.createElement("span");
+        badge.classList.add("message-type-badge");
+        badge.textContent = type;
+        headerDiv.appendChild(badge);
 
-          const badge = document.createElement('span');
-          badge.classList.add('message-type-badge');
-          badge.textContent = type;
-          headerDiv.appendChild(badge);
+        // Add Cancel Button (initially hidden)
+        const cancelButton = document.createElement("button");
+        cancelButton.classList.add("cancel-button");
+        cancelButton.textContent = "✕"; // Cross icon
+        cancelButton.title = "Cancel Task";
+        cancelButton.style.display = "none"; // Hidden by default
+        cancelButton.onclick = (event) => {
+          event.stopPropagation(); // Prevent header click
+          handleCancelTask(id); // Call cancel handler with message ID
+        };
+        headerDiv.appendChild(cancelButton);
 
-          // Add Cancel Button (initially hidden)
-          const cancelButton = document.createElement('button');
-          cancelButton.classList.add('cancel-button');
-          cancelButton.textContent = '✕'; // Cross icon
-          cancelButton.title = 'Cancel Task';
-          cancelButton.style.display = 'none'; // Hidden by default
-          cancelButton.onclick = (event) => {
-              event.stopPropagation(); // Prevent header click
-              handleCancelTask(id); // Call cancel handler with message ID
-          };
-          headerDiv.appendChild(cancelButton);
+        const collapseButton = document.createElement("button");
+        collapseButton.classList.add("collapse-button");
+        collapseButton.textContent = isCollapsed ? "▼" : "▲";
+        headerDiv.appendChild(collapseButton);
 
+        messageContentWrapper.appendChild(headerDiv); // Append header to the wrapper
 
-          const collapseButton = document.createElement('button');
-          collapseButton.classList.add('collapse-button');
-          collapseButton.textContent = isCollapsed ? '▼' : '▲';
-          headerDiv.appendChild(collapseButton);
+        const contentDiv = document.createElement("div");
+        contentDiv.classList.add("collapsible-content");
+        contentDiv.classList.toggle("collapsed", isCollapsed); // Set initial collapsed state
 
-          messageContentWrapper.appendChild(headerDiv); // Append header to the wrapper
+        // Create wrapper for detail text and child messages, below the header
+        const messageBodyContentDiv = document.createElement("div");
+        messageBodyContentDiv.classList.add("message-body-content");
 
+        // Create wrapper for detail text
+        const messageDetailTextDiv = document.createElement("div");
+        messageDetailTextDiv.classList.add("message-detail-text");
+        messageDetailTextDiv.textContent = detail || ""; // Use provided detail for content
+        messageBodyContentDiv.appendChild(messageDetailTextDiv); // Append detail text wrapper
 
-          const contentDiv = document.createElement('div');
-          contentDiv.classList.add('collapsible-content');
-          contentDiv.classList.toggle('collapsed', isCollapsed); // Set initial collapsed state
+        // Add container for child messages (hidden by default)
+        const childMessagesContainer = document.createElement("div");
+        childMessagesContainer.classList.add("child-messages-container");
+        childMessagesContainer.style.display = isCollapsed ? "none" : ""; // Hide child container if collapsed
+        messageBodyContentDiv.appendChild(childMessagesContainer); // Append child container
 
-          // Create wrapper for detail text and child messages, below the header
-          const messageBodyContentDiv = document.createElement('div');
-          messageBodyContentDiv.classList.add('message-body-content');
+        contentDiv.appendChild(messageBodyContentDiv); // Append the body content wrapper to collapsible content
+        messageContentWrapper.appendChild(contentDiv); // Append collapsible content to the wrapper
 
-          // Create wrapper for detail text
-          const messageDetailTextDiv = document.createElement('div');
-          messageDetailTextDiv.classList.add('message-detail-text');
-          messageDetailTextDiv.textContent = detail || ''; // Use provided detail for content
-          messageBodyContentDiv.appendChild(messageDetailTextDiv); // Append detail text wrapper
+        el.appendChild(messageContentWrapper); // Append the wrapper to the message element
 
-          // Add container for child messages (hidden by default)
-          const childMessagesContainer = document.createElement('div');
-          childMessagesContainer.classList.add('child-messages-container');
-          childMessagesContainer.style.display = isCollapsed ? 'none' : ''; // Hide child container if collapsed
-          messageBodyContentDiv.appendChild(childMessagesContainer); // Append child container
+        // Update collapsibility based on initial content
+        updateMessageCollapsibility(el);
+        // Update cancel button visibility based on initial state
+        updateCancelButtonVisibility(el, type, progress);
 
-          contentDiv.appendChild(messageBodyContentDiv); // Append the body content wrapper to collapsible content
-          messageContentWrapper.appendChild(contentDiv); // Append collapsible content to the wrapper
-
-          el.appendChild(messageContentWrapper); // Append the wrapper to the message element
-
-          // Update collapsibility based on initial content
-          updateMessageCollapsibility(el);
-          // Update cancel button visibility based on initial state
-          updateCancelButtonVisibility(el, type, progress);
-
-
-          targetContainer.appendChild(el);
+        targetContainer.appendChild(el);
       }
 
       /**
@@ -1236,80 +1415,118 @@ export default (tabId: string) => `
        * @param {number} [params.progress] - New progress value.
        * @param {HTMLElement} [container=messagesContainer] - The container where the message is rendered.
        */
-      function updateMessageElement(id, { type, summary, detail, progress }, container = messagesContainer) {
-          const el = container.querySelector(\`#message-\${id}\`); // Find element within the specified container
-          if (!el) return;
+      function updateMessageElement(
+        id,
+        { type, summary, detail, progress },
+        container = messagesContainer
+      ) {
+        const el = container.querySelector(`#message-${id}`); // Find element within the specified container
+        if (!el) return;
 
-          const contentDiv = el.querySelector('.collapsible-content');
-          const previewSpan = el.querySelector('.message-preview');
-          const badge = el.querySelector('.message-type-badge');
-          const messageDetailTextDiv = el.querySelector('.message-detail-text'); // Get the detail text wrapper
-          let progressBarContainer = el.querySelector('.progress-bar-container');
-          let progressBarFill = el.querySelector('.progress-bar-fill');
-          const childMessagesContainer = el.querySelector('.child-messages-container'); // Get child container
-          const currentType = el.classList.contains('user-message') ? 'user' : el.classList.contains('assistant-message') ? 'assistant' : el.classList.contains('system-message') ? 'system' : el.classList.contains('prompt-message') ? 'prompt' : el.classList.contains('tool-message') ? 'tool' : el.classList.contains('log-message') ? 'log' : el.classList.contains('error-message') ? 'error' : el.classList.contains('warning-message') ? 'warning' : el.classList.contains('info-message') ? 'info' : el.classList.contains('loading-message') ? 'loading' : 'log';
+        const contentDiv = el.querySelector(".collapsible-content");
+        const previewSpan = el.querySelector(".message-preview");
+        const badge = el.querySelector(".message-type-badge");
+        const messageDetailTextDiv = el.querySelector(".message-detail-text"); // Get the detail text wrapper
+        let progressBarContainer = el.querySelector(".progress-bar-container");
+        let progressBarFill = el.querySelector(".progress-bar-fill");
+        const childMessagesContainer = el.querySelector(
+          ".child-messages-container"
+        ); // Get child container
+        const currentType = el.classList.contains("user-message")
+          ? "user"
+          : el.classList.contains("assistant-message")
+          ? "assistant"
+          : el.classList.contains("system-message")
+          ? "system"
+          : el.classList.contains("prompt-message")
+          ? "prompt"
+          : el.classList.contains("tool-message")
+          ? "tool"
+          : el.classList.contains("log-message")
+          ? "log"
+          : el.classList.contains("error-message")
+          ? "error"
+          : el.classList.contains("warning-message")
+          ? "warning"
+          : el.classList.contains("info-message")
+          ? "info"
+          : el.classList.contains("loading-message")
+          ? "loading"
+          : "log";
 
+        if (summary !== undefined && previewSpan) {
+          previewSpan.textContent = summary; // Use provided summary
+        }
 
-          if (summary !== undefined && previewSpan) {
-               previewSpan.textContent = summary; // Use provided summary
+        if (detail !== undefined && messageDetailTextDiv) {
+          messageDetailTextDiv.textContent = detail; // Update detail text
+          // Re-evaluate collapsibility after detail update
+          updateMessageCollapsibility(el);
+        }
+        if (type !== undefined && badge) {
+          badge.textContent = type;
+          // Update classes for styling
+          el.classList.remove(
+            "user-message",
+            "assistant-message",
+            "system-message",
+            "prompt-message",
+            "tool-message",
+            "log-message",
+            "error-message",
+            "warning-message",
+            "info-message",
+            "loading-message"
+          );
+          el.classList.add(`${type}-message`);
+          if (["prompt", "tool"].includes(type)) {
+            el.classList.add("tool-message");
+          }
+        }
+
+        // Update Progress Bar if progress is defined
+        if (progress !== undefined) {
+          if (!progressBarContainer) {
+            // Create progress bar if it doesn't exist
+            progressBarContainer = document.createElement("div");
+            progressBarContainer.classList.add("progress-bar-container");
+            progressBarFill = document.createElement("div");
+            progressBarFill.classList.add("progress-bar-fill");
+            progressBarContainer.appendChild(progressBarFill);
+            // Insert the progress bar container before the content wrapper
+            const messageContentWrapper = el.querySelector(
+              ".message-content-wrapper"
+            );
+            if (messageContentWrapper) {
+              messageContentWrapper.before(progressBarContainer);
+            } else {
+              el.prepend(progressBarContainer); // Fallback
+            }
+          } else {
+            // Ensure it's visible if it was hidden by collapse
+            progressBarContainer.style.display = "";
           }
 
-          if (detail !== undefined && messageDetailTextDiv) {
-              messageDetailTextDiv.textContent = detail; // Update detail text
-              // Re-evaluate collapsibility after detail update
-              updateMessageCollapsibility(el);
+          const width = Math.max(0, Math.min(1, progress)) * 100;
+          progressBarFill.style.width = `${width}%`;
+
+          progressBarContainer.classList.remove("failed", "completed", "busy");
+          if (progress < 0) {
+            progressBarContainer.classList.add("failed");
+          } else if (progress === 1) {
+            progressBarContainer.classList.add("completed");
+          } else if (progress > 0 && progress < 1) {
+            progressBarContainer.classList.add("busy");
           }
-          if (type !== undefined && badge) {
-              badge.textContent = type;
-              // Update classes for styling
-              el.classList.remove('user-message', 'assistant-message', 'system-message', 'prompt-message', 'tool-message', 'log-message', 'error-message', 'warning-message', 'info-message', 'loading-message');
-              el.classList.add(\`\${type}-message\`);
-               if (['prompt', 'tool'].includes(type)) {
-                  el.classList.add('tool-message');
-              }
-          }
+        } else if (progressBarContainer) {
+          // If progress is undefined but bar exists, hide it.
+          progressBarContainer.style.display = "none";
+        }
 
-          // Update Progress Bar if progress is defined
-          if (progress !== undefined) {
-              if (!progressBarContainer) {
-                   // Create progress bar if it doesn't exist
-                   progressBarContainer = document.createElement('div');
-                   progressBarContainer.classList.add('progress-bar-container');
-                   progressBarFill = document.createElement('div');
-                   progressBarFill.classList.add('progress-bar-fill');
-                   progressBarContainer.appendChild(progressBarFill);
-                   // Insert the progress bar container before the content wrapper
-                   const messageContentWrapper = el.querySelector('.message-content-wrapper');
-                   if (messageContentWrapper) {
-                       messageContentWrapper.before(progressBarContainer);
-                   } else {
-                       el.prepend(progressBarContainer); // Fallback
-                   }
-              } else {
-                   // Ensure it's visible if it was hidden by collapse
-                   progressBarContainer.style.display = '';
-              }
+        // Update cancel button visibility based on updated state
+        updateCancelButtonVisibility(el, type || currentType, progress);
 
-              const width = Math.max(0, Math.min(1, progress)) * 100;
-              progressBarFill.style.width = \`\${width}%\`;
-
-              progressBarContainer.classList.remove('failed', 'completed', 'busy');
-              if (progress < 0) {
-                   progressBarContainer.classList.add('failed');
-              } else if (progress === 1) {
-                   progressBarContainer.classList.add('completed');
-              } else if (progress > 0 && progress < 1) {
-                   progressBarContainer.classList.add('busy');
-              }
-          } else if (progressBarContainer) {
-               // If progress is undefined but bar exists, hide it.
-               progressBarContainer.style.display = 'none';
-          }
-
-          // Update cancel button visibility based on updated state
-          updateCancelButtonVisibility(el, type || currentType, progress);
-
-          // Collapse state is handled by toggleMessageCollapse
+        // Collapse state is handled by toggleMessageCollapse
       }
 
       /**
@@ -1318,28 +1535,33 @@ export default (tabId: string) => `
        * @param {HTMLElement} messageEl - The message element (<pre>) to update.
        */
       function updateMessageCollapsibility(messageEl) {
-          if (!messageEl) return;
+        if (!messageEl) return;
 
-          const headerDiv = messageEl.querySelector('.message-header');
-          const contentDiv = messageEl.querySelector('.collapsible-content');
-          const collapseButton = messageEl.querySelector('.collapse-button');
-          const detailTextDiv = messageEl.querySelector('.message-detail-text');
-          const childMessagesContainer = messageEl.querySelector('.child-messages-container');
+        const headerDiv = messageEl.querySelector(".message-header");
+        const contentDiv = messageEl.querySelector(".collapsible-content");
+        const collapseButton = messageEl.querySelector(".collapse-button");
+        const detailTextDiv = messageEl.querySelector(".message-detail-text");
+        const childMessagesContainer = messageEl.querySelector(
+          ".child-messages-container"
+        );
 
-          const hasDetailText = detailTextDiv && detailTextDiv.textContent.trim() !== '';
-          const hasChildMessages = childMessagesContainer && childMessagesContainer.children.length > 0;
-          const isCollapsible = hasDetailText || hasChildMessages;
+        const hasDetailText =
+          detailTextDiv && detailTextDiv.textContent.trim() !== "";
+        const hasChildMessages =
+          childMessagesContainer && childMessagesContainer.children.length > 0;
+        const isCollapsible = hasDetailText || hasChildMessages;
 
-          if (isCollapsible) {
-              headerDiv.classList.remove('non-collapsible');
-              if (collapseButton) collapseButton.style.display = ''; // Show button
-          } else {
-              headerDiv.classList.add('non-collapsible');
-              if (collapseButton) collapseButton.style.display = 'none'; // Hide button
-              // Ensure content is collapsed if it becomes non-collapsible
-              if (contentDiv) contentDiv.classList.add('collapsed');
-              if (childMessagesContainer) childMessagesContainer.style.display = 'none';
-          }
+        if (isCollapsible) {
+          headerDiv.classList.remove("non-collapsible");
+          if (collapseButton) collapseButton.style.display = ""; // Show button
+        } else {
+          headerDiv.classList.add("non-collapsible");
+          if (collapseButton) collapseButton.style.display = "none"; // Hide button
+          // Ensure content is collapsed if it becomes non-collapsible
+          if (contentDiv) contentDiv.classList.add("collapsed");
+          if (childMessagesContainer)
+            childMessagesContainer.style.display = "none";
+        }
       }
 
       /**
@@ -1348,14 +1570,16 @@ export default (tabId: string) => `
        * @param {string} type - The message type. // Keep type parameter for context, but don't use it for visibility check
        * @param {number} [progress] - The progress value.
        */
-      function updateCancelButtonVisibility(messageEl, type, progress) { // Keep type parameter
-          if (!messageEl) return;
-          const cancelButton = messageEl.querySelector('.cancel-button');
-          if (cancelButton) {
-              // Show cancel button if progress is defined and indicates a busy state (0 <= progress < 1)
-              const isBusy = progress !== undefined && progress >= 0 && progress < 1;
-              cancelButton.style.display = isBusy ? '' : 'none'; // New logic: show if busy progress
-          }
+      function updateCancelButtonVisibility(messageEl, type, progress) {
+        // Keep type parameter
+        if (!messageEl) return;
+        const cancelButton = messageEl.querySelector(".cancel-button");
+        if (cancelButton) {
+          // Show cancel button if progress is defined and indicates a busy state (0 <= progress < 1)
+          const isBusy =
+            progress !== undefined && progress >= 0 && progress < 1;
+          cancelButton.style.display = isBusy ? "" : "none"; // New logic: show if busy progress
+        }
       }
 
       /**
@@ -1367,24 +1591,30 @@ export default (tabId: string) => `
        * @param {string} newSender - New sender.
        * @param {string} [newMessageType] - New message type (optional).
        */
-      function updateMainChatMessageHistory(id, newDetail, newSummary, newSender, newMessageType) {
-          const msg = chatHistory.find(m => m.id === id);
-          if (msg) {
+      function updateMainChatMessageHistory(
+        id,
+        newDetail,
+        newSummary,
+        newSender,
+        newMessageType
+      ) {
+        const msg = chatHistory.find((m) => m.id === id);
+        if (msg) {
+          msg.detail = newDetail;
+          if (newDetail !== undefined) {
             msg.detail = newDetail;
-            if (newDetail !== undefined) {
-                msg.detail = newDetail;
-            }
-            if (newSummary !== undefined) { // Only update summary if provided
-                msg.summary = newSummary;
-            }
-            msg.sender = newSender;
-            if (newMessageType !== undefined) {
-                msg.messageType = newMessageType;
-            }
-            saveState();
           }
+          if (newSummary !== undefined) {
+            // Only update summary if provided
+            msg.summary = newSummary;
+          }
+          msg.sender = newSender;
+          if (newMessageType !== undefined) {
+            msg.messageType = newMessageType;
+          }
+          saveState();
+        }
       }
-
 
       /**
        * Toggles the collapsed state of a message and updates the DOM.
@@ -1392,47 +1622,52 @@ export default (tabId: string) => `
        * @param {HTMLElement} [container=messagesContainer] - The container where the message is rendered.
        */
       function toggleMessageCollapse(messageId, container = messagesContainer) {
-        const el = container.querySelector(\`#message-\${messageId}\`); // Find element within the specified container
+        const el = container.querySelector(`#message-${messageId}`); // Find element within the specified container
         if (!el) return;
 
-        const contentDiv = el.querySelector('.collapsible-content');
-        const collapseButton = el.querySelector('.collapse-button');
-        const progressBarContainer = el.querySelector('.progress-bar-container'); // Get progress bar
-        const childMessagesContainer = el.querySelector('.child-messages-container'); // Get child container
-        const headerDiv = el.querySelector('.message-header'); // Get header to check non-collapsible class
-
+        const contentDiv = el.querySelector(".collapsible-content");
+        const collapseButton = el.querySelector(".collapse-button");
+        const progressBarContainer = el.querySelector(
+          ".progress-bar-container"
+        ); // Get progress bar
+        const childMessagesContainer = el.querySelector(
+          ".child-messages-container"
+        ); // Get child container
+        const headerDiv = el.querySelector(".message-header"); // Get header to check non-collapsible class
 
         // Only toggle if the message is actually collapsible
-        if (headerDiv.classList.contains('non-collapsible')) {
-             return;
+        if (headerDiv.classList.contains("non-collapsible")) {
+          return;
         }
 
         if (contentDiv && collapseButton) {
-            const isCollapsed = contentDiv.classList.toggle('collapsed');
-            collapseButton.textContent = isCollapsed ? '▼' : '▲';
+          const isCollapsed = contentDiv.classList.toggle("collapsed");
+          collapseButton.textContent = isCollapsed ? "▼" : "▲";
 
-            // Hide progress bar when collapsed, unless it's completed or failed
-            if (progressBarContainer) {
-                 const isCompletedOrFailed = progressBarContainer.classList.contains('completed') || progressBarContainer.classList.contains('failed');
-                 progressBarContainer.style.display = (isCollapsed && !isCompletedOrFailed) ? 'none' : '';
-            }
+          // Hide progress bar when collapsed, unless it's completed or failed
+          if (progressBarContainer) {
+            const isCompletedOrFailed =
+              progressBarContainer.classList.contains("completed") ||
+              progressBarContainer.classList.contains("failed");
+            progressBarContainer.style.display =
+              isCollapsed && !isCompletedOrFailed ? "none" : "";
+          }
 
-            // Hide child messages container when collapsed
-            if (childMessagesContainer) {
-                childMessagesContainer.style.display = isCollapsed ? 'none' : '';
-            }
+          // Hide child messages container when collapsed
+          if (childMessagesContainer) {
+            childMessagesContainer.style.display = isCollapsed ? "none" : "";
+          }
 
-            // Update state in chatHistory only if it's a main chat message
-            if (container === messagesContainer) {
-                const msg = chatHistory.find(m => m.id === messageId);
-                if (msg) {
-                  msg.isCollapsed = isCollapsed;
-                  saveState();
-                }
+          // Update state in chatHistory only if it's a main chat message
+          if (container === messagesContainer) {
+            const msg = chatHistory.find((m) => m.id === messageId);
+            if (msg) {
+              msg.isCollapsed = isCollapsed;
+              saveState();
             }
+          }
         }
       }
-
 
       /**
        * Clears chat history from memory and localStorage, then re-renders.
@@ -1484,7 +1719,6 @@ export default (tabId: string) => `
         }
       }, 500); // 500ms debounce delay for provider settings
 
-
       /**
        * Resets the send button state to enable and hide loader.
        */
@@ -1494,7 +1728,7 @@ export default (tabId: string) => `
         buttonText.textContent = "Send";
       }
 
-       /**
+      /**
        * Resets the plan button state to enable and hide loader.
        */
       function resetPlanButton() {
@@ -1503,20 +1737,19 @@ export default (tabId: string) => `
         planButtonText.textContent = "Plan & Execute";
       }
 
-
       /**
        * Renders the selected files in the UI.
        */
       function renderSelectedFiles() {
-        selectedFilesContainer.innerHTML = '';
-        openFiles.forEach(filePath => {
-          const fileButton = document.createElement('div');
-          fileButton.classList.add('file-button');
+        selectedFilesContainer.innerHTML = "";
+        openFiles.forEach((filePath) => {
+          const fileButton = document.createElement("div");
+          fileButton.classList.add("file-button");
           fileButton.textContent = filePath;
 
-          const removeButton = document.createElement('button');
-          removeButton.classList.add('remove-file-button');
-          removeButton.textContent = '✕';
+          const removeButton = document.createElement("button");
+          removeButton.classList.add("remove-file-button");
+          removeButton.textContent = "✕";
           removeButton.onclick = () => removeFile(filePath);
 
           fileButton.appendChild(removeButton);
@@ -1528,15 +1761,15 @@ export default (tabId: string) => `
        * Renders the enabled tools in the UI.
        */
       function renderEnabledTools() {
-        enabledToolsContainer.innerHTML = ''; // Clear old buttons first
-        enabledTools.forEach(toolName => {
-          const toolButton = document.createElement('div');
-          toolButton.classList.add('tool-button');
+        enabledToolsContainer.innerHTML = ""; // Clear old buttons first
+        enabledTools.forEach((toolName) => {
+          const toolButton = document.createElement("div");
+          toolButton.classList.add("tool-button");
           toolButton.textContent = toolName;
 
-          const removeButton = document.createElement('button');
-          removeButton.classList.add('remove-tool-button');
-          removeButton.textContent = '✕';
+          const removeButton = document.createElement("button");
+          removeButton.classList.add("remove-tool-button");
+          removeButton.textContent = "✕";
           removeButton.onclick = () => disableTool(toolName);
 
           toolButton.appendChild(removeButton);
@@ -1548,16 +1781,15 @@ export default (tabId: string) => `
        * Renders the selected provider in the UI.
        */
       function renderSelectedProvider() {
-        selectedProviderContainer.innerHTML = ''; // Clear old buttons first
+        selectedProviderContainer.innerHTML = ""; // Clear old buttons first
         if (currentProviderSetting) {
-          const providerButton = document.createElement('div');
-          providerButton.classList.add('provider-button');
+          const providerButton = document.createElement("div");
+          providerButton.classList.add("provider-button");
           providerButton.textContent = currentProviderSetting.name;
 
           selectedProviderContainer.appendChild(providerButton);
         }
       }
-
 
       /**
        * Removes a file from the open files list and updates UI and extension.
@@ -1565,7 +1797,7 @@ export default (tabId: string) => `
        */
       function removeFile(filePath) {
         // Update local state immediately for responsiveness
-        openFiles = openFiles.filter(file => file !== filePath);
+        openFiles = openFiles.filter((file) => file !== filePath);
         saveState(); // Save updated file list to localStorage
         renderSelectedFiles(); // Update UI
 
@@ -1579,15 +1811,17 @@ export default (tabId: string) => `
        * @param {string[]} files - Array of file paths to add.
        */
       function addFiles(files) {
-        const newFiles = files.filter(filePath => !openFiles.includes(filePath));
+        const newFiles = files.filter(
+          (filePath) => !openFiles.includes(filePath)
+        );
         if (newFiles.length > 0) {
-            // Update local state immediately for responsiveness
-            openFiles.push(...newFiles);
-            saveState(); // Save updated file list to localStorage
-            renderSelectedFiles(); // Update UI
+          // Update local state immediately for responsiveness
+          openFiles.push(...newFiles);
+          saveState(); // Save updated file list to localStorage
+          renderSelectedFiles(); // Update UI
 
-            // Notify extension to update its state (workspaceState)
-            vscode.postMessage({ command: "addFiles", filePaths: newFiles });
+          // Notify extension to update its state (workspaceState)
+          vscode.postMessage({ command: "addFiles", filePaths: newFiles });
         }
       }
 
@@ -1616,21 +1850,29 @@ export default (tabId: string) => `
         if (event.dataTransfer.items) {
           // Use DataTransferItemList interface to access the file system
           const items = Array.from(event.dataTransfer.items);
-          filePaths = await Promise.all(items.map(item => { // Changed to await Promise.all
-            if (item.kind === 'file') {
-              const file = item.getAsFile();
-              return file ? file.path : null;
-            }
-            return null;
-          })).then(paths => paths.filter(path => path !== null));
+          filePaths = await Promise.all(
+            items.map((item) => {
+              // Changed to await Promise.all
+              if (item.kind === "file") {
+                const file = item.getAsFile();
+                return file ? file.path : null;
+              }
+              return null;
+            })
+          ).then((paths) => paths.filter((path) => path !== null));
         } else {
           // Use DataTransfer interface to access file URI list
-          filePaths = Array.from(event.dataTransfer.files).map(file => file.path);
+          filePaths = Array.from(event.dataTransfer.files).map(
+            (file) => file.path
+          );
         }
 
         if (filePaths.length > 0) {
           // Send file paths to extension to handle adding and updating webview state
-          vscode.postMessage({ command: "addFilesFromDialog", filePaths: filePaths });
+          vscode.postMessage({
+            command: "addFilesFromDialog",
+            filePaths: filePaths,
+          });
         }
       }
 
@@ -1673,7 +1915,7 @@ export default (tabId: string) => `
           messageId, // Pass messageId
           autoRemoveComments: autoRemoveComments, // Add checkbox state
           autoFormat: autoFormat, // Add checkbox state
-          autoFixErrors: autoFixErrors // Add auto fix errors state
+          autoFixErrors: autoFixErrors, // Add auto fix errors state
         });
       }
 
@@ -1681,65 +1923,67 @@ export default (tabId: string) => `
        * Handles initiating the plan and execute mode.
        */
       function handlePlanAndExecute() {
-         if (planButton.disabled) return;
-         const user = userInputEl.value.trim();
-         const system = systemPromptEl.value.trim();
-         if (!user) {
-           alert("Please enter a user prompt describing the task for the plan.");
-           return;
-         }
-         if (!currentProviderSetting) {
-           alert("Please select an AI Provider in 'Providers' popup before planning.");
-           return;
-         }
+        if (planButton.disabled) return;
+        const user = userInputEl.value.trim();
+        const system = systemPromptEl.value.trim();
+        if (!user) {
+          alert("Please enter a user prompt describing the task for the plan.");
+          return;
+        }
+        if (!currentProviderSetting) {
+          alert(
+            "Please select an AI Provider in 'Providers' popup before planning."
+          );
+          return;
+        }
 
-         planButton.disabled = true;
-         planLoader.style.display = "inline-block";
-         planButtonText.textContent = "";
+        planButton.disabled = true;
+        planLoader.style.display = "inline-block";
+        planButtonText.textContent = "";
 
-         // Get checkbox states
-         const autoRemoveComments = autoRemoveCommentsCheckbox.checked;
-         const autoFormat = autoFormatCheckbox.checked;
-         const autoFixErrors = autoFixErrorsCheckbox.checked;
+        // Get checkbox states
+        const autoRemoveComments = autoRemoveCommentsCheckbox.checked;
+        const autoFormat = autoFormatCheckbox.checked;
+        const autoFixErrors = autoFixErrorsCheckbox.checked;
 
-         // Clear previous plan UI
-         planStepsEl.innerHTML = '';
-         planGoalEl.textContent = 'AI Plan:';
-         planErrorEl.style.display = 'none';
-         planControlsEl.innerHTML = '';
-         planContainer.style.display = 'block'; // Show the plan container
+        // Clear previous plan UI
+        planStepsEl.innerHTML = "";
+        planGoalEl.textContent = "AI Plan:";
+        planErrorEl.style.display = "none";
+        planControlsEl.innerHTML = "";
+        planContainer.style.display = "block"; // Show the plan container
 
-         vscode.postMessage({
-           command: "planAndExecute",
-           user: user,
-           system: system,
-           fileNames: openFiles, // Pass current open files for context
-           providerSetting: currentProviderSetting,
-           autoRemoveComments: autoRemoveComments,
-           autoFormat: autoFormat,
-           autoFixErrors: autoFixErrors,
-         });
+        vscode.postMessage({
+          command: "planAndExecute",
+          user: user,
+          system: system,
+          fileNames: openFiles, // Pass current open files for context
+          providerSetting: currentProviderSetting,
+          autoRemoveComments: autoRemoveComments,
+          autoFormat: autoFormat,
+          autoFixErrors: autoFixErrors,
+        });
       }
 
       /**
        * Handles pausing the plan execution.
        */
       function handlePausePlan() {
-          vscode.postMessage({ command: "pausePlan" });
+        vscode.postMessage({ command: "pausePlan" });
       }
 
       /**
        * Handles resuming the plan execution.
        */
       function handleResumePlan() {
-          vscode.postMessage({ command: "resumePlan" });
+        vscode.postMessage({ command: "resumePlan" });
       }
 
       /**
        * Handles stopping the plan execution.
        */
       function handleStopPlan() {
-          vscode.postMessage({ command: "stopPlan" });
+        vscode.postMessage({ command: "stopPlan" });
       }
 
       /**
@@ -1747,80 +1991,88 @@ export default (tabId: string) => `
        * @param {string} taskId - The ID of the task to cancel.
        */
       function handleCancelTask(taskId) {
-          vscode.postMessage({ command: "cancelTask", id: taskId });
+        vscode.postMessage({ command: "cancelTask", id: taskId });
       }
-
 
       /**
        * Handles removing comments from selected files.
        */
       function handleRemoveComments() {
-          if (openFiles.length === 0) {
-              alert("Please add files first.");
-              return;
-          }
-          vscode.postMessage({ command: "removeCommentsInFiles", filePaths: openFiles });
+        if (openFiles.length === 0) {
+          alert("Please add files first.");
+          return;
+        }
+        vscode.postMessage({
+          command: "removeCommentsInFiles",
+          filePaths: openFiles,
+        });
       }
 
       /**
        * Handles formatting selected files.
        */
       function handleFormat() {
-          if (openFiles.length === 0) {
-              alert("Please add files first.");
-              return;
-          }
-          vscode.postMessage({ command: "formatFilesInFiles", filePaths: openFiles });
+        if (openFiles.length === 0) {
+          alert("Please add files first.");
+          return;
+        }
+        vscode.postMessage({
+          command: "formatFilesInFiles",
+          filePaths: openFiles,
+        });
       }
 
       /**
        * Handles fixing errors in selected files.
        */
       function handleFixErrors() {
-          if (openFiles.length === 0) {
-              alert("Please add files first.");
-              return;
-          }
-          if (!currentProviderSetting) {
-              alert("Please select an AI Provider in 'Providers' popup.");
-              return;
-          }
-          vscode.postMessage({ command: "checkErrorsInFiles", filePaths: openFiles, providerSetting: currentProviderSetting });
+        if (openFiles.length === 0) {
+          alert("Please add files first.");
+          return;
+        }
+        if (!currentProviderSetting) {
+          alert("Please select an AI Provider in 'Providers' popup.");
+          return;
+        }
+        vscode.postMessage({
+          command: "checkErrorsInFiles",
+          filePaths: openFiles,
+          providerSetting: currentProviderSetting,
+        });
       }
 
       /**
        * Handles committing selected files.
        */
       function handleCommitFiles() {
-          if (openFiles.length === 0) {
-              alert("No files selected to commit.");
-              return;
-          }
-          // You might want to prompt for a commit message here or generate one
-          vscode.postMessage({ command: "commitFiles", fileNames: openFiles });
+        if (openFiles.length === 0) {
+          alert("No files selected to commit.");
+          return;
+        }
+        // You might want to prompt for a commit message here or generate one
+        vscode.postMessage({ command: "commitFiles", fileNames: openFiles });
       }
 
       /**
        * Handles triggering the test task logger simulation.
        */
       function handleTestTask() {
-          vscode.postMessage({ command: "runTestTask" });
+        vscode.postMessage({ command: "runTestTask" });
       }
 
       /**
        * Handles triggering the test multi-task logger simulation.
        */
       function handleTestMultiTask() {
-          vscode.postMessage({ command: "runTestMultiTask" });
+        vscode.postMessage({ command: "runTestMultiTask" });
       }
 
       /**
        * Handles triggering the test serial-task logger simulation.
        */
       function handleTestSerialTask() {
-          vscode.postMessage({ command: "runTestSerialTask" });
+        vscode.postMessage({ command: "runTestSerialTask" });
       }
-
 
       /**
        * Displays a temporary loading message in the chat.
@@ -1829,40 +2081,48 @@ export default (tabId: string) => `
        */
       function showLoadingMessage(messageId, stepIndex = undefined) {
         // Determine the correct container based on stepIndex
-        const container = stepIndex != undefined
-            ? document.querySelector(\`#plan-step-\${stepIndex} .step-messages-container\`)
+        const container =
+          stepIndex != undefined
+            ? document.querySelector(
+                `#plan-step-${stepIndex} .step-messages-container`
+              )
             : messagesContainer;
 
-         if (!container) return;
+        if (!container) return;
 
         // Check if a loading message with this ID already exists in this container
-        const existingLoadingMsg = container.querySelector(\`#message-\${messageId}\`);
+        const existingLoadingMsg = container.querySelector(
+          `#message-${messageId}`
+        );
         if (!existingLoadingMsg) {
-             renderMessage({
-                id: messageId,
-                type: "loading",
-                summary: "Loading response...",
-                detail: "Loading response...",
-                progress: 0, // Indicate busy state
-                isCollapsed: false // Loading message should not be collapsed
-             }, container); // Pass container to renderMessage
+          renderMessage(
+            {
+              id: messageId,
+              type: "loading",
+              summary: "Loading response...",
+              detail: "Loading response...",
+              progress: 0, // Indicate busy state
+              isCollapsed: false, // Loading message should not be collapsed
+            },
+            container
+          ); // Pass container to renderMessage
         }
       }
 
       function renderSystemPromptsList() {
-        systemPromptsPopupListEl.innerHTML = '';
-        systemPrompts.forEach(prompt => {
-          const listItem = document.createElement('li');
-          listItem.classList.add('prompt-item');
+        systemPromptsPopupListEl.innerHTML = "";
+        systemPrompts.forEach((prompt) => {
+          const listItem = document.createElement("li");
+          listItem.classList.add("prompt-item");
 
-          const textSpan = document.createElement('span');
-          textSpan.classList.add('prompt-text');
+          const textSpan = document.createElement("span");
+          textSpan.classList.add("prompt-text");
           textSpan.textContent = prompt;
           listItem.onclick = () => insertSystemPrompt(prompt); // Insert prompt on click - whole item clickable now
 
-          const deleteButton = document.createElement('button');
-          deleteButton.classList.add('prompt-delete-button');
-          deleteButton.textContent = '✕';
+          const deleteButton = document.createElement("button");
+          deleteButton.classList.add("prompt-delete-button");
+          deleteButton.textContent = "✕";
           deleteButton.onclick = (event) => {
             event.stopPropagation(); // Prevent item click when delete is clicked
             deleteSystemPrompt(prompt);
@@ -1875,19 +2135,19 @@ export default (tabId: string) => `
       }
 
       function renderUserPromptsList() {
-        userPromptsPopupListEl.innerHTML = '';
-        userPrompts.forEach(prompt => {
-          const listItem = document.createElement('li');
-          listItem.classList.add('prompt-item');
+        userPromptsPopupListEl.innerHTML = "";
+        userPrompts.forEach((prompt) => {
+          const listItem = document.createElement("li");
+          listItem.classList.add("prompt-item");
 
-          const textSpan = document.createElement('span');
-          textSpan.classList.add('prompt-text');
+          const textSpan = document.createElement("span");
+          textSpan.classList.add("prompt-text");
           textSpan.textContent = prompt;
           listItem.onclick = () => insertUserPrompt(prompt); // Insert prompt on click - whole item clickable now
 
-          const deleteButton = document.createElement('button');
-          deleteButton.classList.add('prompt-delete-button');
-          deleteButton.textContent = '✕';
+          const deleteButton = document.createElement("button");
+          deleteButton.classList.add("prompt-delete-button");
+          deleteButton.textContent = "✕";
           deleteButton.onclick = (event) => {
             event.stopPropagation(); // Prevent item click when delete is clicked
             deleteUserPrompt(prompt);
@@ -1900,11 +2160,12 @@ export default (tabId: string) => `
       }
 
       function renderToolPopupList() {
-        toolPopupListEl.innerHTML = '';
-        availableTools.forEach(toolName => {
-          if (!enabledTools.includes(toolName)) { // Only show tools that are not already enabled
-            const listItem = document.createElement('li');
-            listItem.classList.add('tool-item');
+        toolPopupListEl.innerHTML = "";
+        availableTools.forEach((toolName) => {
+          if (!enabledTools.includes(toolName)) {
+            // Only show tools that are not already enabled
+            const listItem = document.createElement("li");
+            listItem.classList.add("tool-item");
             listItem.textContent = toolName;
             listItem.onclick = () => enableTool(toolName); // Enable tool on click
             toolPopupListEl.appendChild(listItem);
@@ -1913,39 +2174,38 @@ export default (tabId: string) => `
       }
 
       function renderProviderSettingsPopupList() {
-        providerSettingsPopupListEl.innerHTML = '';
-        providerSettingsList.forEach(providerSetting => {
-          const listItem = document.createElement('li');
-          listItem.classList.add('provider-item');
+        providerSettingsPopupListEl.innerHTML = "";
+        providerSettingsList.forEach((providerSetting) => {
+          const listItem = document.createElement("li");
+          listItem.classList.add("provider-item");
 
-          const textSpan = document.createElement('span');
-          textSpan.classList.add('prompt-text');
+          const textSpan = document.createElement("span");
+          textSpan.classList.add("prompt-text");
           textSpan.textContent = providerSetting.name;
           listItem.onclick = () => selectProviderSetting(providerSetting.name); // Select provider on click
 
-          const editButton = document.createElement('button');
-          editButton.classList.add('select-provider-button');
-          editButton.textContent = '✏️'; // Pencil emoji
-          editButton.title = 'Edit';
+          const editButton = document.createElement("button");
+          editButton.classList.add("select-provider-button");
+          editButton.textContent = "✏️"; // Pencil emoji
+          editButton.title = "Edit";
           editButton.onclick = (event) => {
             event.stopPropagation();
             loadProviderSettingToForm(providerSetting); // Load provider to form, don't close popup
           };
 
-          const duplicateButton = document.createElement('button');
-          duplicateButton.classList.add('duplicate-provider-button');
-          duplicateButton.textContent = '📄'; // Copy document emoji
-          duplicateButton.title = 'Duplicate';
+          const duplicateButton = document.createElement("button");
+          duplicateButton.classList.add("duplicate-provider-button");
+          duplicateButton.textContent = "📄"; // Copy document emoji
+          duplicateButton.title = "Duplicate";
           duplicateButton.onclick = (event) => {
             event.stopPropagation();
             handleDuplicateProviderSetting(providerSetting.name);
           };
 
-
-          const deleteButton = document.createElement('button');
-          deleteButton.classList.add('prompt-delete-button');
-          deleteButton.textContent = '🗑️'; // Trash can emoji
-          deleteButton.title = 'Delete';
+          const deleteButton = document.createElement("button");
+          deleteButton.classList.add("prompt-delete-button");
+          deleteButton.textContent = "🗑️"; // Trash can emoji
+          deleteButton.title = "Delete";
           deleteButton.onclick = (event) => {
             event.stopPropagation(); // Prevent item click when delete is clicked
             deleteProviderSetting(providerSetting.name);
@@ -1960,19 +2220,21 @@ export default (tabId: string) => `
       }
 
       function renderVendorDropdown() {
-        providerVendorInput.innerHTML = '<option value="">Select Vendor</option>'; // Clear existing options and add default
-        availableVendors.forEach(vendor => {
-          const option = document.createElement('option');
+        providerVendorInput.innerHTML =
+          '<option value="">Select Vendor</option>'; // Clear existing options and add default
+        availableVendors.forEach((vendor) => {
+          const option = document.createElement("option");
           option.value = vendor;
           option.textContent = vendor;
           providerVendorInput.appendChild(option);
         });
       }
 
-
       function toggleSystemPromptsPopup() {
         systemPromptsPopupVisible = !systemPromptsPopupVisible;
-        systemPromptsPopupEl.style.display = systemPromptsPopupVisible ? 'block' : 'none';
+        systemPromptsPopupEl.style.display = systemPromptsPopupVisible
+          ? "block"
+          : "none";
         if (systemPromptsPopupVisible) {
           renderSystemPromptsList(); // Re-render list every time popup is opened to ensure it's up-to-date
           positionSystemPromptsPopup();
@@ -1981,7 +2243,9 @@ export default (tabId: string) => `
 
       function toggleUserPromptsPopup() {
         userPromptsPopupVisible = !userPromptsPopupVisible;
-        userPromptsPopupEl.style.display = userPromptsPopupVisible ? 'block' : 'none';
+        userPromptsPopupEl.style.display = userPromptsPopupVisible
+          ? "block"
+          : "none";
         if (userPromptsPopupVisible) {
           renderUserPromptsList(); // Re-render list every time popup is opened to ensure it's up-to-date
           positionUserPromptsPopup();
@@ -1990,7 +2254,7 @@ export default (tabId: string) => `
 
       function toggleToolPopup() {
         toolPopupVisible = !toolPopupVisible;
-        toolPopupEl.style.display = toolPopupVisible ? 'block' : 'none';
+        toolPopupEl.style.display = toolPopupVisible ? "block" : "none";
         if (toolPopupVisible) {
           renderToolPopupList();
           positionToolPopup();
@@ -1999,7 +2263,9 @@ export default (tabId: string) => `
 
       function toggleProviderSettingsPopup() {
         providerSettingsPopupVisible = !providerSettingsPopupVisible;
-        providerSettingsPopupEl.style.display = providerSettingsPopupVisible ? 'block' : 'none';
+        providerSettingsPopupEl.style.display = providerSettingsPopupVisible
+          ? "block"
+          : "none";
         if (providerSettingsPopupVisible) {
           renderProviderSettingsPopupList();
           positionProviderSettingsPopup();
@@ -2007,67 +2273,98 @@ export default (tabId: string) => `
         }
       }
 
-
       function positionSystemPromptsPopup() {
         const buttonRect = systemPromptLoadButton.getBoundingClientRect();
-        systemPromptsPopupEl.style.top = \`\${buttonRect.bottom + window.scrollY}px\`; // Position below the button
-        systemPromptsPopupEl.style.right = \`\${window.innerWidth - buttonRect.right}px\`; // Align right edges
+        systemPromptsPopupEl.style.top = `${
+          buttonRect.bottom + window.scrollY
+        }px`; // Position below the button
+        systemPromptsPopupEl.style.right = `${
+          window.innerWidth - buttonRect.right
+        }px`; // Align right edges
       }
 
       function positionUserPromptsPopup() {
         const buttonRect = userPromptLoadButton.getBoundingClientRect();
-        userPromptsPopupEl.style.top = \`\${buttonRect.bottom + window.scrollY}px\`; // Position below the button
-        userPromptsPopupEl.style.right = \`\${window.innerWidth - buttonRect.right}px\`; // Align right edges
+        userPromptsPopupEl.style.top = `${
+          buttonRect.bottom + window.scrollY
+        }px`; // Position below the button
+        userPromptsPopupEl.style.right = `${
+          window.innerWidth - buttonRect.right
+        }px`; // Align right edges
       }
 
       function positionToolPopup() {
         const buttonRect = addToolButton.getBoundingClientRect(); // Position relative to "Add Tool" button
-        toolPopupEl.style.top = \`\${buttonRect.bottom + window.scrollY}px\`; // Position below the button
-        toolPopupEl.style.right = \`\${window.innerWidth - buttonRect.right}px\`; // Align right edges
+        toolPopupEl.style.top = `${buttonRect.bottom + window.scrollY}px`; // Position below the button
+        toolPopupEl.style.right = `${window.innerWidth - buttonRect.right}px`; // Align right edges
       }
 
       function positionProviderSettingsPopup() {
         const buttonRect = providerSettingsButton.getBoundingClientRect(); // Position relative to "Providers" button
-        providerSettingsPopupEl.style.top = \`\${buttonRect.bottom + window.scrollY}px\`; // Position below the button
-        providerSettingsPopupEl.style.right = \`\${window.innerWidth - buttonRect.right}px\`; // Align right edges
+        providerSettingsPopupEl.style.top = `${
+          buttonRect.bottom + window.scrollY
+        }px`; // Position below the button
+        providerSettingsPopupEl.style.right = `${
+          window.innerWidth - buttonRect.right
+        }px`; // Align right edges
       }
-
 
       function addSystemPromptToLibrary() {
         const prompt = systemPromptEl.value.trim();
         if (prompt) {
-          vscode.postMessage({ command: "saveSystemPromptToLibrary", prompt: prompt });
+          vscode.postMessage({
+            command: "saveSystemPromptToLibrary",
+            prompt: prompt,
+          });
         }
       }
 
       function addUserPromptToLibrary() {
         const prompt = userInputEl.value.trim();
         if (prompt) {
-          vscode.postMessage({ command: "saveUserPromptToLibrary", prompt: prompt });
+          vscode.postMessage({
+            command: "saveUserPromptToLibrary",
+            prompt: prompt,
+          });
         }
       }
 
       function deleteSystemPrompt(prompt) {
-        vscode.postMessage({ command: "deleteSystemPromptFromLibrary", prompt: prompt });
+        vscode.postMessage({
+          command: "deleteSystemPromptFromLibrary",
+          prompt: prompt,
+        });
       }
 
       function deleteUserPrompt(prompt) {
-        vscode.postMessage({ command: "deleteUserPromptFromLibrary", prompt: prompt });
+        vscode.postMessage({
+          command: "deleteUserPromptFromLibrary",
+          prompt: prompt,
+        });
       }
 
       function deleteProviderSetting(providerSettingName) {
-        vscode.postMessage({ command: "deleteProviderSettingFromLibrary", providerSettingName: providerSettingName });
+        vscode.postMessage({
+          command: "deleteProviderSettingFromLibrary",
+          providerSettingName: providerSettingName,
+        });
       }
 
       function insertSystemPrompt(prompt) {
         systemPromptEl.value = prompt;
-        vscode.postMessage({ command: "useSystemPromptFromLibrary", prompt: prompt }); // Send message to update MRU
+        vscode.postMessage({
+          command: "useSystemPromptFromLibrary",
+          prompt: prompt,
+        }); // Send message to update MRU
         toggleSystemPromptsPopup(); // Close popup after inserting
       }
 
       function insertUserPrompt(prompt) {
         userInputEl.value = prompt;
-        vscode.postMessage({ command: "useUserPromptFromLibrary", prompt: prompt }); // Send message to update MRU
+        vscode.postMessage({
+          command: "useUserPromptFromLibrary",
+          prompt: prompt,
+        }); // Send message to update MRU
         toggleUserPromptsPopup(); // Close popup after inserting
       }
 
@@ -2082,19 +2379,24 @@ export default (tabId: string) => `
       }
 
       function disableTool(toolName) {
-        enabledTools = enabledTools.filter(tool => tool !== toolName);
+        enabledTools = enabledTools.filter((tool) => tool !== toolName);
         saveState(); // Save to localStorage (for backward compatibility, main state is in extension)
         renderEnabledTools();
         vscode.postMessage({ command: "disableTool", toolName: toolName }); // Notify extension
       }
 
       function selectProviderSetting(providerSettingName) {
-        const providerSetting = providerSettingsList.find(p => p.name === providerSettingName);
+        const providerSetting = providerSettingsList.find(
+          (p) => p.name === providerSettingName
+        );
         if (providerSetting) {
           currentProviderSetting = providerSetting;
           saveState(); // Save to localStorage (for backward compatibility, main state is in extension)
           renderSelectedProvider();
-          vscode.postMessage({ command: "useProviderSettingFromLibrary", providerSettingName: providerSettingName }); // Notify extension
+          vscode.postMessage({
+            command: "useProviderSettingFromLibrary",
+            providerSettingName: providerSettingName,
+          }); // Notify extension
         }
         toggleProviderSettingsPopup(); // Close provider popup after selecting
       }
@@ -2105,52 +2407,60 @@ export default (tabId: string) => `
           providerNameInput.value = providerSetting.name;
           providerVendorInput.value = providerSetting.vendor;
           providerApiKeyInput.value = providerSetting.apiKey;
-          providerBaseURLInput.value = providerSetting.baseURL || '';
+          providerBaseURLInput.value = providerSetting.baseURL || "";
           providerModelInput.value = providerSetting.model;
-          providerMaxTokensInput.value = providerSetting.max_tokens !== undefined ? String(providerSetting.max_tokens) : '';
-          providerTemperatureInput.value = providerSetting.temperature !== undefined ? String(providerSetting.temperature) : ''; // Load temperature
+          providerMaxTokensInput.value =
+            providerSetting.max_tokens !== undefined
+              ? String(providerSetting.max_tokens)
+              : "";
+          providerTemperatureInput.value =
+            providerSetting.temperature !== undefined
+              ? String(providerSetting.temperature)
+              : ""; // Load temperature
           clearProviderFormErrors();
         }
         providerFormChanged = false; // Reset form changed flag when loading
       }
 
       function handleDuplicateProviderSetting(providerSettingName) {
-        const originalProviderSetting = providerSettingsList.find(p => p.name === providerSettingName);
+        const originalProviderSetting = providerSettingsList.find(
+          (p) => p.name === providerSettingName
+        );
         if (originalProviderSetting) {
           const newProviderSetting = { ...originalProviderSetting };
-          newProviderSetting.name = \`\${originalProviderSetting.name} Copy\`; // Create new name
+          newProviderSetting.name = `${originalProviderSetting.name} Copy`; // Create new name
           // Send as a new save command, not update, as it's a new setting
-          vscode.postMessage({ command: "saveProviderSetting", providerSetting: newProviderSetting });
+          vscode.postMessage({
+            command: "saveProviderSetting",
+            providerSetting: newProviderSetting,
+          });
           // Load the duplicated provider to the form for immediate editing
           loadProviderSettingToForm(newProviderSetting);
         }
       }
 
-
       function handleAddProviderButton() {
         editingProviderName = null; // Clear editing provider name
         // Clear form fields
-        providerNameInput.value = '';
-        providerVendorInput.value = '';
-        providerApiKeyInput.value = '';
-        providerBaseURLInput.value = '';
-        providerModelInput.value = '';
-        providerVendorInput.value = ''; // Reset dropdown too
-        providerMaxTokensInput.value = '';
-        providerTemperatureInput.value = ''; // Clear temperature
+        providerNameInput.value = "";
+        providerVendorInput.value = "";
+        providerApiKeyInput.value = "";
+        providerBaseURLInput.value = "";
+        providerModelInput.value = "";
+        providerVendorInput.value = ""; // Reset dropdown too
+        providerMaxTokensInput.value = "";
+        providerTemperatureInput.value = ""; // Clear temperature
         clearProviderFormErrors();
         providerFormChanged = false; // Reset form changed flag when adding new
       }
 
-
       function clearProviderFormErrors() {
-          providerNameError.style.display = 'none';
-          providerVendorError.style.display = 'none';
-          providerApiKeyError.style.display = 'none';
-          providerModelError.style.display = 'none';
-          providerTemperatureError.style.display = 'none'; // Clear temperature error
+        providerNameError.style.display = "none";
+        providerVendorError.style.display = "none";
+        providerApiKeyError.style.display = "none";
+        providerModelError.style.display = "none";
+        providerTemperatureError.style.display = "none"; // Clear temperature error
       }
-
 
       function handleSaveProviderSettings() {
         const providerSetting = {
@@ -2159,60 +2469,78 @@ export default (tabId: string) => `
           apiKey: providerApiKeyInput.value.trim(),
           baseURL: providerBaseURLInput.value.trim() || undefined,
           model: providerModelInput.value.trim(),
-          max_tokens: providerMaxTokensInput.value.trim() ? parseInt(providerMaxTokensInput.value.trim(), 10) : undefined,
-          temperature: providerTemperatureInput.value.trim() ? parseFloat(providerTemperatureInput.value.trim()) : undefined, // Parse temperature as float
+          max_tokens: providerMaxTokensInput.value.trim()
+            ? parseInt(providerMaxTokensInput.value.trim(), 10)
+            : undefined,
+          temperature: providerTemperatureInput.value.trim()
+            ? parseFloat(providerTemperatureInput.value.trim())
+            : undefined, // Parse temperature as float
         };
 
         clearProviderFormErrors();
 
         let isValid = true;
         if (!providerSetting.name) {
-          providerNameError.textContent = 'Name is required';
-          providerNameError.style.display = 'block';
+          providerNameError.textContent = "Name is required";
+          providerNameError.style.display = "block";
           isValid = false;
         } else {
           // Check for duplicate name only if adding a new provider (editingProviderName is null)
           if (editingProviderName === null) {
-             const existingProvider = providerSettingsList.find(p => p.name === providerSetting.name);
-             if (existingProvider) {
-                providerNameError.textContent = \`Provider "\${providerSetting.name}" already exists.\`;
-                providerNameError.style.display = 'block';
-                isValid = false;
-             }
+            const existingProvider = providerSettingsList.find(
+              (p) => p.name === providerSetting.name
+            );
+            if (existingProvider) {
+              providerNameError.textContent = `Provider "${providerSetting.name}" already exists.`;
+              providerNameError.style.display = "block";
+              isValid = false;
+            }
           }
         }
         if (!providerSetting.vendor) {
-          providerVendorError.textContent = 'Vendor is required';
-          providerVendorError.style.display = 'block';
+          providerVendorError.textContent = "Vendor is required";
+          providerVendorError.style.display = "block";
           isValid = false;
         }
         if (!providerSetting.apiKey) {
-          providerApiKeyError.textContent = 'API Key is required';
-          providerApiKeyError.style.display = 'block';
+          providerApiKeyError.textContent = "API Key is required";
+          providerApiKeyError.style.display = "block";
           isValid = false;
         }
         if (!providerSetting.model) {
-          providerModelError.textContent = 'Model is required';
-          providerModelError.style.display = 'block';
+          providerModelError.textContent = "Model is required";
+          providerModelError.style.display = "block";
           isValid = false;
         }
-        if (providerSetting.temperature !== undefined && (isNaN(providerSetting.temperature) || providerSetting.temperature < 0 || providerSetting.temperature > 2)) {
-            providerTemperatureError.textContent = 'Temperature must be a number between 0 and 2';
-            providerTemperatureError.style.display = 'block';
-            isValid = false;
+        if (
+          providerSetting.temperature !== undefined &&
+          (isNaN(providerSetting.temperature) ||
+            providerSetting.temperature < 0 ||
+            providerSetting.temperature > 2)
+        ) {
+          providerTemperatureError.textContent =
+            "Temperature must be a number between 0 and 2";
+          providerTemperatureError.style.display = "block";
+          isValid = false;
         }
 
         if (!isValid) {
           return;
         }
 
-
         if (editingProviderName) {
           // If editing, send update command
-          vscode.postMessage({ command: "updateProviderSetting", oldProviderSettingName: editingProviderName, providerSetting: providerSetting });
+          vscode.postMessage({
+            command: "updateProviderSetting",
+            oldProviderSettingName: editingProviderName,
+            providerSetting: providerSetting,
+          });
         } else {
           // If adding new, send save command
-          vscode.postMessage({ command: "saveProviderSetting", providerSetting: providerSetting });
+          vscode.postMessage({
+            command: "saveProviderSetting",
+            providerSetting: providerSetting,
+          });
         }
 
         editingProviderName = null; // Exit editing mode
@@ -2222,81 +2550,81 @@ export default (tabId: string) => `
       }
 
       function handleCancelProviderSettings() {
-          editingProviderName = null; // Exit editing mode
-          handleAddProviderButton(); // Clear form
-          // Optionally close the popup
-          // toggleProviderSettingsPopup();
+        editingProviderName = null; // Exit editing mode
+        handleAddProviderButton(); // Clear form
+        // Optionally close the popup
+        // toggleProviderSettingsPopup();
       }
-
 
       /**
        * Renders the plan steps in the UI.
        * @param {AIPlan} plan - The plan object.
        */
       function renderPlan(plan) {
-          planContainer.style.display = 'block';
-          planGoalEl.textContent = \`AI Plan: \${plan.overallGoal}\`;
-          planStepsEl.innerHTML = ''; // Clear existing steps
+        planContainer.style.display = "block";
+        planGoalEl.textContent = `AI Plan: ${plan.overallGoal}`;
+        planStepsEl.innerHTML = ""; // Clear existing steps
 
-          // Initialize collapse states if not already present or if plan changed
-          if (!planState.stepCollapsedStates || planState.stepCollapsedStates.length !== plan.steps.length) {
-              planState.stepCollapsedStates = Array(plan.steps.length).fill(true); // All collapsed by default
-          }
+        // Initialize collapse states if not already present or if plan changed
+        if (
+          !planState.stepCollapsedStates ||
+          planState.stepCollapsedStates.length !== plan.steps.length
+        ) {
+          planState.stepCollapsedStates = Array(plan.steps.length).fill(true); // All collapsed by default
+        }
 
+        plan.steps.forEach((step, index) => {
+          const stepDiv = document.createElement("div");
+          stepDiv.classList.add("plan-step");
+          stepDiv.id = `plan-step-${index}`; // Add ID for easy updating
 
-          plan.steps.forEach((step, index) => {
-              const stepDiv = document.createElement('div');
-              stepDiv.classList.add('plan-step');
-              stepDiv.id = \`plan-step-\${index}\`; // Add ID for easy updating
+          const isCollapsed = planState.stepCollapsedStates[index] ?? true; // Default to collapsed
 
-              const isCollapsed = planState.stepCollapsedStates[index] ?? true; // Default to collapsed
+          const headerDiv = document.createElement("div");
+          headerDiv.classList.add("plan-step-header");
+          headerDiv.onclick = () => togglePlanStepCollapse(index); // Make header clickable
 
-              const headerDiv = document.createElement('div');
-              headerDiv.classList.add('plan-step-header');
-              headerDiv.onclick = () => togglePlanStepCollapse(index); // Make header clickable
+          const statusSpan = document.createElement("span");
+          statusSpan.classList.add("plan-step-status");
+          statusSpan.textContent = "☐"; // Default unchecked box
+          headerDiv.appendChild(statusSpan);
 
-              const statusSpan = document.createElement('span');
-              statusSpan.classList.add('plan-step-status');
-              statusSpan.textContent = '☐'; // Default unchecked box
-              headerDiv.appendChild(statusSpan);
+          const previewSpan = document.createElement("span");
+          previewSpan.classList.add("plan-step-preview");
+          previewSpan.textContent = `Step ${index + 1}: ${step.description}`; // Preview text
+          headerDiv.appendChild(previewSpan);
 
-              const previewSpan = document.createElement('span');
-              previewSpan.classList.add('plan-step-preview');
-              previewSpan.textContent = \`Step \${index + 1}: \${step.description}\`; // Preview text
-              headerDiv.appendChild(previewSpan);
+          const collapseButton = document.createElement("button");
+          collapseButton.classList.add("collapse-button");
+          collapseButton.textContent = isCollapsed ? "▼" : "▲"; // Toggle icon
+          headerDiv.appendChild(collapseButton);
 
-              const collapseButton = document.createElement('button');
-              collapseButton.classList.add('collapse-button');
-              collapseButton.textContent = isCollapsed ? '▼' : '▲'; // Toggle icon
-              headerDiv.appendChild(collapseButton);
+          stepDiv.appendChild(headerDiv);
 
-              stepDiv.appendChild(headerDiv);
+          const contentDiv = document.createElement("div");
+          contentDiv.classList.add("plan-step-content");
+          contentDiv.classList.toggle("collapsed", isCollapsed);
 
-              const contentDiv = document.createElement('div');
-              contentDiv.classList.add('plan-step-content');
-              contentDiv.classList.toggle('collapsed', isCollapsed);
+          // REMOVED: Adding full description again in the content
+          // const fullDescription = document.createElement('strong');
+          // fullDescription.textContent = `Step ${index + 1}: ${step.description}`;
+          // contentDiv.appendChild(fullDescription);
 
-              // REMOVED: Adding full description again in the content
-              // const fullDescription = document.createElement('strong');
-              // fullDescription.textContent = \`Step \${index + 1}: \${step.description}\`;
-              // contentDiv.appendChild(fullDescription);
+          const subPromptPre = document.createElement("pre");
+          subPromptPre.textContent = step.subPrompt;
+          contentDiv.appendChild(subPromptPre);
 
-              const subPromptPre = document.createElement('pre');
-              subPromptPre.textContent = step.subPrompt;
-              contentDiv.appendChild(subPromptPre);
+          // Add container for messages specific to this step
+          const stepMessagesContainer = document.createElement("div");
+          stepMessagesContainer.classList.add("step-messages-container");
+          stepMessagesContainer.id = `step-messages-${index}`;
+          contentDiv.appendChild(stepMessagesContainer);
 
-              // Add container for messages specific to this step
-              const stepMessagesContainer = document.createElement('div');
-              stepMessagesContainer.classList.add('step-messages-container');
-              stepMessagesContainer.id = \`step-messages-\${index}\`;
-              contentDiv.appendChild(stepMessagesContainer);
+          stepDiv.appendChild(contentDiv);
 
-
-              stepDiv.appendChild(contentDiv);
-
-              planStepsEl.appendChild(stepDiv);
-          });
-          scrollToBottom(); // Scroll to show the plan
+          planStepsEl.appendChild(stepDiv);
+        });
+        scrollToBottom(); // Scroll to show the plan
       }
 
       /**
@@ -2304,25 +2632,27 @@ export default (tabId: string) => `
        * @param {number} stepIndex - The index of the step to toggle.
        */
       function togglePlanStepCollapse(stepIndex) {
-          const stepDiv = document.getElementById(\`plan-step-\${stepIndex}\`);
-          if (stepDiv) {
-              const contentDiv = stepDiv.querySelector('.plan-step-content');
-              const collapseButton = stepDiv.querySelector('.collapse-button');
-              if (contentDiv && collapseButton) {
-                  const isCollapsed = contentDiv.classList.toggle('collapsed');
-                  collapseButton.textContent = isCollapsed ? '▼' : '▲';
+        const stepDiv = document.getElementById(`plan-step-${stepIndex}`);
+        if (stepDiv) {
+          const contentDiv = stepDiv.querySelector(".plan-step-content");
+          const collapseButton = stepDiv.querySelector(".collapse-button");
+          if (contentDiv && collapseButton) {
+            const isCollapsed = contentDiv.classList.toggle("collapsed");
+            collapseButton.textContent = isCollapsed ? "▼" : "▲";
 
-                  // Update state array (optional, but good for persistence if needed)
-                  if (planState.stepCollapsedStates && planState.stepCollapsedStates.length > stepIndex) {
-                      planState.stepCollapsedStates[stepIndex] = isCollapsed;
-                      // Note: We don't save planState to extension storage on every collapse toggle
-                      // to avoid excessive messaging. This state is ephemeral within the webview session.
-                      // If persistence across sessions is needed, add a postMessage here.
-                  }
-              }
+            // Update state array (optional, but good for persistence if needed)
+            if (
+              planState.stepCollapsedStates &&
+              planState.stepCollapsedStates.length > stepIndex
+            ) {
+              planState.stepCollapsedStates[stepIndex] = isCollapsed;
+              // Note: We don't save planState to extension storage on every collapse toggle
+              // to avoid excessive messaging. This state is ephemeral within the webview session.
+              // If persistence across sessions is needed, add a postMessage here.
+            }
           }
+        }
       }
-
 
       /**
        * Updates the status icon and class for a specific plan step.
@@ -2330,100 +2660,112 @@ export default (tabId: string) => `
        * @param {'pending' | 'executing' | 'completed' | 'failed'} status - The new status.
        */
       function updateStepStatus(stepIndex, status) {
-          const stepDiv = document.getElementById(\`plan-step-\${stepIndex}\`);
-          if (stepDiv) {
-              const statusSpan = stepDiv.querySelector('.plan-step-status');
-              stepDiv.classList.remove('pending', 'executing', 'completed', 'failed');
-              stepDiv.classList.add(status);
+        const stepDiv = document.getElementById(`plan-step-${stepIndex}`);
+        if (stepDiv) {
+          const statusSpan = stepDiv.querySelector(".plan-step-status");
+          stepDiv.classList.remove(
+            "pending",
+            "executing",
+            "completed",
+            "failed"
+          );
+          stepDiv.classList.add(status);
 
-              if (statusSpan) {
-                  switch (status) {
-                      case 'pending':
-                          statusSpan.textContent = '☐';
-                          break;
-                      case 'executing':
-                          statusSpan.innerHTML = '<span class="loader" style="width: 1em; height: 1em; border-width: 2px;"></span>'; // Small loader
-                          break;
-                      case 'completed':
-                          statusSpan.textContent = '✅'; // Checkmark
-                          break;
-                      case 'failed':
-                          statusSpan.textContent = '❌'; // Cross mark
-                          break;
-                  }
-              }
+          if (statusSpan) {
+            switch (status) {
+              case "pending":
+                statusSpan.textContent = "☐";
+                break;
+              case "executing":
+                statusSpan.innerHTML =
+                  '<span class="loader" style="width: 1em; height: 1em; border-width: 2px;"></span>'; // Small loader
+                break;
+              case "completed":
+                statusSpan.textContent = "✅"; // Checkmark
+                break;
+              case "failed":
+                statusSpan.textContent = "❌"; // Cross mark
+                break;
+            }
           }
+        }
       }
-
 
       /**
        * Updates the visibility and state of plan control buttons based on plan state.
        */
       function updatePlanControls() {
-          planControlsEl.innerHTML = ''; // Clear existing buttons
-          planErrorEl.style.display = planState.error ? 'block' : 'none';
-          planErrorEl.textContent = planState.error || '';
+        planControlsEl.innerHTML = ""; // Clear existing buttons
+        planErrorEl.style.display = planState.error ? "block" : "none";
+        planErrorEl.textContent = planState.error || "";
 
-          let buttonsHtml = '';
-          switch (planState.status) {
-              case 'idle':
-                  // No buttons needed, Plan & Execute button is visible
-                  planContainer.style.display = 'none'; // Hide plan container when idle
-                  resetPlanButton();
-                  break;
-              case 'planning':
-                  // No buttons needed, loader is visible on Plan & Execute button
-                  planButton.disabled = true;
-                  planLoader.style.display = "inline-block";
-                  planButtonText.textContent = "";
-                  planContainer.style.display = 'block'; // Show plan container
-                  break;
-              case 'executing':
-                  buttonsHtml = '<button onclick="handlePausePlan()">Pause</button><button onclick="handleStopPlan()">Stop</button>';
-                  planButton.disabled = true; // Disable Plan button while executing
-                  resetPlanButton(); // Ensure plan button is not showing loader
-                  planContainer.style.display = 'block'; // Show plan container
-                  break;
-              case 'paused':
-                  buttonsHtml = '<button onclick="handleResumePlan()">Resume</button><button onclick="handleStopPlan()">Stop</button>';
-                  planButton.disabled = true; // Disable Plan button while paused
-                  resetPlanButton(); // Ensure plan button is not showing loader
-                  planContainer.style.display = 'block'; // Show plan container
-                  break;
-              case 'failed':
-                  buttonsHtml = '<button onclick="handleResumePlan()">Resume from Failed Step</button><button onclick="handleStopPlan()">Stop & Reset</button>';
-                  planButton.disabled = false; // Re-enable Plan button after failure
-                  resetPlanButton();
-                  planContainer.style.display = 'block'; // Show plan container
-                  break;
-              case 'completed':
-                  buttonsHtml = '<button onclick="handleStopPlan()">Reset Plan</button>'; // Stop & Reset effectively
-                  planButton.disabled = false; // Re-enable Plan button after completion
-                  resetPlanButton();
-                  planContainer.style.display = 'block'; // Show plan container
-                  break;
-          }
-          planControlsEl.innerHTML = buttonsHtml;
+        let buttonsHtml = "";
+        switch (planState.status) {
+          case "idle":
+            // No buttons needed, Plan & Execute button is visible
+            planContainer.style.display = "none"; // Hide plan container when idle
+            resetPlanButton();
+            break;
+          case "planning":
+            // No buttons needed, loader is visible on Plan & Execute button
+            planButton.disabled = true;
+            planLoader.style.display = "inline-block";
+            planButtonText.textContent = "";
+            planContainer.style.display = "block"; // Show plan container
+            break;
+          case "executing":
+            buttonsHtml =
+              '<button onclick="handlePausePlan()">Pause</button><button onclick="handleStopPlan()">Stop</button>';
+            planButton.disabled = true; // Disable Plan button while executing
+            resetPlanButton(); // Ensure plan button is not showing loader
+            planContainer.style.display = "block"; // Show plan container
+            break;
+          case "paused":
+            buttonsHtml =
+              '<button onclick="handleResumePlan()">Resume</button><button onclick="handleStopPlan()">Stop</button>';
+            planButton.disabled = true; // Disable Plan button while paused
+            resetPlanButton(); // Ensure plan button is not showing loader
+            planContainer.style.display = "block"; // Show plan container
+            break;
+          case "failed":
+            buttonsHtml =
+              '<button onclick="handleResumePlan()">Resume from Failed Step</button><button onclick="handleStopPlan()">Stop & Reset</button>';
+            planButton.disabled = false; // Re-enable Plan button after failure
+            resetPlanButton();
+            planContainer.style.display = "block"; // Show plan container
+            break;
+          case "completed":
+            buttonsHtml =
+              '<button onclick="handleStopPlan()">Reset Plan</button>'; // Stop & Reset effectively
+            planButton.disabled = false; // Re-enable Plan button after completion
+            resetPlanButton();
+            planContainer.style.display = "block"; // Show plan container
+            break;
+        }
+        planControlsEl.innerHTML = buttonsHtml;
 
-          // Update step statuses in the UI based on the current state
-          if (planState.plan && planState.plan.steps) {
-              planState.plan.steps.forEach((_, index) => {
-                  let status = 'pending';
-                  if (index < planState.currentStepIndex) {
-                      status = 'completed';
-                  } else if (index === planState.currentStepIndex) {
-                      status = planState.status === 'executing' ? 'executing' : (planState.status === 'failed' ? 'failed' : 'pending');
-                  } else {
-                      status = 'pending';
-                  }
-                  updateStepStatus(index, status);
-              });
-          }
+        // Update step statuses in the UI based on the current state
+        if (planState.plan && planState.plan.steps) {
+          planState.plan.steps.forEach((_, index) => {
+            let status = "pending";
+            if (index < planState.currentStepIndex) {
+              status = "completed";
+            } else if (index === planState.currentStepIndex) {
+              status =
+                planState.status === "executing"
+                  ? "executing"
+                  : planState.status === "failed"
+                  ? "failed"
+                  : "pending";
+            } else {
+              status = "pending";
+            }
+            updateStepStatus(index, status);
+          });
+        }
       }
 
-
       // --- Event Listeners ---
-
 
       // Restore state and input values on window load
       window.addEventListener("load", () => {
@@ -2449,53 +2791,82 @@ export default (tabId: string) => `
         vscode.postMessage({ command: "requestEnabledTools" }); // Request enabled tools on load
         vscode.postMessage({ command: "requestCurrentProviderSetting" }); // Request current provider setting on load
 
-
-        document.addEventListener('click', function(event) {
+        document.addEventListener("click", function (event) {
           // Close popups if click is outside
-          if (systemPromptsPopupVisible && !systemPromptsPopupEl.contains(event.target) && event.target !== document.getElementById('systemPromptInput') && event.target !== systemPromptLoadButton) {
+          if (
+            systemPromptsPopupVisible &&
+            !systemPromptsPopupEl.contains(event.target) &&
+            event.target !== document.getElementById("systemPromptInput") &&
+            event.target !== systemPromptLoadButton
+          ) {
             toggleSystemPromptsPopup();
           }
-          if (userPromptsPopupVisible && !userPromptsPopupEl.contains(event.target) && event.target !== document.getElementById('userInput') && event.target !== userPromptLoadButton) {
+          if (
+            userPromptsPopupVisible &&
+            !userPromptsPopupEl.contains(event.target) &&
+            event.target !== document.getElementById("userInput") &&
+            event.target !== userPromptLoadButton
+          ) {
             toggleUserPromptsPopup();
           }
-          if (toolPopupVisible && !toolPopupEl.contains(event.target) && event.target !== addToolButton) {
+          if (
+            toolPopupVisible &&
+            !toolPopupEl.contains(event.target) &&
+            event.target !== addToolButton
+          ) {
             toggleToolPopup();
           }
-          if (providerSettingsPopupVisible && !providerSettingsPopupEl.contains(event.target) && event.target !== providerSettingsButton && !providerFormEl.contains(event.target)) { // Also check if click is outside the form itself
+          if (
+            providerSettingsPopupVisible &&
+            !providerSettingsPopupEl.contains(event.target) &&
+            event.target !== providerSettingsButton &&
+            !providerFormEl.contains(event.target)
+          ) {
+            // Also check if click is outside the form itself
             toggleProviderSettingsPopup();
           }
         });
 
         // Event delegation for message collapsing
-        messagesContainer.addEventListener('click', (event) => {
-            const header = event.target.closest('.message-header');
-            if (header) {
-                const messageEl = header.closest('.message');
-                // Check if the click target is NOT the cancel button
-                if (!event.target.classList.contains('cancel-button') && messageEl && !header.classList.contains('non-collapsible')) {
-                    const messageId = messageEl.id.replace('message-', '');
-                    toggleMessageCollapse(messageId, messagesContainer);
-                }
+        messagesContainer.addEventListener("click", (event) => {
+          const header = event.target.closest(".message-header");
+          if (header) {
+            const messageEl = header.closest(".message");
+            // Check if the click target is NOT the cancel button
+            if (
+              !event.target.classList.contains("cancel-button") &&
+              messageEl &&
+              !header.classList.contains("non-collapsible")
+            ) {
+              const messageId = messageEl.id.replace("message-", "");
+              toggleMessageCollapse(messageId, messagesContainer);
             }
+          }
         });
 
         // Event delegation for plan step message collapsing (needs to be added to step containers)
         // This will be handled dynamically when plan steps are rendered/updated.
         // Add a listener to the planStepsEl container and delegate
-        planStepsEl.addEventListener('click', (event) => {
-             const header = event.target.closest('.message-header');
-             if (header) {
-                 const messageEl = header.closest('.message');
-                 // Find the specific step-messages-container this message belongs to
-                 const stepMessagesContainer = header.closest('.step-messages-container');
-                 // Check if the click target is NOT the cancel button
-                 if (!event.target.classList.contains('cancel-button') && messageEl && stepMessagesContainer && !header.classList.contains('non-collapsible')) {
-                     const messageId = messageEl.id.replace('message-', '');
-                     toggleMessageCollapse(messageId, stepMessagesContainer);
-                 }
-             }
+        planStepsEl.addEventListener("click", (event) => {
+          const header = event.target.closest(".message-header");
+          if (header) {
+            const messageEl = header.closest(".message");
+            // Find the specific step-messages-container this message belongs to
+            const stepMessagesContainer = header.closest(
+              ".step-messages-container"
+            );
+            // Check if the click target is NOT the cancel button
+            if (
+              !event.target.classList.contains("cancel-button") &&
+              messageEl &&
+              stepMessagesContainer &&
+              !header.classList.contains("non-collapsible")
+            ) {
+              const messageId = messageEl.id.replace("message-", "");
+              toggleMessageCollapse(messageId, stepMessagesContainer);
+            }
+          }
         });
-
       });
 
       // Save user input to localStorage on input change
@@ -2510,26 +2881,54 @@ export default (tabId: string) => `
       });
 
       // Save checkbox states on change (send to extension to save in workspaceState)
-      autoRemoveCommentsCheckbox.addEventListener('change', () => {
-          vscode.postMessage({ command: "setAutoRemoveComments", checked: autoRemoveCommentsCheckbox.checked });
+      autoRemoveCommentsCheckbox.addEventListener("change", () => {
+        vscode.postMessage({
+          command: "setAutoRemoveComments",
+          checked: autoRemoveCommentsCheckbox.checked,
+        });
       });
-      autoFormatCheckbox.addEventListener('change', () => {
-          vscode.postMessage({ command: "setAutoFormat", checked: autoFormatCheckbox.checked });
+      autoFormatCheckbox.addEventListener("change", () => {
+        vscode.postMessage({
+          command: "setAutoFormat",
+          checked: autoFormatCheckbox.checked,
+        });
       });
-      autoFixErrorsCheckbox.addEventListener('change', () => {
-          vscode.postMessage({ command: "setAutoFixErrors", checked: autoFixErrorsCheckbox.checked });
+      autoFixErrorsCheckbox.addEventListener("change", () => {
+        vscode.postMessage({
+          command: "setAutoFixErrors",
+          checked: autoFixErrorsCheckbox.checked,
+        });
       });
-
 
       // Provider form input change listeners for debounced save
-      providerNameInput.addEventListener('input', () => { providerFormChanged = true; updateProviderSettingDebounced(); });
-      providerVendorInput.addEventListener('change', () => { providerFormChanged = true; updateProviderSettingDebounced(); }); // 'change' for select
-      providerApiKeyInput.addEventListener('input', () => { providerFormChanged = true; updateProviderSettingDebounced(); });
-      providerBaseURLInput.addEventListener('input', () => { providerFormChanged = true; updateProviderSettingDebounced(); });
-      providerModelInput.addEventListener('input', () => { providerFormChanged = true; updateProviderSettingDebounced(); });
-      providerMaxTokensInput.addEventListener('input', () => { providerFormChanged = true; updateProviderSettingDebounced(); });
-      providerTemperatureInput.addEventListener('input', () => { providerFormChanged = true; updateProviderSettingDebounced(); }); // New input listener for temperature
-
+      providerNameInput.addEventListener("input", () => {
+        providerFormChanged = true;
+        updateProviderSettingDebounced();
+      });
+      providerVendorInput.addEventListener("change", () => {
+        providerFormChanged = true;
+        updateProviderSettingDebounced();
+      }); // 'change' for select
+      providerApiKeyInput.addEventListener("input", () => {
+        providerFormChanged = true;
+        updateProviderSettingDebounced();
+      });
+      providerBaseURLInput.addEventListener("input", () => {
+        providerFormChanged = true;
+        updateProviderSettingDebounced();
+      });
+      providerModelInput.addEventListener("input", () => {
+        providerFormChanged = true;
+        updateProviderSettingDebounced();
+      });
+      providerMaxTokensInput.addEventListener("input", () => {
+        providerFormChanged = true;
+        updateProviderSettingDebounced();
+      });
+      providerTemperatureInput.addEventListener("input", () => {
+        providerFormChanged = true;
+        updateProviderSettingDebounced();
+      }); // New input listener for temperature
 
       // Handle messages from the extension
       window.addEventListener("message", (event) => {
@@ -2537,101 +2936,131 @@ export default (tabId: string) => `
 
         // Handle the new 'log' command from TaskLogger
         if (message.command === "log") {
-            const { id, parentId, message: taskLog } = message; // message.message is the TaskLog object
+          const { id, parentId, message: taskLog } = message; // message.message is the TaskLog object
 
-            let targetContainer = messagesContainer; // Default to main container
-            let parentMessageEl = null; // The actual parent message element if parentId is a message ID
+          let targetContainer = messagesContainer; // Default to main container
+          let parentMessageEl = null; // The actual parent message element if parentId is a message ID
 
-            if (parentId) {
-                // Try finding parent message in main container
-                parentMessageEl = messagesContainer.querySelector(\`#message-\${parentId}\`);
+          if (parentId) {
+            // Try finding parent message in main container
+            parentMessageEl = messagesContainer.querySelector(
+              `#message-${parentId}`
+            );
 
-                if (!parentMessageEl) {
-                    // If not in main container, try finding it within any plan step's message container
-                    const planSteps = planStepsEl.querySelectorAll('.plan-step');
-                    for (const stepDiv of planSteps) {
-                        const stepMessagesContainer = stepDiv.querySelector('.step-messages-container');
-                        if (stepMessagesContainer) {
-                            parentMessageEl = stepMessagesContainer.querySelector(\`#message-\${parentId}\`);
-                            if (parentMessageEl) {
-                                // Found parent message in a step's container
-                                targetContainer = stepMessagesContainer; // Log message goes into this container
-                                break; // Found it, stop searching steps
-                            }
-                        }
-                    }
+            if (!parentMessageEl) {
+              // If not in main container, try finding it within any plan step's message container
+              const planSteps = planStepsEl.querySelectorAll(".plan-step");
+              for (const stepDiv of planSteps) {
+                const stepMessagesContainer = stepDiv.querySelector(
+                  ".step-messages-container"
+                );
+                if (stepMessagesContainer) {
+                  parentMessageEl = stepMessagesContainer.querySelector(
+                    `#message-${parentId}`
+                  );
+                  if (parentMessageEl) {
+                    // Found parent message in a step's container
+                    targetContainer = stepMessagesContainer; // Log message goes into this container
+                    break; // Found it, stop searching steps
+                  }
                 }
-
-                if (parentMessageEl) {
-                    // Parent is another message element. The log message will be a child of this parent.
-                    let childMessagesContainer = parentMessageEl.querySelector('.child-messages-container');
-                    if (!childMessagesContainer) {
-                        childMessagesContainer = document.createElement('div');
-                        childMessagesContainer.classList.add('child-messages-container');
-                        // Insert it after the message body content
-                        const messageBodyContent = parentMessageEl.querySelector('.message-body-content');
-                        if (messageBodyContent) {
-                            messageBodyContent.after(childMessagesContainer);
-                        } else {
-                             // Fallback
-                             const collapsibleContent = parentMessageEl.querySelector('.collapsible-content');
-                             if (collapsibleContent) {
-                                 collapsibleContent.appendChild(childMessagesContainer);
-                             } else {
-                                 parentMessageEl.appendChild(childMessagesContainer);
-                             }
-                        }
-                    }
-                    childMessagesContainer.style.display = ''; // Make container visible
-                    targetContainer = childMessagesContainer; // Log message goes into the child container
-
-                } else {
-                     // ParentId was provided but no parent message element found.
-                     // Assume it's a log message directly associated with a plan step.
-                     const parentStepEl = document.getElementById(parentId); // Check if it's a plan step ID
-                     if (parentStepEl) {
-                         // Log message is associated with a plan step
-                         targetContainer = parentStepEl.querySelector('.step-messages-container') || messagesContainer; // Use step's container
-                     } else {
-                         console.warn(\`Log message \${id} received with unknown parentId: \${parentId}\`);
-                         // Default to main container if parent not found
-                         targetContainer = messagesContainer;
-                     }
-                }
+              }
             }
 
-            const existingEl = targetContainer.querySelector(\`#message-\${id}\`);
-
-            if (existingEl) {
-                // Update existing message element
-                updateMessageElement(id, {
-                    type: taskLog.type,
-                    summary: taskLog.summary,
-                    detail: taskLog.detail,
-                    progress: taskLog.progress
-                }, targetContainer); // Pass the found container
-            } else {
-                // Add new message element
-                renderMessage({
-                    id,
-                    type: taskLog.type,
-                    summary: taskLog.summary,
-                    detail: taskLog.detail,
-                    progress: taskLog.progress,
-                    isCollapsed: ['prompt', 'tool', 'log', 'info', 'warning', 'error'].includes(taskLog.type || 'log')
-                }, targetContainer); // Pass the found container
-            }
-
-            // After adding/updating the log message, if it had a parent *message* element,
-            // re-evaluate the parent's collapsibility.
             if (parentMessageEl) {
-                updateMessageCollapsibility(parentMessageEl); // Pass the parent element itself
+              // Parent is another message element. The log message will be a child of this parent.
+              let childMessagesContainer = parentMessageEl.querySelector(
+                ".child-messages-container"
+              );
+              if (!childMessagesContainer) {
+                childMessagesContainer = document.createElement("div");
+                childMessagesContainer.classList.add(
+                  "child-messages-container"
+                );
+                // Insert it after the message body content
+                const messageBodyContent = parentMessageEl.querySelector(
+                  ".message-body-content"
+                );
+                if (messageBodyContent) {
+                  messageBodyContent.after(childMessagesContainer);
+                } else {
+                  // Fallback
+                  const collapsibleContent = parentMessageEl.querySelector(
+                    ".collapsible-content"
+                  );
+                  if (collapsibleContent) {
+                    collapsibleContent.appendChild(childMessagesContainer);
+                  } else {
+                    parentMessageEl.appendChild(childMessagesContainer);
+                  }
+                }
+              }
+              childMessagesContainer.style.display = ""; // Make container visible
+              targetContainer = childMessagesContainer; // Log message goes into the child container
+            } else {
+              // ParentId was provided but no parent message element found.
+              // Assume it's a log message directly associated with a plan step.
+              const parentStepEl = document.getElementById(parentId); // Check if it's a plan step ID
+              if (parentStepEl) {
+                // Log message is associated with a plan step
+                targetContainer =
+                  parentStepEl.querySelector(".step-messages-container") ||
+                  messagesContainer; // Use step's container
+              } else {
+                console.warn(
+                  `Log message ${id} received with unknown parentId: ${parentId}`
+                );
+                // Default to main container if parent not found
+                targetContainer = messagesContainer;
+              }
             }
+          }
 
-            scrollToBottom();
-            return; // Processed the log command
+          const existingEl = targetContainer.querySelector(`#message-${id}`);
+
+          if (existingEl) {
+            // Update existing message element
+            updateMessageElement(
+              id,
+              {
+                type: taskLog.type,
+                summary: taskLog.summary,
+                detail: taskLog.detail,
+                progress: taskLog.progress,
+              },
+              targetContainer
+            ); // Pass the found container
+          } else {
+            // Add new message element
+            renderMessage(
+              {
+                id,
+                type: taskLog.type,
+                summary: taskLog.summary,
+                detail: taskLog.detail,
+                progress: taskLog.progress,
+                isCollapsed: [
+                  "prompt",
+                  "tool",
+                  "log",
+                  "info",
+                  "warning",
+                  "error",
+                ].includes(taskLog.type || "log"),
+              },
+              targetContainer
+            ); // Pass the found container
+          }
+
+          // After adding/updating the log message, if it had a parent *message* element,
+          // re-evaluate the parent's collapsibility.
+          if (parentMessageEl) {
+            updateMessageCollapsibility(parentMessageEl); // Pass the parent element itself
+          }
+
+          scrollToBottom();
+          return; // Processed the log command
         }
-
 
         // Handle existing commands - route them through the new rendering/updating functions
         switch (message.command) {
@@ -2640,23 +3069,31 @@ export default (tabId: string) => `
             // Add to chatHistory for persistence
             const newMessageId = message.messageId || Date.now().toString();
             chatHistory.push({
-                id: newMessageId,
-                detail: message.detail || message.text || "", // Use detail, fallback to text
-                summary: message.summary || (message.detail || message.text || "").split('\\n')[0], // Use summary, fallback to first line of detail/text
-                sender: message.sender,
-                messageType: message.messageType || (message.sender === 'user' ? 'user' : 'assistant'),
-                isCollapsed: message.isCollapsed ?? ['prompt', 'tool', 'log', 'info', 'warning', 'error'].includes(message.messageType || 'log')
+              id: newMessageId,
+              detail: message.detail || message.text || "", // Use detail, fallback to text
+              summary:
+                message.summary ||
+                (message.detail || message.text || "").split("\\n")[0], // Use summary, fallback to first line of detail/text
+              sender: message.sender,
+              messageType:
+                message.messageType ||
+                (message.sender === "user" ? "user" : "assistant"),
+              isCollapsed:
+                message.isCollapsed ??
+                ["prompt", "tool", "log", "info", "warning", "error"].includes(
+                  message.messageType || "log"
+                ),
             });
             saveState(); // Save updated chatHistory
 
             // Render using the new renderMessage function (main container)
             const addedMsg = chatHistory[chatHistory.length - 1];
             renderMessage({
-                id: addedMsg.id,
-                type: addedMsg.messageType,
-                summary: addedMsg.summary,
-                detail: addedMsg.detail,
-                isCollapsed: addedMsg.isCollapsed
+              id: addedMsg.id,
+              type: addedMsg.messageType,
+              summary: addedMsg.summary,
+              detail: addedMsg.detail,
+              isCollapsed: addedMsg.isCollapsed,
             }); // renderMessage defaults to messagesContainer
             scrollToBottom();
             break;
@@ -2664,47 +3101,61 @@ export default (tabId: string) => `
             // This is for updating streaming responses in main chat
             // Update chatHistory for persistence
             // Note: Streaming updates typically only provide the new text/detail, not summary or sender/type changes
-            updateMainChatMessageHistory(message.messageId, message.detail || message.text || "", message.summary, message.sender, message.messageType);
+            updateMainChatMessageHistory(
+              message.messageId,
+              message.detail || message.text || "",
+              message.summary,
+              message.sender,
+              message.messageType
+            );
             // Update DOM using the new updateMessageElement function (main container)
             updateMessageElement(message.messageId, {
-                type: message.messageType,
-                summary: message.summary, // Pass summary if provided
-                detail: message.detail || message.text || "", // Pass detail/text
+              type: message.messageType,
+              summary: message.summary, // Pass summary if provided
+              detail: message.detail || message.text || "", // Pass detail/text
             }); // updateMessageElement defaults to messagesContainer
             scrollToBottom();
             break;
           case "endMessage":
-             // This signals the end of a streaming response in main chat
-             resetSendButton(); // This is correct here, for the main assistant response
-             // Update chatHistory for persistence
-             // Ensure final state (detail, summary, type) is saved
-             updateMainChatMessageHistory(message.messageId, message.detail || message.text || "", message.summary, message.sender, message.messageType);
-             // Optional: update DOM one last time with final state if needed
-             // updateMessageElement(message.messageId, { type: message.messageType, summary: message.summary, detail: message.detail || message.text || "" });
-             scrollToBottom();
-             break;
+            // This signals the end of a streaming response in main chat
+            resetSendButton(); // This is correct here, for the main assistant response
+            // Update chatHistory for persistence
+            // Ensure final state (detail, summary, type) is saved
+            updateMainChatMessageHistory(
+              message.messageId,
+              message.detail || message.text || "",
+              message.summary,
+              message.sender,
+              message.messageType
+            );
+            // Optional: update DOM one last time with final state if needed
+            // updateMessageElement(message.messageId, { type: message.messageType, summary: message.summary, detail: message.detail || message.text || "" });
+            scrollToBottom();
+            break;
           case "logMessage":
             // Log messages without stepIndex go to the main chat history
             // Add to chatHistory for persistence
             const newLogMessageId = message.messageId || Date.now().toString();
             chatHistory.push({
-                id: newLogMessageId,
-                detail: message.detail || message.text || "", // Use detail, fallback to text
-                summary: message.summary || (message.detail || message.text || "").split('\\n')[0], // Use summary, fallback to first line of detail/text
-                sender: "log", // Log messages are typically from the system/process
-                messageType: message.messageType || 'log',
-                isCollapsed: message.isCollapsed ?? true // Log messages are collapsed by default
+              id: newLogMessageId,
+              detail: message.detail || message.text || "", // Use detail, fallback to text
+              summary:
+                message.summary ||
+                (message.detail || message.text || "").split("\\n")[0], // Use summary, fallback to first line of detail/text
+              sender: "log", // Log messages are typically from the system/process
+              messageType: message.messageType || "log",
+              isCollapsed: message.isCollapsed ?? true, // Log messages are collapsed by default
             });
             saveState();
 
             // Render using the new renderMessage function (main container)
             const addedLogMsg = chatHistory[chatHistory.length - 1];
             renderMessage({
-                id: addedLogMsg.id,
-                type: addedLogMsg.messageType,
-                summary: addedLogMsg.summary,
-                detail: addedLogMsg.detail,
-                isCollapsed: addedLogMsg.isCollapsed
+              id: addedLogMsg.id,
+              type: addedLogMsg.messageType,
+              summary: addedLogMsg.summary,
+              detail: addedLogMsg.detail,
+              isCollapsed: addedLogMsg.isCollapsed,
             }); // renderMessage defaults to messagesContainer
             scrollToBottom();
             break;
@@ -2723,12 +3174,12 @@ export default (tabId: string) => `
             // If it's still used, we map it to a loading message with progress 0
             // Note: This doesn't add to chatHistory, as it's a temporary state.
             renderMessage({
-                id: message.messageId, // messageId should be provided by extension for the task
-                type: 'loading',
-                summary: message.summary || 'Loading...', // Use provided summary or default
-                detail: message.detail || 'Loading...', // Use provided detail or default
-                progress: 0,
-                isCollapsed: false
+              id: message.messageId, // messageId should be provided by extension for the task
+              type: "loading",
+              summary: message.summary || "Loading...", // Use provided summary or default
+              detail: message.detail || "Loading...", // Use provided detail or default
+              progress: 0,
+              isCollapsed: false,
             }); // renderMessage defaults to messagesContainer
             scrollToBottom();
             break;
@@ -2786,7 +3237,7 @@ export default (tabId: string) => `
 
             // Render plan UI if a plan is active
             if (planState && planState.plan) {
-                renderPlan(planState.plan);
+              renderPlan(planState.plan);
             }
             updatePlanControls(); // Update buttons based on initial state
 
@@ -2815,47 +3266,60 @@ export default (tabId: string) => `
 
           // --- Plan Execution Messages ---
           case "displayPlan":
-              // When receiving a new plan, reset collapse states
-              planState.stepCollapsedStates = Array(message.plan.steps.length).fill(true);
-              renderPlan(message.plan);
-              break;
+            // When receiving a new plan, reset collapse states
+            planState.stepCollapsedStates = Array(
+              message.plan.steps.length
+            ).fill(true);
+            renderPlan(message.plan);
+            break;
           case "updateStepStatus":
-              updateStepStatus(message.stepIndex, message.status);
-              break;
+            updateStepStatus(message.stepIndex, message.status);
+            break;
           case "updatePlanState":
-              // Preserve collapse states when updating planState
-              const oldPlan = planState.plan;
-              planState = message.planState;
-              if (oldPlan && planState.plan && oldPlan.steps.length === planState.plan.steps.length) {
-                  // If plan structure is the same, keep old collapse states
-                  // This handles status updates without re-rendering the whole plan
-              } else if (planState.plan) {
-                   // If plan structure changed or is new, reset collapse states
-                   planState.stepCollapsedStates = Array(planState.plan.steps.length).fill(true);
-                   renderPlan(planState.plan); // Re-render if plan structure changed
-              } else {
-                   // If plan is null, clear plan UI
-                   planStepsEl.innerHTML = '';
-                   planGoalEl.textContent = 'AI Plan:';
-                   planContainer.style.display = 'none';
-                   planState.stepCollapsedStates = [];
-              }
-              updatePlanControls(); // Update buttons and error message
-              // Update step statuses based on the new state (this is redundant if renderPlan is called, but safe)
-              if (planState.plan && planState.plan.steps) {
-                  planState.plan.steps.forEach((_, index) => {
-                      let status = 'pending';
-                      if (index < planState.currentStepIndex) {
-                          status = 'completed';
-                      } else if (index === planState.currentStepIndex) {
-                          status = planState.status === 'executing' ? 'executing' : (planState.status === 'failed' ? 'failed' : 'pending');
-                      } else {
-                          status = 'pending';
-                      }
-                      updateStepStatus(index, status);
-                  });
-              }
-              break;
+            // Preserve collapse states when updating planState
+            const oldPlan = planState.plan;
+            planState = message.planState;
+            if (
+              oldPlan &&
+              planState.plan &&
+              oldPlan.steps.length === planState.plan.steps.length
+            ) {
+              // If plan structure is the same, keep old collapse states
+              // This handles status updates without re-rendering the whole plan
+            } else if (planState.plan) {
+              // If plan structure changed or is new, reset collapse states
+              planState.stepCollapsedStates = Array(
+                planState.plan.steps.length
+              ).fill(true);
+              renderPlan(planState.plan); // Re-render if plan structure changed
+            } else {
+              // If plan is null, clear plan UI
+              planStepsEl.innerHTML = "";
+              planGoalEl.textContent = "AI Plan:";
+              planContainer.style.display = "none";
+              planState.stepCollapsedStates = [];
+            }
+            updatePlanControls(); // Update buttons and error message
+            // Update step statuses based on the new state (this is redundant if renderPlan is called, but safe)
+            if (planState.plan && planState.plan.steps) {
+              planState.plan.steps.forEach((_, index) => {
+                let status = "pending";
+                if (index < planState.currentStepIndex) {
+                  status = "completed";
+                } else if (index === planState.currentStepIndex) {
+                  status =
+                    planState.status === "executing"
+                      ? "executing"
+                      : planState.status === "failed"
+                      ? "failed"
+                      : "pending";
+                } else {
+                  status = "pending";
+                }
+                updateStepStatus(index, status);
+              });
+            }
+            break;
 
           default:
             console.warn("Unknown command:", message.command);
@@ -2908,4 +3372,3 @@ export default (tabId: string) => `
     </script>
   </body>
 </html>
-`;
