@@ -46,16 +46,6 @@
         --form-input-background: var(--textarea-background);
         --form-input-border: var(--textarea-border);
         --form-input-text-color: var(--text-color);
-        --plan-step-background: #e0f2f7;
-        --plan-step-completed-background: #c8e6c9;
-        --plan-step-executing-background: #fff9c4;
-        --plan-step-failed-background: #ffcdd2;
-        --plan-step-border: #b2ebf2;
-        --plan-step-completed-border: #a5d6a7;
-        --plan-step-executing-border: #ffe082;
-        --plan-step-failed-border: #ef9a9a;
-        --plan-step-message-background: #f0f4f6;
-        --plan-step-message-border: #cce7ee;
         --progress-bar-background: #ccc;
         --progress-bar-fill: #4caf50;
         --cancel-button-color: #f44336;
@@ -103,16 +93,6 @@
           --form-input-background: var(--textarea-background);
           --form-input-border: var(--textarea-border);
           --form-input-text-color: var(--text-color);
-          --plan-step-background: #263238;
-          --plan-step-completed-background: #33691e;
-          --plan-step-executing-background: #f57f17;
-          --plan-step-failed-background: #b71c1c;
-          --plan-step-border: #37474f;
-          --plan-step-completed-border: #558b2f;
-          --plan-step-executing-border: #fbc02d;
-          --plan-step-failed-border: #c62828;
-          --plan-step-message-background: #37474f;
-          --plan-step-message-border: #455a64;
           --progress-bar-background: #555;
           --progress-bar-fill: #4caf50;
           --cancel-button-color: #e57373;
@@ -501,9 +481,6 @@
         align-items: center;
         margin-bottom: 10px;
       }
-      .provider-popup-header button {
-        display: none;
-      }
       .provider-form {
         display: flex;
         flex-direction: column;
@@ -587,117 +564,6 @@
         margin: 0;
       }
 
-      #plan-container {
-        margin-top: 20px;
-        padding: 10px;
-        border: 1px solid var(--pre-border);
-        border-radius: 5px;
-        background-color: var(--pre-background);
-        display: none;
-      }
-      #plan-container h3 {
-        margin-top: 0;
-        margin-bottom: 10px;
-        border-bottom: 1px solid var(--pre-border);
-        padding-bottom: 5px;
-      }
-      .plan-step {
-        padding: 10px;
-        margin-bottom: 8px;
-        border-radius: 5px;
-        border: 1px solid var(--plan-step-border);
-        background-color: var(--plan-step-background);
-        display: flex;
-        flex-direction: column;
-      }
-      .plan-step-header {
-        display: grid;
-        grid-template-columns: auto 1fr auto;
-        align-items: center;
-        gap: 10px;
-        cursor: pointer;
-      }
-      .plan-step-status {
-        font-size: 1.2em;
-        min-width: 20px;
-        text-align: center;
-      }
-      .plan-step-preview {
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-      }
-      .plan-step-content {
-        overflow: hidden;
-        transition: max-height 0.3s ease-out;
-        display: flex;
-        flex-direction: column;
-        gap: 8px;
-      }
-      .plan-step-content.collapsed {
-        max-height: 0;
-        padding-top: 0;
-        padding-bottom: 0;
-        margin-bottom: 0;
-        overflow: hidden;
-      }
-      .plan-step-content p {
-        margin-top: 0;
-        margin-bottom: 5px;
-        font-weight: bold;
-      }
-      .plan-step-content pre {
-        margin-top: 0;
-        padding: 8px;
-      }
-      .plan-step:has(.plan-step-content.collapsed) .plan-step-content strong {
-        display: none;
-      }
-
-      .plan-step.completed {
-        background-color: var(--plan-step-completed-background);
-        border-color: var(--plan-step-completed-border);
-      }
-      .plan-step.executing {
-        background-color: var(--plan-step-executing-background);
-        border-color: var(--plan-step-executing-border);
-      }
-      .plan-step.failed {
-        background-color: var(--plan-step-failed-background);
-        border-color: var(--plan-step-failed-border);
-      }
-      #plan-controls {
-        margin-top: 10px;
-        display: flex;
-        gap: 10px;
-        flex-wrap: wrap;
-        justify-content: center;
-      }
-      #plan-error {
-        color: red;
-        margin-top: 10px;
-        font-weight: bold;
-        display: none;
-      }
-
-      .step-messages-container {
-        padding-top: 8px;
-        border-top: 1px dashed var(--pre-border);
-        display: flex;
-        flex-direction: column;
-        gap: 8px;
-      }
-      .step-messages-container .message {
-        background-color: var(--plan-step-message-background);
-        border: 1px solid var(--plan-step-message-border);
-        display: flex;
-        flex-direction: column;
-        gap: 8px;
-      }
-      .step-messages-container .message .message-content-wrapper {
-        padding: 8px;
-      }
-
       .child-messages-container {
         display: flex;
         flex-direction: column;
@@ -745,32 +611,6 @@
   </head>
   <body ondragover="allowDrop(event)" ondrop="dropHandler(event)">
     <main>
-      <div class="prompts-section" style="display: none">
-        <!-- Hiding old header section -->
-        <div class="prompts-header" onclick="toggleSystemPromptsList()">
-          <span>System Prompt Library</span>
-          <span id="system-prompts-toggle-icon">▼</span>
-        </div>
-        <ul
-          id="system-prompts-list"
-          class="prompts-list"
-          style="display: none"
-        ></ul>
-      </div>
-
-      <div class="prompts-section" style="display: none">
-        <!-- Hiding old header section -->
-        <div class="prompts-header" onclick="toggleUserPromptsList()">
-          <span>User Prompt Library</span>
-          <span id="user-prompts-toggle-icon">▼</span>
-        </div>
-        <ul
-          id="user-prompts-list"
-          class="prompts-list"
-          style="display: none"
-        ></ul>
-      </div>
-
       <div id="enabled-tools-container"></div>
       <div id="tool-popup" class="tool-popup">
         <ul id="tool-popup-list" class="tool-list"></ul>
@@ -780,12 +620,6 @@
       <div id="provider-popup" class="provider-popup">
         <div class="provider-popup-header">
           <span>Providers</span>
-          <div>
-            <button style="display: none" onclick="handleAddProviderButton()">
-              Add
-            </button>
-            <!-- Hiding header add button -->
-          </div>
         </div>
         <ul id="provider-popup-list" class="provider-list"></ul>
 
@@ -953,17 +787,6 @@
             Test Serial Task
           </button>
           <!-- New Test Serial Task Button -->
-        </div>
-      </div>
-
-      <div id="plan-container">
-        <h3 id="plan-goal">AI Plan:</h3>
-        <div id="plan-steps">
-          <!-- Plan steps will be rendered here -->
-        </div>
-        <div id="plan-error"></div>
-        <div id="plan-controls">
-          <!-- Plan control buttons will be rendered here -->
         </div>
       </div>
 
@@ -1159,12 +982,6 @@
       const testSerialTaskButton = document.getElementById(
         "testSerialTaskButton"
       );
-
-      const planContainer = document.getElementById("plan-container");
-      const planGoalEl = document.getElementById("plan-goal");
-      const planStepsEl = document.getElementById("plan-steps");
-      const planErrorEl = document.getElementById("plan-error");
-      const planControlsEl = document.getElementById("plan-controls");
 
       /**
        * @typedef {Object} AiProviderSettings
@@ -1601,7 +1418,6 @@
        */
       function scrollToBottom() {
         messagesContainer.scrollTop = messagesContainer.scrollHeight;
-        planContainer.scrollTop = planContainer.scrollHeight;
       }
 
       /**
@@ -1849,12 +1665,6 @@
         const autoFormat = autoFormatCheckbox.checked;
         const autoFixErrors = autoFixErrorsCheckbox.checked;
 
-        planStepsEl.innerHTML = "";
-        planGoalEl.textContent = "AI Plan:";
-        planErrorEl.style.display = "none";
-        planControlsEl.innerHTML = "";
-        planContainer.style.display = "block";
-
         vscode.postMessage({
           command: "planAndExecute",
           user: user,
@@ -1865,27 +1675,6 @@
           autoFormat: autoFormat,
           autoFixErrors: autoFixErrors,
         });
-      }
-
-      /**
-       * Handles pausing the plan execution.
-       */
-      function handlePausePlan() {
-        vscode.postMessage({ command: "pausePlan" });
-      }
-
-      /**
-       * Handles resuming the plan execution.
-       */
-      function handleResumePlan() {
-        vscode.postMessage({ command: "resumePlan" });
-      }
-
-      /**
-       * Handles stopping the plan execution.
-       */
-      function handleStopPlan() {
-        vscode.postMessage({ command: "stopPlan" });
       }
 
       /**
@@ -1981,12 +1770,7 @@
        * @param {number} [stepIndex] - Optional step index if message belongs to a plan step.
        */
       function showLoadingMessage(messageId, stepIndex = undefined) {
-        const container =
-          stepIndex != undefined
-            ? document.querySelector(
-                `#plan-step-${stepIndex} .step-messages-container`
-              )
-            : messagesContainer;
+        const container = messagesContainer;
 
         if (!container) return;
 
@@ -2444,201 +2228,6 @@
         handleAddProviderButton();
       }
 
-      /**
-       * Renders the plan steps in the UI.
-       * @param {AIPlan} plan - The plan object.
-       */
-      function renderPlan(plan) {
-        planContainer.style.display = "block";
-        planGoalEl.textContent = `AI Plan: ${plan.overallGoal}`;
-        planStepsEl.innerHTML = "";
-
-        if (
-          !planState.stepCollapsedStates ||
-          planState.stepCollapsedStates.length !== plan.steps.length
-        ) {
-          planState.stepCollapsedStates = Array(plan.steps.length).fill(true);
-        }
-
-        plan.steps.forEach((step, index) => {
-          const stepDiv = document.createElement("div");
-          stepDiv.classList.add("plan-step");
-          stepDiv.id = `plan-step-${index}`;
-
-          const isCollapsed = planState.stepCollapsedStates[index] ?? true;
-
-          const headerDiv = document.createElement("div");
-          headerDiv.classList.add("plan-step-header");
-          headerDiv.onclick = () => togglePlanStepCollapse(index);
-
-          const statusSpan = document.createElement("span");
-          statusSpan.classList.add("plan-step-status");
-          statusSpan.textContent = "☐";
-          headerDiv.appendChild(statusSpan);
-
-          const previewSpan = document.createElement("span");
-          previewSpan.classList.add("plan-step-preview");
-          previewSpan.textContent = `Step ${index + 1}: ${step.description}`;
-          headerDiv.appendChild(previewSpan);
-
-          const collapseButton = document.createElement("button");
-          collapseButton.classList.add("collapse-button");
-          collapseButton.textContent = isCollapsed ? "▼" : "▲";
-          headerDiv.appendChild(collapseButton);
-
-          stepDiv.appendChild(headerDiv);
-
-          const contentDiv = document.createElement("div");
-          contentDiv.classList.add("plan-step-content");
-          contentDiv.classList.toggle("collapsed", isCollapsed);
-
-          const subPromptPre = document.createElement("pre");
-          subPromptPre.textContent = step.subPrompt;
-          contentDiv.appendChild(subPromptPre);
-
-          const stepMessagesContainer = document.createElement("div");
-          stepMessagesContainer.classList.add("step-messages-container");
-          stepMessagesContainer.id = `step-messages-${index}`;
-          contentDiv.appendChild(stepMessagesContainer);
-
-          stepDiv.appendChild(contentDiv);
-
-          planStepsEl.appendChild(stepDiv);
-        });
-        scrollToBottom();
-      }
-
-      /**
-       * Toggles the collapsed state of a plan step.
-       * @param {number} stepIndex - The index of the step to toggle.
-       */
-      function togglePlanStepCollapse(stepIndex) {
-        const stepDiv = document.getElementById(`plan-step-${stepIndex}`);
-        if (stepDiv) {
-          const contentDiv = stepDiv.querySelector(".plan-step-content");
-          const collapseButton = stepDiv.querySelector(".collapse-button");
-          if (contentDiv && collapseButton) {
-            const isCollapsed = contentDiv.classList.toggle("collapsed");
-            collapseButton.textContent = isCollapsed ? "▼" : "▲";
-
-            if (
-              planState.stepCollapsedStates &&
-              planState.stepCollapsedStates.length > stepIndex
-            ) {
-              planState.stepCollapsedStates[stepIndex] = isCollapsed;
-            }
-          }
-        }
-      }
-
-      /**
-       * Updates the status icon and class for a specific plan step.
-       * @param {number} stepIndex - The index of the step to update.
-       * @param {'pending' | 'executing' | 'completed' | 'failed'} status - The new status.
-       */
-      function updateStepStatus(stepIndex, status) {
-        const stepDiv = document.getElementById(`plan-step-${stepIndex}`);
-        if (stepDiv) {
-          const statusSpan = stepDiv.querySelector(".plan-step-status");
-          stepDiv.classList.remove(
-            "pending",
-            "executing",
-            "completed",
-            "failed"
-          );
-          stepDiv.classList.add(status);
-
-          if (statusSpan) {
-            switch (status) {
-              case "pending":
-                statusSpan.textContent = "☐";
-                break;
-              case "executing":
-                statusSpan.innerHTML =
-                  '<span class="loader" style="width: 1em; height: 1em; border-width: 2px;"></span>';
-                break;
-              case "completed":
-                statusSpan.textContent = "✅";
-                break;
-              case "failed":
-                statusSpan.textContent = "❌";
-                break;
-            }
-          }
-        }
-      }
-
-      /**
-       * Updates the visibility and state of plan control buttons based on plan state.
-       */
-      function updatePlanControls() {
-        planControlsEl.innerHTML = "";
-        planErrorEl.style.display = planState.error ? "block" : "none";
-        planErrorEl.textContent = planState.error || "";
-
-        let buttonsHtml = "";
-        switch (planState.status) {
-          case "idle":
-            planContainer.style.display = "none";
-            resetPlanButton();
-            break;
-          case "planning":
-            planButton.disabled = true;
-            planLoader.style.display = "inline-block";
-            planButtonText.textContent = "";
-            planContainer.style.display = "block";
-            break;
-          case "executing":
-            buttonsHtml =
-              '<button onclick="handlePausePlan()">Pause</button><button onclick="handleStopPlan()">Stop</button>';
-            planButton.disabled = true;
-            resetPlanButton();
-            planContainer.style.display = "block";
-            break;
-          case "paused":
-            buttonsHtml =
-              '<button onclick="handleResumePlan()">Resume</button><button onclick="handleStopPlan()">Stop</button>';
-            planButton.disabled = true;
-            resetPlanButton();
-            planContainer.style.display = "block";
-            break;
-          case "failed":
-            buttonsHtml =
-              '<button onclick="handleResumePlan()">Resume from Failed Step</button><button onclick="handleStopPlan()">Stop & Reset</button>';
-            planButton.disabled = false;
-            resetPlanButton();
-            planContainer.style.display = "block";
-            break;
-          case "completed":
-            buttonsHtml =
-              '<button onclick="handleStopPlan()">Reset Plan</button>';
-            planButton.disabled = false;
-            resetPlanButton();
-            planContainer.style.display = "block";
-            break;
-        }
-        planControlsEl.innerHTML = buttonsHtml;
-
-        if (planState.plan && planState.plan.steps) {
-          planState.plan.steps.forEach((_, index) => {
-            let status = "pending";
-            if (index < planState.currentStepIndex) {
-              status = "completed";
-            } else if (index === planState.currentStepIndex) {
-              status =
-                planState.status === "executing"
-                  ? "executing"
-                  : planState.status === "failed"
-                  ? "failed"
-                  : "pending";
-            } else {
-              status = "pending";
-            }
-            updateStepStatus(index, status);
-          });
-        }
-      }
-
       window.addEventListener("load", () => {
         userInputEl.value = localStorage.getItem(STORAGE_KEYS.userInput) || "";
         loadState();
@@ -2697,25 +2286,6 @@
             ) {
               const messageId = messageEl.id.replace("message-", "");
               toggleMessageCollapse(messageId, messagesContainer);
-            }
-          }
-        });
-
-        planStepsEl.addEventListener("click", (event) => {
-          const header = event.target.closest(".message-header");
-          if (header) {
-            const messageEl = header.closest(".message");
-            const stepMessagesContainer = header.closest(
-              ".step-messages-container"
-            );
-            if (
-              !event.target.classList.contains("cancel-button") &&
-              messageEl &&
-              stepMessagesContainer &&
-              !header.classList.contains("non-collapsible")
-            ) {
-              const messageId = messageEl.id.replace("message-", "");
-              toggleMessageCollapse(messageId, stepMessagesContainer);
             }
           }
         });
@@ -2790,24 +2360,6 @@
             parentMessageEl = messagesContainer.querySelector(
               `#message-${parentId}`
             );
-
-            if (!parentMessageEl) {
-              const planSteps = planStepsEl.querySelectorAll(".plan-step");
-              for (const stepDiv of planSteps) {
-                const stepMessagesContainer = stepDiv.querySelector(
-                  ".step-messages-container"
-                );
-                if (stepMessagesContainer) {
-                  parentMessageEl = stepMessagesContainer.querySelector(
-                    `#message-${parentId}`
-                  );
-                  if (parentMessageEl) {
-                    targetContainer = stepMessagesContainer;
-                    break;
-                  }
-                }
-              }
-            }
 
             if (parentMessageEl) {
               let childMessagesContainer = parentMessageEl.querySelector(
@@ -2894,36 +2446,6 @@
         }
 
         switch (message.command) {
-          case "receiveMessage":
-            const newMessageId = message.messageId || Date.now().toString();
-            chatHistory.push({
-              id: newMessageId,
-              detail: message.detail || message.text || "",
-              summary:
-                message.summary ||
-                (message.detail || message.text || "").split("\\n")[0],
-              sender: message.sender,
-              messageType:
-                message.messageType ||
-                (message.sender === "user" ? "user" : "assistant"),
-              isCollapsed:
-                message.isCollapsed ??
-                ["prompt", "tool", "log", "info", "warning", "error"].includes(
-                  message.messageType || "log"
-                ),
-            });
-            saveState();
-
-            const addedMsg = chatHistory[chatHistory.length - 1];
-            renderMessage({
-              id: addedMsg.id,
-              type: addedMsg.messageType,
-              summary: addedMsg.summary,
-              detail: addedMsg.detail,
-              isCollapsed: addedMsg.isCollapsed,
-            });
-            scrollToBottom();
-            break;
           case "updateMessage":
             updateMainChatMessageHistory(
               message.messageId,
@@ -2939,41 +2461,6 @@
             });
             scrollToBottom();
             break;
-          case "endMessage":
-            resetSendButton();
-            updateMainChatMessageHistory(
-              message.messageId,
-              message.detail || message.text || "",
-              message.summary,
-              message.sender,
-              message.messageType
-            );
-            scrollToBottom();
-            break;
-          case "logMessage":
-            const newLogMessageId = message.messageId || Date.now().toString();
-            chatHistory.push({
-              id: newLogMessageId,
-              detail: message.detail || message.text || "",
-              summary:
-                message.summary ||
-                (message.detail || message.text || "").split("\\n")[0],
-              sender: "log",
-              messageType: message.messageType || "log",
-              isCollapsed: message.isCollapsed ?? true,
-            });
-            saveState();
-
-            const addedLogMsg = chatHistory[chatHistory.length - 1];
-            renderMessage({
-              id: addedLogMsg.id,
-              type: addedLogMsg.messageType,
-              summary: addedLogMsg.summary,
-              detail: addedLogMsg.detail,
-              isCollapsed: addedLogMsg.isCollapsed,
-            });
-            scrollToBottom();
-            break;
           case "clearMessages":
             clearChatHistory();
             break;
@@ -2981,17 +2468,6 @@
             openFiles = message.files;
             saveState();
             renderSelectedFiles();
-            break;
-          case "startLoading":
-            renderMessage({
-              id: message.messageId,
-              type: "loading",
-              summary: message.summary || "Loading...",
-              detail: message.detail || "Loading...",
-              progress: 0,
-              isCollapsed: false,
-            });
-            scrollToBottom();
             break;
           case "addFilesFromDialog":
             addFiles(message.filePaths);
@@ -3037,11 +2513,6 @@
             renderSelectedFiles();
             renderChatHistory();
 
-            if (planState && planState.plan) {
-              renderPlan(planState.plan);
-            }
-            updatePlanControls();
-
             break;
           case "updateEnabledTools":
             enabledTools = message.enabledTools;
@@ -3063,55 +2534,6 @@
             renderSelectedProvider();
             break;
 
-          case "displayPlan":
-            planState.stepCollapsedStates = Array(
-              message.plan.steps.length
-            ).fill(true);
-            renderPlan(message.plan);
-            break;
-          case "updateStepStatus":
-            updateStepStatus(message.stepIndex, message.status);
-            break;
-          case "updatePlanState":
-            const oldPlan = planState.plan;
-            planState = message.planState;
-            if (
-              oldPlan &&
-              planState.plan &&
-              oldPlan.steps.length === planState.plan.steps.length
-            ) {
-            } else if (planState.plan) {
-              planState.stepCollapsedStates = Array(
-                planState.plan.steps.length
-              ).fill(true);
-              renderPlan(planState.plan);
-            } else {
-              planStepsEl.innerHTML = "";
-              planGoalEl.textContent = "AI Plan:";
-              planContainer.style.display = "none";
-              planState.stepCollapsedStates = [];
-            }
-            updatePlanControls();
-            if (planState.plan && planState.plan.steps) {
-              planState.plan.steps.forEach((_, index) => {
-                let status = "pending";
-                if (index < planState.currentStepIndex) {
-                  status = "completed";
-                } else if (index === planState.currentStepIndex) {
-                  status =
-                    planState.status === "executing"
-                      ? "executing"
-                      : planState.status === "failed"
-                      ? "failed"
-                      : "pending";
-                } else {
-                  status = "pending";
-                }
-                updateStepStatus(index, status);
-              });
-            }
-            break;
-
           default:
             console.warn("Unknown command:", message.command);
         }
@@ -3119,9 +2541,6 @@
 
       window.handleSendMessage = handleSendMessage;
       window.handlePlanAndExecute = handlePlanAndExecute;
-      window.handlePausePlan = handlePausePlan;
-      window.handleResumePlan = handleResumePlan;
-      window.handleStopPlan = handleStopPlan;
       window.handleCancelTask = handleCancelTask;
       window.clearChatHistory = clearChatHistory;
       window.addFilesDialog = addFilesDialog;
@@ -3152,8 +2571,6 @@
       window.handleFormat = handleFormat;
       window.handleFixErrors = handleFixErrors;
       window.handleCommitFiles = handleCommitFiles;
-      window.updateStepStatus = updateStepStatus;
-      window.togglePlanStepCollapse = togglePlanStepCollapse;
       window.handleTestTask = handleTestTask;
       window.handleTestMultiTask = handleTestMultiTask;
       window.handleTestSerialTask = handleTestSerialTask;
