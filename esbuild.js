@@ -6,27 +6,9 @@ const production = process.argv.includes("--production");
 const watch = process.argv.includes("--watch");
 
 /**
- * @type {import('esbuild').Plugin}
+ * Copies a specified asset file from src to dist.
+ * @param {string} assetFileName - The name of the asset file to copy.
  */
-const esbuildProblemMatcherPlugin = {
-  name: "esbuild-problem-matcher",
-
-  setup(build) {
-    build.onStart(() => {
-      console.log("[watch] build started");
-    });
-    build.onEnd((result) => {
-      result.errors.forEach(({ text, location }) => {
-        console.error(`✘ [ERROR] ${text}`);
-        console.error(
-          `    ${location.file}:${location.line}:${location.column}:`
-        );
-      });
-      console.log("[watch] build finished");
-    });
-  },
-};
-
 function copyAsset(assetFileName) {
   const sourcePath = path.join(__dirname, "src", assetFileName);
   const destDir = path.join(__dirname, "dist");
@@ -38,13 +20,57 @@ function copyAsset(assetFileName) {
 
   try {
     fs.copyFileSync(sourcePath, destPath);
-    console.log(`Copied asset: ${assetFileName} to ${destPath}`);
+    console.log(`[asset-copier] Copied asset: ${assetFileName} to ${destPath}`);
   } catch (error) {
-    console.error(`Error copying asset ${assetFileName}:`, error);
+    console.error(
+      `[asset-copier] Error copying asset ${assetFileName}:`,
+      error
+    );
   }
 }
 
+/**
+ * Esbuild plugin to report build status and copy assets on build completion.
+ * @param {string[]} assetsToCopy - List of asset filenames to copy after a successful build.
+ * @returns {import('esbuild').Plugin}
+ */
+function createBuildPlugin(assetsToCopy) {
+  return {
+    name: "build-reporter-and-asset-copier",
+
+    setup(build) {
+      build.onStart(() => {
+        console.log("[build] build started");
+      });
+
+      build.onEnd((result) => {
+        result.errors.forEach(({ text, location }) => {
+          console.error(`✘ [ERROR] ${text}`);
+          if (location) {
+            console.error(
+              `    ${location.file}:${location.line}:${location.column}:`
+            );
+          }
+        });
+
+        if (result.errors.length === 0) {
+          console.log("[build] build finished successfully.");
+          console.log("[build] Starting asset copy...");
+          assetsToCopy.forEach(copyAsset);
+          console.log("[build] Asset copy finished.");
+        } else {
+          console.log(
+            "[build] build finished with errors, skipping asset copy."
+          );
+        }
+      });
+    },
+  };
+}
+
 async function main() {
+  const assetsToCopy = ["chatview.html"];
+
   const ctx = await esbuild.context({
     entryPoints: ["src/extension.ts"],
     bundle: true,
@@ -56,24 +82,21 @@ async function main() {
     outfile: "dist/extension.js",
     external: ["vscode"],
     logLevel: "silent",
-    plugins: [esbuildProblemMatcherPlugin],
+    plugins: [createBuildPlugin(assetsToCopy)],
   });
 
-  const assetsToCopy = ["chatview.html"];
-
   if (watch) {
-    console.log("Starting watch mode. Assets copied on initial run.");
-    assetsToCopy.forEach(copyAsset);
+    console.log("Starting watch mode.");
     await ctx.watch();
   } else {
     await ctx.rebuild();
-    assetsToCopy.forEach(copyAsset);
     await ctx.dispose();
-    console.log("Build finished. Assets copied.");
+    console.log("Build process finished.");
   }
 }
 
 main().catch((e) => {
+  console.error("An error occurred during the build process:");
   console.error(e);
   process.exit(1);
 });
