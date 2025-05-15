@@ -50,6 +50,8 @@
         --progress-bar-fill: #4caf50;
         --cancel-button-color: #f44336;
         --cancel-button-hover-color: #d32f2f;
+        --task-message-background: #d1c4e9;
+        --plan-step-message-border: #b39ddb;
       }
       @media (prefers-color-scheme: dark) {
         :root {
@@ -97,6 +99,8 @@
           --progress-bar-fill: #4caf50;
           --cancel-button-color: #e57373;
           --cancel-button-hover-color: #ef9a9a;
+          --task-message-background: #4527a0;
+          --plan-step-message-border: #673ab7;
         }
       }
       body {
@@ -332,6 +336,10 @@
       .loading-message {
         background-color: var(--loading-message-background);
       }
+      .task-message {
+        background-color: var(--task-message-background);
+      }
+
       .loader {
         width: 20px;
         height: 20px;
@@ -607,6 +615,10 @@
       .progress-bar-container.busy .progress-bar-fill {
         background-color: #ffeb3b;
       }
+
+      #runCommandInput {
+        flex-grow: 1;
+      }
     </style>
   </head>
   <body ondragover="allowDrop(event)" ondrop="dropHandler(event)">
@@ -730,6 +742,24 @@
           <ul id="user-prompts-popup-list" class="prompts-list"></ul>
         </div>
 
+        <div class="input-row">
+          <input
+            type="text"
+            id="runCommandInput"
+            class="form-input"
+            placeholder="Enter command to run..."
+          />
+          <button id="runCommandButton" onclick="handleRunCommand()">
+            <span id="runCommandButtonText">Run</span>
+            <span
+              id="runCommandLoader"
+              class="loader"
+              style="display: none"
+              title="Running..."
+            ></span>
+          </button>
+        </div>
+
         <div class="button-row">
           <button id="sendButton" onclick="handleSendMessage()">
             <span id="buttonText">Send</span>
@@ -834,6 +864,8 @@
       let currentSystemPrompt = "";
       /** @type {string} */
       let currentUserPrompt = "";
+      /** @type {string} */
+      let currentRunCommand = "";
       let providerFormChanged = false;
       /** @type {boolean} */
       let autoRemoveComments = true;
@@ -885,6 +917,8 @@
       const STORAGE_KEYS = {
         chatHistory: `chatMessages-${tabId}`,
         userInput: `userInput-${tabId}`,
+        systemPromptInput: `systemPromptInput-${tabId}`,
+        runCommandInput: `runCommandInput-${tabId}`,
         openFiles: `openFiles-${tabId}`,
         enabledTools: "enabledTools",
         currentProviderSettingName: "currentProviderSettingName",
@@ -897,12 +931,18 @@
       const messagesContainer = document.getElementById("messages-container");
       const userInputEl = document.getElementById("userInput");
       const systemPromptEl = document.getElementById("systemPromptInput");
+      const runCommandInputEl = document.getElementById("runCommandInput");
       const sendButton = document.getElementById("sendButton");
       const buttonText = document.getElementById("buttonText");
       const loader = document.getElementById("loader");
       const planButton = document.getElementById("planButton");
       const planButtonText = document.getElementById("planButtonText");
       const planLoader = document.getElementById("planLoader");
+      const runCommandButton = document.getElementById("runCommandButton");
+      const runCommandButtonText = document.getElementById(
+        "runCommandButtonText"
+      );
+      const runCommandLoader = document.getElementById("runCommandLoader");
       const selectedFilesContainer = document.getElementById(
         "selected-files-container"
       );
@@ -995,13 +1035,16 @@
        */
 
       /**
-       * Loads state from localStorage: chat history, open files.
+       * Loads state from localStorage: chat history, open files, run command input.
        * Note: Plan state, prompts, auto settings, enabled tools, current provider
        * are loaded from workspaceState/globalState via initPrompts message.
        */
       function loadState() {
         chatHistory = loadFromLocalStorage(STORAGE_KEYS.chatHistory, []);
         openFiles = loadFromLocalStorage(STORAGE_KEYS.openFiles, []);
+        currentRunCommand =
+          localStorage.getItem(STORAGE_KEYS.runCommandInput) || "";
+        runCommandInputEl.value = currentRunCommand;
       }
 
       /**
@@ -1021,12 +1064,16 @@
       }
 
       /**
-       * Saves state to localStorage: chat history, open files.
+       * Saves state to localStorage: chat history, open files, run command input.
        * Checkbox states, plan state, enabled tools, current provider are saved to workspaceState/globalState via extension messages.
        */
       function saveState() {
         saveToLocalStorage(STORAGE_KEYS.chatHistory, chatHistory);
         saveToLocalStorage(STORAGE_KEYS.openFiles, openFiles);
+        localStorage.setItem(
+          STORAGE_KEYS.runCommandInput,
+          runCommandInputEl.value
+        );
       }
 
       /**
@@ -1082,6 +1129,8 @@
           const progressBarContainer = document.createElement("div");
           progressBarContainer.classList.add("progress-bar-container");
           const progressBarFill = document.createElement("div");
+          progressBarFill.title =
+            progress !== undefined ? `${Math.round(progress * 100)}%` : "";
           progressBarFill.classList.add("progress-bar-fill");
           const width = Math.max(0, Math.min(1, progress)) * 100;
           progressBarFill.style.width = `${width}%`;
@@ -1205,6 +1254,8 @@
           ? "info"
           : el.classList.contains("loading-message")
           ? "loading"
+          : el.classList.contains("task-message")
+          ? "task"
           : "log";
 
         if (summary !== undefined && previewSpan) {
@@ -1227,7 +1278,8 @@
             "error-message",
             "warning-message",
             "info-message",
-            "loading-message"
+            "loading-message",
+            "task-message"
           );
           el.classList.add(`${type}-message`);
           if (["prompt", "tool"].includes(type)) {
@@ -1254,6 +1306,8 @@
             progressBarContainer.style.display = "";
           }
 
+          progressBarFill.title =
+            progress !== undefined ? `${Math.round(progress * 100)}%` : "";
           const width = Math.max(0, Math.min(1, progress)) * 100;
           progressBarFill.style.width = `${width}%`;
 
@@ -1266,9 +1320,15 @@
             progressBarContainer.classList.add("busy");
           }
         } else if (progressBarContainer) {
-          progressBarContainer.style.display = "none";
+          const isCompletedOrFailed =
+            progressBarContainer.classList.contains("completed") ||
+            progressBarContainer.classList.contains("failed");
+          if (!isCompletedOrFailed) {
+            progressBarContainer.style.display = "none";
+          }
         }
 
+        updateMessageCollapsibility(el);
         updateCancelButtonVisibility(el, type || currentType, progress);
       }
 
@@ -1340,14 +1400,15 @@
       ) {
         const msg = chatHistory.find((m) => m.id === id);
         if (msg) {
-          msg.detail = newDetail;
           if (newDetail !== undefined) {
             msg.detail = newDetail;
           }
           if (newSummary !== undefined) {
             msg.summary = newSummary;
           }
-          msg.sender = newSender;
+          if (newSender !== undefined) {
+            msg.sender = newSender;
+          }
           if (newMessageType !== undefined) {
             msg.messageType = newMessageType;
           }
@@ -1435,12 +1496,18 @@
       }
 
       const updateSystemPrompt = debounce((value) => {
+        localStorage.setItem(STORAGE_KEYS.systemPromptInput, value);
         vscode.postMessage({ command: "setSystemPrompt", systemPrompt: value });
       }, 3000);
 
       const updateUserPrompt = debounce((value) => {
         localStorage.setItem(STORAGE_KEYS.userInput, value);
         vscode.postMessage({ command: "setUserPrompt", userPrompt: value });
+      }, 3000);
+
+      const updateRunCommand = debounce((value) => {
+        localStorage.setItem(STORAGE_KEYS.runCommandInput, value);
+        vscode.postMessage({ command: "setRunCommand", runCommand: value });
       }, 3000);
 
       const updateProviderSettingDebounced = debounce(() => {
@@ -1466,6 +1533,15 @@
         planButton.disabled = false;
         planLoader.style.display = "none";
         planButtonText.textContent = "Plan & Execute";
+      }
+
+      /**
+       * Resets the run command button state to enable and hide loader.
+       */
+      function resetRunCommandButton() {
+        runCommandButton.disabled = false;
+        runCommandLoader.style.display = "none";
+        runCommandButtonText.textContent = "Run";
       }
 
       /**
@@ -1678,6 +1754,28 @@
       }
 
       /**
+       * Handles running a command in the workspace.
+       */
+      function handleRunCommand() {
+        if (runCommandButton.disabled) return;
+        const command = runCommandInputEl.value.trim();
+        if (!command) {
+          alert("Please enter a command to run.");
+          return;
+        }
+
+        runCommandButton.disabled = true;
+        runCommandLoader.style.display = "inline-block";
+        runCommandButtonText.textContent = "";
+        runCommandLoader.title = "Running...";
+
+        vscode.postMessage({
+          command: "runCommand",
+          runCommand: command,
+        });
+      }
+
+      /**
        * Handles cancelling a specific task.
        * @param {string} taskId - The ID of the task to cancel.
        */
@@ -1762,34 +1860,6 @@
        */
       function handleTestSerialTask() {
         vscode.postMessage({ command: "runTestSerialTask" });
-      }
-
-      /**
-       * Displays a temporary loading message in the chat.
-       * @param {string} messageId - ID to assign to the loading message.
-       * @param {number} [stepIndex] - Optional step index if message belongs to a plan step.
-       */
-      function showLoadingMessage(messageId, stepIndex = undefined) {
-        const container = messagesContainer;
-
-        if (!container) return;
-
-        const existingLoadingMsg = container.querySelector(
-          `#message-${messageId}`
-        );
-        if (!existingLoadingMsg) {
-          renderMessage(
-            {
-              id: messageId,
-              type: "loading",
-              summary: "Loading response...",
-              detail: "Loading response...",
-              progress: 0,
-              isCollapsed: false,
-            },
-            container
-          );
-        }
       }
 
       function renderSystemPromptsList() {
@@ -2230,6 +2300,9 @@
 
       window.addEventListener("load", () => {
         userInputEl.value = localStorage.getItem(STORAGE_KEYS.userInput) || "";
+        runCommandInputEl.value =
+          localStorage.getItem(STORAGE_KEYS.runCommandInput) || "";
+
         loadState();
         renderChatHistory();
         renderSelectedFiles();
@@ -2297,6 +2370,10 @@
 
       systemPromptEl.addEventListener("input", (e) => {
         updateSystemPrompt(e.target.value);
+      });
+
+      runCommandInputEl.addEventListener("input", (e) => {
+        updateRunCommand(e.target.value);
       });
 
       autoRemoveCommentsCheckbox.addEventListener("change", () => {
@@ -2374,7 +2451,7 @@
                   ".message-body-content"
                 );
                 if (messageBodyContent) {
-                  messageBodyContent.after(childMessagesContainer);
+                  messageBodyContent.appendChild(childMessagesContainer);
                 } else {
                   const collapsibleContent = parentMessageEl.querySelector(
                     ".collapsible-content"
@@ -2487,6 +2564,7 @@
           case "initPrompts":
             currentSystemPrompt = message.systemPrompt || "";
             currentUserPrompt = message.userPrompt || "";
+            currentRunCommand = message.runCommand || "";
             systemPrompts = message.systemPrompts || [];
             userPrompts = message.userPrompts || [];
             availableTools = message.availableTools || [];
@@ -2500,6 +2578,7 @@
 
             systemPromptEl.value = currentSystemPrompt;
             userInputEl.value = currentUserPrompt;
+            runCommandInputEl.value = currentRunCommand;
             autoRemoveCommentsCheckbox.checked = autoRemoveComments;
             autoFormatCheckbox.checked = autoFormat;
             autoFixErrorsCheckbox.checked = autoFixErrors;
@@ -2512,7 +2591,6 @@
             renderVendorDropdown();
             renderSelectedFiles();
             renderChatHistory();
-
             break;
           case "updateEnabledTools":
             enabledTools = message.enabledTools;
@@ -2533,6 +2611,9 @@
             currentProviderSetting = message.currentProviderSetting;
             renderSelectedProvider();
             break;
+          case "resetRunCommandButton":
+            resetRunCommandButton();
+            break;
 
           default:
             console.warn("Unknown command:", message.command);
@@ -2541,6 +2622,7 @@
 
       window.handleSendMessage = handleSendMessage;
       window.handlePlanAndExecute = handlePlanAndExecute;
+      window.handleRunCommand = handleRunCommand;
       window.handleCancelTask = handleCancelTask;
       window.clearChatHistory = clearChatHistory;
       window.addFilesDialog = addFilesDialog;

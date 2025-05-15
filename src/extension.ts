@@ -11,6 +11,7 @@ import {
 } from "./getWorkspaceAbsolutePath";
 import { handleFormatFilesInFiles } from "./handleFormatFilesInFiles";
 import { handleRemoveCommentsInFiles } from "./handleRemoveCommentsInFiles";
+import { handleRunCommand } from "./handleRunCommand";
 import { handleSendMessage } from "./handleSendMessage";
 import { handlePlanAndExecute } from "./planTool";
 import { runTestMultiTask } from "./runTestMultiTask";
@@ -25,6 +26,7 @@ import {
   getAutoRemoveCommentsFromWorkspace,
   getCurrentProviderSetting,
   getCurrentProviderSettingFromGlobalState,
+  getCurrentRunCommandFromWorkspace,
   getCurrentSystemPromptFromWorkspace,
   getCurrentUserPromptFromWorkspace,
   getEnabledToolNamesFromGlobalState,
@@ -37,6 +39,7 @@ import {
   setAutoFixErrorsToWorkspace,
   setAutoFormatToWorkspace,
   setAutoRemoveCommentsToWorkspace,
+  setCurrentRunCommandToWorkspace,
   setCurrentSystemPromptToWorkspace,
   setCurrentUserPromptToWorkspace,
   setEnabledToolNamesToGlobalState,
@@ -143,6 +146,11 @@ export function activate(context: vscode.ExtensionContext) {
     );
     const userPrompt = workspaceUserPrompt ?? userPrompts[0] ?? "";
 
+    const workspaceRunCommand = getCurrentRunCommandFromWorkspace(
+      context,
+      tabId
+    );
+
     const autoRemoveComments =
       getAutoRemoveCommentsFromWorkspace(context, tabId) ?? false;
     const autoFormat = getAutoFormatFromWorkspace(context, tabId) ?? false;
@@ -166,6 +174,7 @@ export function activate(context: vscode.ExtensionContext) {
         providerSettingsList,
         currentProviderSetting,
         availableVendors,
+        workspaceRunCommand,
         autoRemoveComments,
         autoFormat,
         autoFixErrors
@@ -285,6 +294,7 @@ async function openChatWindow(
   providerSettingsList: AiApiSettings[],
   currentProviderSetting: AiApiSettings | undefined,
   availableVendors: string[],
+  runCommand: string | undefined,
   autoRemoveComments: boolean,
   autoFormat: boolean,
   autoFixErrors: boolean
@@ -331,6 +341,7 @@ async function openChatWindow(
     systemPrompts: systemPrompts,
     userPrompts: userPrompts,
     availableTools: availableToolNames,
+    runCommand: runCommand,
     enabledTools: enabledToolNames,
     providerSettingsList: providerSettingsList,
     currentProviderSetting: currentProviderSetting,
@@ -393,6 +404,13 @@ function handleWebviewMessage(
     case "sendMessage":
       handleSendMessage(context, panel, message, tabId, log);
       break;
+    case "runCommand":
+      handleRunCommand(message.runCommand, logTask)
+        .catch((e) => console.log("runCommandE1", e))
+        .finally(() => {
+          panel.webview.postMessage({ command: "resetRunCommandButton" });
+        });
+      break;
     case "checkErrorsInFiles":
       logTask(
         {
@@ -407,6 +425,9 @@ function handleWebviewMessage(
             createMessageLogger(log)
           )
       );
+      break;
+    case "setRunCommand":
+      handleSetRunCommand(context, panel, message.runCommand, tabId);
       break;
     case "setSystemPrompt":
       handleSetSystemPrompt(context, panel, message.systemPrompt || "", tabId);
@@ -575,6 +596,15 @@ const handleCommitFiles = (
       });
     }
   );
+
+async function handleSetRunCommand(
+  context: vscode.ExtensionContext,
+  panel: vscode.WebviewPanel,
+  newCommand: string,
+  tabId: string
+) {
+  setCurrentRunCommandToWorkspace(context, tabId, newCommand);
+}
 
 async function handleRequestCurrentProviderSetting(
   context: vscode.ExtensionContext,
