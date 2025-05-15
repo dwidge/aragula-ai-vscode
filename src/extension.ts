@@ -26,7 +26,6 @@ import {
   getAutoRemoveCommentsFromWorkspace,
   getCurrentProviderSetting,
   getCurrentProviderSettingFromGlobalState,
-  getCurrentRunCommandFromWorkspace,
   getCurrentSystemPromptFromWorkspace,
   getCurrentUserPromptFromWorkspace,
   getEnabledToolNamesFromGlobalState,
@@ -39,7 +38,6 @@ import {
   setAutoFixErrorsToWorkspace,
   setAutoFormatToWorkspace,
   setAutoRemoveCommentsToWorkspace,
-  setCurrentRunCommandToWorkspace,
   setCurrentSystemPromptToWorkspace,
   setCurrentUserPromptToWorkspace,
   setEnabledToolNamesToGlobalState,
@@ -47,6 +45,7 @@ import {
   useProviderSettingInGlobalState,
   useSystemPromptInStorage,
   useUserPromptInStorage,
+  WORKSPACE_RUN_COMMAND_STORAGE_KEY,
 } from "./settings";
 import { commitStaged, stageFiles } from "./utils/git";
 import {
@@ -146,11 +145,6 @@ export function activate(context: vscode.ExtensionContext) {
     );
     const userPrompt = workspaceUserPrompt ?? userPrompts[0] ?? "";
 
-    const workspaceRunCommand = getCurrentRunCommandFromWorkspace(
-      context,
-      tabId
-    );
-
     const autoRemoveComments =
       getAutoRemoveCommentsFromWorkspace(context, tabId) ?? false;
     const autoFormat = getAutoFormatFromWorkspace(context, tabId) ?? false;
@@ -174,7 +168,6 @@ export function activate(context: vscode.ExtensionContext) {
         providerSettingsList,
         currentProviderSetting,
         availableVendors,
-        workspaceRunCommand,
         autoRemoveComments,
         autoFormat,
         autoFixErrors
@@ -281,6 +274,9 @@ async function readOpenFilePaths(uris: vscode.Uri[]): Promise<string[]> {
   return openFilePaths;
 }
 
+type GetState = <T>(key: string, defaultValue: T) => T;
+type SetState = <T>(key: string, value: T) => Promise<void>;
+
 async function openChatWindow(
   context: vscode.ExtensionContext,
   openedFilePaths: string[],
@@ -294,11 +290,28 @@ async function openChatWindow(
   providerSettingsList: AiApiSettings[],
   currentProviderSetting: AiApiSettings | undefined,
   availableVendors: string[],
-  runCommand: string | undefined,
   autoRemoveComments: boolean,
   autoFormat: boolean,
   autoFixErrors: boolean
 ) {
+  const getGlobalState: GetState = <T>(key: string, defaultValue: T): T =>
+    context.globalState.get<T>(key, defaultValue);
+
+  const setGlobalState: SetState = async <T>(key: string, value: T) =>
+    context.globalState.update(key, value);
+
+  const getWorkspaceState: GetState = <T>(key: string, defaultValue: T): T =>
+    context.workspaceState.get<T>(key, defaultValue);
+
+  const setWorkspaceState: SetState = async <T>(key: string, value: T) =>
+    context.workspaceState.update(key, value);
+
+  const getTabState: GetState = <T>(key: string, defaultValue: T) =>
+    getWorkspaceState(`${tabId}-${key}`, defaultValue);
+
+  const setTabState: SetState = async <T>(key: string, value: T) =>
+    setWorkspaceState(`${tabId}-${key}`, value);
+
   const panel = vscode.window.createWebviewPanel(
     "askAIChat",
     `Ask AI - ${tabId}`,
@@ -329,10 +342,20 @@ async function openChatWindow(
 
   panel.webview.onDidReceiveMessage(
     (message) =>
-      handleWebviewMessage(context, panel, message, openedFilePaths, tabId),
+      handleWebviewMessage(
+        context,
+        panel,
+        message,
+        openedFilePaths,
+        tabId,
+        getWorkspaceState,
+        setWorkspaceState
+      ),
     undefined,
     context.subscriptions
   );
+
+  const runCommand = getWorkspaceState(WORKSPACE_RUN_COMMAND_STORAGE_KEY, "");
 
   panel.webview.postMessage({
     command: "initPrompts",
@@ -341,7 +364,7 @@ async function openChatWindow(
     systemPrompts: systemPrompts,
     userPrompts: userPrompts,
     availableTools: availableToolNames,
-    runCommand: runCommand,
+    runCommand,
     enabledTools: enabledToolNames,
     providerSettingsList: providerSettingsList,
     currentProviderSetting: currentProviderSetting,
@@ -377,12 +400,14 @@ function sendInitialSystemMessage(
   });
 }
 
-function handleWebviewMessage(
+async function handleWebviewMessage(
   context: vscode.ExtensionContext,
   panel: vscode.WebviewPanel,
   message: any,
   openedFilePaths: string[],
-  tabId: string
+  tabId: string,
+  getState: GetState,
+  setState: SetState
 ) {
   const panelInfo = chatPanels.get(tabId);
   if (!panelInfo) {
@@ -395,6 +420,8 @@ function handleWebviewMessage(
   }, activeTasks);
 
   const log: Logger = createMessageLogger(logTask);
+
+  console.log("handleWebviewMessage1", tabId, message);
 
   switch (message.command) {
     case "cancelTask":
@@ -427,7 +454,7 @@ function handleWebviewMessage(
       );
       break;
     case "setRunCommand":
-      handleSetRunCommand(context, panel, message.runCommand, tabId);
+      await setState(WORKSPACE_RUN_COMMAND_STORAGE_KEY, message.runCommand);
       break;
     case "setSystemPrompt":
       handleSetSystemPrompt(context, panel, message.systemPrompt || "", tabId);
@@ -596,15 +623,6 @@ const handleCommitFiles = (
       });
     }
   );
-
-async function handleSetRunCommand(
-  context: vscode.ExtensionContext,
-  panel: vscode.WebviewPanel,
-  newCommand: string,
-  tabId: string
-) {
-  setCurrentRunCommandToWorkspace(context, tabId, newCommand);
-}
 
 async function handleRequestCurrentProviderSetting(
   context: vscode.ExtensionContext,

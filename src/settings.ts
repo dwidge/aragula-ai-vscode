@@ -27,7 +27,7 @@ export const PROVIDER_SETTINGS_STORAGE_KEY = "providerSettingsList";
 
 export const WORKSPACE_SYSTEM_PROMPT_STORAGE_KEY_PREFIX =
   "workspaceSystemPrompt";
-export const WORKSPACE_RUN_COMMAND_STORAGE_KEY_PREFIX = "workspaceRunCommand";
+export const WORKSPACE_RUN_COMMAND_STORAGE_KEY = "workspaceRunCommand";
 export const WORKSPACE_USER_PROMPT_STORAGE_KEY_PREFIX = "workspaceUserPrompt";
 
 /** Retrieves system prompts from global storage, MRU order */
@@ -224,33 +224,6 @@ export async function setCurrentSystemPromptToWorkspace(
     WORKSPACE_SYSTEM_PROMPT_STORAGE_KEY_PREFIX,
     tabId,
     prompt
-  );
-}
-
-/** Get current run command from workspace state */
-export function getCurrentRunCommandFromWorkspace(
-  context: vscode.ExtensionContext,
-  tabId: string
-): string | undefined {
-  return getWorkspaceState<string | undefined>(
-    context,
-    WORKSPACE_RUN_COMMAND_STORAGE_KEY_PREFIX,
-    tabId,
-    undefined
-  );
-}
-
-/** Set current run command to workspace state */
-export async function setCurrentRunCommandToWorkspace(
-  context: vscode.ExtensionContext,
-  tabId: string,
-  command: string
-): Promise<void> {
-  await setWorkspaceState(
-    context,
-    WORKSPACE_RUN_COMMAND_STORAGE_KEY_PREFIX,
-    tabId,
-    command
   );
 }
 
