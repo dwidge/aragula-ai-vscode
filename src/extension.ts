@@ -18,40 +18,33 @@ import { runTestMultiTask } from "./runTestMultiTask";
 import { runTestSerialTask } from "./runTestSerialTask";
 import { runTestTask } from "./runTestTask";
 import {
-  AUTO_FIX_ERRORS_STORAGE_KEY,
-  AUTO_FORMAT_STORAGE_KEY,
-  AUTO_REMOVE_COMMENTS_STORAGE_KEY,
-  CURRENT_PROVIDER_SETTING_STORAGE_KEY,
   deleteProviderSettingFromStorage,
   deleteSystemPromptFromStorage,
   deleteUserPromptFromStorage,
-  ENABLED_TOOLS_STORAGE_KEY,
   getCurrentProviderSetting,
   getCurrentProviderSettingFromGlobalState,
   getEnabledToolNamesFromGlobalState,
   getProviderSettingsFromStorage,
   getSystemPromptsFromStorage,
   getUserPromptsFromStorage,
-  PROVIDER_SETTINGS_STORAGE_KEY,
   saveProviderSettingToStorage,
   saveSystemPromptToStorage,
   saveUserPromptToStorage,
-  setAutoFixErrorsToWorkspace,
-  setAutoFormatToWorkspace,
-  setAutoRemoveCommentsToWorkspace,
   setCurrentSystemPromptToWorkspace,
   setCurrentUserPromptToWorkspace,
-  setEnabledToolNamesToGlobalState,
-  SYSTEM_PROMPTS_STORAGE_KEY,
   updateProviderSettingInStorage,
   useProviderSettingInGlobalState,
-  USER_PROMPTS_STORAGE_KEY,
   useSystemPromptInStorage,
   useUserPromptInStorage,
-  WORKSPACE_RUN_COMMAND_STORAGE_KEY,
-  WORKSPACE_SYSTEM_PROMPT_STORAGE_KEY_PREFIX,
-  WORKSPACE_USER_PROMPT_STORAGE_KEY_PREFIX,
 } from "./settings";
+import {
+  getSettingsObject,
+  GetState,
+  SetSettings,
+  SetState,
+  SettingsObject,
+  useSettingsObject,
+} from "./settingsObject";
 import { commitStaged, stageFiles } from "./utils/git";
 import {
   ActiveTasks,
@@ -238,9 +231,6 @@ async function readOpenFilePaths(uris: vscode.Uri[]): Promise<string[]> {
   return openFilePaths;
 }
 
-type GetState = <T>(key: string, defaultValue: T) => T;
-type SetState = <T>(key: string, value: T) => Promise<void>;
-
 async function openChatWindow(
   context: vscode.ExtensionContext,
   openedFilePaths: string[],
@@ -250,13 +240,13 @@ async function openChatWindow(
     context.globalState.get<T>(key, defaultValue);
 
   const setGlobalState: SetState = async <T>(key: string, value: T) =>
-    context.globalState.update(key, value);
+    context.globalState.update(key, value).then(() => value);
 
   const getWorkspaceState: GetState = <T>(key: string, defaultValue: T): T =>
     context.workspaceState.get<T>(key, defaultValue);
 
   const setWorkspaceState: SetState = async <T>(key: string, value: T) =>
-    context.workspaceState.update(key, value);
+    context.workspaceState.update(key, value).then(() => value);
 
   const getTabState: GetState = <T>(key: string, defaultValue: T) =>
     getWorkspaceState(`${tabId}-${key}`, defaultValue);
@@ -307,7 +297,8 @@ async function openChatWindow(
     context.subscriptions
   );
 
-  await sendInitialSettingsToWebview(panel, getWorkspaceState);
+  const globalSettings = getSettingsObject(getWorkspaceState);
+  await sendInitialSettingsToWebview(panel, globalSettings);
 
   panel.webview.postMessage({
     command: "sendEnabledTools",
@@ -321,66 +312,34 @@ async function openChatWindow(
 
 async function sendInitialSettingsToWebview(
   panel: vscode.WebviewPanel,
-  getWorkspaceState: GetState
+  globalSettings: SettingsObject
 ) {
-  const systemPrompts = getWorkspaceState<string[]>(
-    SYSTEM_PROMPTS_STORAGE_KEY,
-    []
-  );
-  const userPrompts = getWorkspaceState<string[]>(USER_PROMPTS_STORAGE_KEY, []);
-  const enabledToolNames = getWorkspaceState<string[]>(
-    ENABLED_TOOLS_STORAGE_KEY,
-    []
-  );
-  const providerSettingsList = getWorkspaceState<AiApiSettings[]>(
-    PROVIDER_SETTINGS_STORAGE_KEY,
-    []
-  );
-  const providerSettingName = getWorkspaceState<string | undefined>(
-    CURRENT_PROVIDER_SETTING_STORAGE_KEY,
-    undefined
-  );
-  const currentProviderSetting = providerSettingsList.find(
-    (p) => p.name === providerSettingName
-  );
-
-  const workspaceSystemPrompt = getWorkspaceState(
-    WORKSPACE_SYSTEM_PROMPT_STORAGE_KEY_PREFIX,
-    ""
-  );
-  const systemPrompt = workspaceSystemPrompt ?? systemPrompts[0] ?? "";
-
-  const workspaceUserPrompt = getWorkspaceState(
-    WORKSPACE_USER_PROMPT_STORAGE_KEY_PREFIX,
-    ""
-  );
-  const userPrompt = workspaceUserPrompt ?? userPrompts[0] ?? "";
-
-  const autoRemoveComments = getWorkspaceState(
-    AUTO_REMOVE_COMMENTS_STORAGE_KEY,
-    false
-  );
-  const autoFormat = getWorkspaceState(AUTO_FORMAT_STORAGE_KEY, false);
-  const autoFixErrors = getWorkspaceState(AUTO_FIX_ERRORS_STORAGE_KEY, false);
-
-  const runCommand = getWorkspaceState(WORKSPACE_RUN_COMMAND_STORAGE_KEY, "");
+  const {
+    systemPrompt,
+    userPrompt,
+    autoRemoveComments,
+    autoFormat,
+    autoFixErrors,
+    runCommand,
+  } = globalSettings;
 
   const message = {
     command: "initPrompts",
+    availableTools: availableToolNames,
+    availableVendors,
+    systemPrompts: globalSettings.systemPromptList,
+    userPrompts: globalSettings.userPromptList,
+    providerSettingsList: globalSettings.providerList,
     systemPrompt,
     userPrompt,
-    systemPrompts,
-    userPrompts,
-    availableTools: availableToolNames,
     runCommand,
-    enabledTools: enabledToolNames,
-    providerSettingsList,
-    currentProviderSetting,
-    availableVendors,
+    enabledTools: globalSettings.enabledTools,
+    currentProviderSetting: globalSettings.providerName,
     autoRemoveComments,
     autoFormat,
     autoFixErrors,
   };
+  console.log("sendInitialSettingsToWebview1", message);
 
   panel.webview.postMessage(message);
 }
@@ -404,6 +363,8 @@ async function handleWebviewMessage(
   getState: GetState,
   setState: SetState
 ) {
+  const [settings, setSettings] = useSettingsObject(getState, setState);
+
   const panelInfo = chatPanels.get(tabId);
   if (!panelInfo) {
     throw new Error(`Panel info not found for tabId: ${tabId}`);
@@ -449,13 +410,22 @@ async function handleWebviewMessage(
       );
       break;
     case "setRunCommand":
-      await setState(WORKSPACE_RUN_COMMAND_STORAGE_KEY, message.runCommand);
+      await setSettings((prev) => ({
+        ...prev,
+        runCommand: message.runCommand,
+      }));
       break;
     case "setSystemPrompt":
-      handleSetSystemPrompt(context, panel, message.systemPrompt || "", tabId);
+      await setSettings((prev) => ({
+        ...prev,
+        systemPrompt: message.systemPrompt || "",
+      }));
       break;
     case "setUserPrompt":
-      handleSetUserPrompt(context, panel, message.userPrompt, tabId);
+      await setSettings((prev) => ({
+        ...prev,
+        userPrompt: message.userPrompt || "",
+      }));
       break;
     case "clearMessages":
       panel.webview.postMessage({ command: "clearMessages" });
@@ -497,10 +467,10 @@ async function handleWebviewMessage(
       handleUseUserPromptFromLibrary(context, panel, message.prompt, tabId);
       break;
     case "enableTool":
-      handleEnableTool(context, panel, message.toolName);
+      handleEnableTool(context, panel, message.toolName, setSettings);
       break;
     case "disableTool":
-      handleDisableTool(context, panel, message.toolName);
+      handleDisableTool(context, panel, message.toolName, setSettings);
       break;
     case "requestProviderSettings":
       handleRequestProviderSettings(context, panel);
@@ -547,13 +517,19 @@ async function handleWebviewMessage(
       handleFormatFilesInFiles(message.filePaths, log);
       break;
     case "setAutoRemoveComments":
-      setAutoRemoveCommentsToWorkspace(context, tabId, message.checked);
+      await setSettings((prev) => ({
+        ...prev,
+        autoRemoveComments: message.checked,
+      }));
       break;
     case "setAutoFormat":
-      setAutoFormatToWorkspace(context, tabId, message.checked);
+      await setSettings((prev) => ({ ...prev, autoFormat: message.checked }));
       break;
     case "setAutoFixErrors":
-      setAutoFixErrorsToWorkspace(context, tabId, message.checked);
+      await setSettings((prev) => ({
+        ...prev,
+        autoFixErrors: message.checked,
+      }));
       break;
     case "commitFiles":
       handleCommitFiles(context, message.fileNames, logTask);
@@ -741,31 +717,35 @@ async function handleRequestProviderSettings(
 async function handleEnableTool(
   context: vscode.ExtensionContext,
   panel: vscode.WebviewPanel,
-  toolName: string
+  toolName: string,
+  setSettings: SetSettings
 ) {
-  let enabledTools = getEnabledToolNamesFromGlobalState(context);
-  if (!enabledTools.includes(toolName)) {
-    enabledTools = [...enabledTools, toolName];
-    setEnabledToolNamesToGlobalState(context, enabledTools);
-    panel.webview.postMessage({
-      command: "updateEnabledTools",
-      enabledTools: enabledTools,
-    });
-    panel.webview.postMessage({
-      command: "sendEnabledTools",
-      enabledTools: enabledTools,
-    });
-  }
+  const enabledTools = await setSettings((prev) => ({
+    ...prev,
+    enabledTools: prev.enabledTools
+      .filter((name) => name !== toolName)
+      .concat(toolName),
+  }));
+  panel.webview.postMessage({
+    command: "updateEnabledTools",
+    enabledTools: enabledTools,
+  });
+  panel.webview.postMessage({
+    command: "sendEnabledTools",
+    enabledTools: enabledTools,
+  });
 }
 
 async function handleDisableTool(
   context: vscode.ExtensionContext,
   panel: vscode.WebviewPanel,
-  toolName: string
+  toolName: string,
+  setSettings: SetSettings
 ) {
-  let enabledTools = getEnabledToolNamesFromGlobalState(context);
-  enabledTools = enabledTools.filter((name) => name !== toolName);
-  setEnabledToolNamesToGlobalState(context, enabledTools);
+  const enabledTools = await setSettings((prev) => ({
+    ...prev,
+    enabledTools: prev.enabledTools.filter((name) => name !== toolName),
+  }));
   panel.webview.postMessage({
     command: "updateEnabledTools",
     enabledTools: enabledTools,
@@ -940,24 +920,6 @@ async function handleAddFiles(
     files: currentOpenedFiles,
   });
   return addedFiles;
-}
-
-async function handleSetSystemPrompt(
-  context: vscode.ExtensionContext,
-  panel: vscode.WebviewPanel,
-  newPrompt: string,
-  tabId: string
-) {
-  setCurrentSystemPromptToWorkspace(context, tabId, newPrompt || "");
-}
-
-async function handleSetUserPrompt(
-  context: vscode.ExtensionContext,
-  panel: vscode.WebviewPanel,
-  newPrompt: string,
-  tabId: string
-) {
-  setCurrentUserPromptToWorkspace(context, tabId, newPrompt);
 }
 
 export function deactivate() {
