@@ -18,20 +18,21 @@ import { runTestMultiTask } from "./runTestMultiTask";
 import { runTestSerialTask } from "./runTestSerialTask";
 import { runTestTask } from "./runTestTask";
 import {
+  AUTO_FIX_ERRORS_STORAGE_KEY,
+  AUTO_FORMAT_STORAGE_KEY,
+  AUTO_REMOVE_COMMENTS_STORAGE_KEY,
+  CURRENT_PROVIDER_SETTING_STORAGE_KEY,
   deleteProviderSettingFromStorage,
   deleteSystemPromptFromStorage,
   deleteUserPromptFromStorage,
-  getAutoFixErrorsFromWorkspace,
-  getAutoFormatFromWorkspace,
-  getAutoRemoveCommentsFromWorkspace,
+  ENABLED_TOOLS_STORAGE_KEY,
   getCurrentProviderSetting,
   getCurrentProviderSettingFromGlobalState,
-  getCurrentSystemPromptFromWorkspace,
-  getCurrentUserPromptFromWorkspace,
   getEnabledToolNamesFromGlobalState,
   getProviderSettingsFromStorage,
   getSystemPromptsFromStorage,
   getUserPromptsFromStorage,
+  PROVIDER_SETTINGS_STORAGE_KEY,
   saveProviderSettingToStorage,
   saveSystemPromptToStorage,
   saveUserPromptToStorage,
@@ -41,11 +42,15 @@ import {
   setCurrentSystemPromptToWorkspace,
   setCurrentUserPromptToWorkspace,
   setEnabledToolNamesToGlobalState,
+  SYSTEM_PROMPTS_STORAGE_KEY,
   updateProviderSettingInStorage,
   useProviderSettingInGlobalState,
+  USER_PROMPTS_STORAGE_KEY,
   useSystemPromptInStorage,
   useUserPromptInStorage,
   WORKSPACE_RUN_COMMAND_STORAGE_KEY,
+  WORKSPACE_SYSTEM_PROMPT_STORAGE_KEY_PREFIX,
+  WORKSPACE_USER_PROMPT_STORAGE_KEY_PREFIX,
 } from "./settings";
 import { commitStaged, stageFiles } from "./utils/git";
 import {
@@ -126,52 +131,11 @@ export function activate(context: vscode.ExtensionContext) {
       break;
     }
 
-    const systemPrompts = getSystemPromptsFromStorage(context);
-    const userPrompts = getUserPromptsFromStorage(context);
-    const enabledToolNames = getEnabledToolNamesFromGlobalState(context);
-    const providerSettingsList = getProviderSettingsFromStorage(context);
-    const currentProviderSetting =
-      getCurrentProviderSettingFromGlobalState(context);
-
-    const workspaceSystemPrompt = getCurrentSystemPromptFromWorkspace(
-      context,
-      tabId
-    );
-    const systemPrompt = workspaceSystemPrompt ?? systemPrompts[0] ?? "";
-
-    const workspaceUserPrompt = getCurrentUserPromptFromWorkspace(
-      context,
-      tabId
-    );
-    const userPrompt = workspaceUserPrompt ?? userPrompts[0] ?? "";
-
-    const autoRemoveComments =
-      getAutoRemoveCommentsFromWorkspace(context, tabId) ?? false;
-    const autoFormat = getAutoFormatFromWorkspace(context, tabId) ?? false;
-    const autoFixErrors =
-      getAutoFixErrorsFromWorkspace(context, tabId) ?? false;
-
     if (existingPanelInfo) {
       existingPanelInfo.panel.reveal(vscode.ViewColumn.One);
       sendFilesToExistingChat(existingPanelInfo.panel, openFilePaths);
     } else {
-      await openChatWindow(
-        context,
-        openFilePaths,
-        tabId,
-        systemPrompt,
-        systemPrompts,
-        userPrompts,
-        userPrompt,
-        availableToolNames,
-        enabledToolNames,
-        providerSettingsList,
-        currentProviderSetting,
-        availableVendors,
-        autoRemoveComments,
-        autoFormat,
-        autoFixErrors
-      );
+      await openChatWindow(context, openFilePaths, tabId);
     }
   };
 
@@ -280,19 +244,7 @@ type SetState = <T>(key: string, value: T) => Promise<void>;
 async function openChatWindow(
   context: vscode.ExtensionContext,
   openedFilePaths: string[],
-  tabId: string,
-  systemPrompt: string | undefined,
-  systemPrompts: string[],
-  userPrompts: string[],
-  userPrompt: string,
-  availableToolNames: string[],
-  enabledToolNames: string[],
-  providerSettingsList: AiApiSettings[],
-  currentProviderSetting: AiApiSettings | undefined,
-  availableVendors: string[],
-  autoRemoveComments: boolean,
-  autoFormat: boolean,
-  autoFixErrors: boolean
+  tabId: string
 ) {
   const getGlobalState: GetState = <T>(key: string, defaultValue: T): T =>
     context.globalState.get<T>(key, defaultValue);
@@ -355,24 +307,7 @@ async function openChatWindow(
     context.subscriptions
   );
 
-  const runCommand = getWorkspaceState(WORKSPACE_RUN_COMMAND_STORAGE_KEY, "");
-
-  panel.webview.postMessage({
-    command: "initPrompts",
-    systemPrompt: systemPrompt,
-    userPrompt: userPrompt,
-    systemPrompts: systemPrompts,
-    userPrompts: userPrompts,
-    availableTools: availableToolNames,
-    runCommand,
-    enabledTools: enabledToolNames,
-    providerSettingsList: providerSettingsList,
-    currentProviderSetting: currentProviderSetting,
-    availableVendors: availableVendors,
-    autoRemoveComments: autoRemoveComments,
-    autoFormat: autoFormat,
-    autoFixErrors: autoFixErrors,
-  });
+  await sendInitialSettingsToWebview(panel, getWorkspaceState);
 
   panel.webview.postMessage({
     command: "sendEnabledTools",
@@ -382,12 +317,72 @@ async function openChatWindow(
     command: "sendCurrentProviderSetting",
     currentProviderSetting: getCurrentProviderSettingFromGlobalState(context),
   });
+}
 
-  setCurrentSystemPromptToWorkspace(context, tabId, systemPrompt ?? "");
-  setCurrentUserPromptToWorkspace(context, tabId, userPrompt);
-  setAutoRemoveCommentsToWorkspace(context, tabId, autoRemoveComments);
-  setAutoFormatToWorkspace(context, tabId, autoFormat);
-  setAutoFixErrorsToWorkspace(context, tabId, autoFixErrors);
+async function sendInitialSettingsToWebview(
+  panel: vscode.WebviewPanel,
+  getWorkspaceState: GetState
+) {
+  const systemPrompts = getWorkspaceState<string[]>(
+    SYSTEM_PROMPTS_STORAGE_KEY,
+    []
+  );
+  const userPrompts = getWorkspaceState<string[]>(USER_PROMPTS_STORAGE_KEY, []);
+  const enabledToolNames = getWorkspaceState<string[]>(
+    ENABLED_TOOLS_STORAGE_KEY,
+    []
+  );
+  const providerSettingsList = getWorkspaceState<AiApiSettings[]>(
+    PROVIDER_SETTINGS_STORAGE_KEY,
+    []
+  );
+  const providerSettingName = getWorkspaceState<string | undefined>(
+    CURRENT_PROVIDER_SETTING_STORAGE_KEY,
+    undefined
+  );
+  const currentProviderSetting = providerSettingsList.find(
+    (p) => p.name === providerSettingName
+  );
+
+  const workspaceSystemPrompt = getWorkspaceState(
+    WORKSPACE_SYSTEM_PROMPT_STORAGE_KEY_PREFIX,
+    ""
+  );
+  const systemPrompt = workspaceSystemPrompt ?? systemPrompts[0] ?? "";
+
+  const workspaceUserPrompt = getWorkspaceState(
+    WORKSPACE_USER_PROMPT_STORAGE_KEY_PREFIX,
+    ""
+  );
+  const userPrompt = workspaceUserPrompt ?? userPrompts[0] ?? "";
+
+  const autoRemoveComments = getWorkspaceState(
+    AUTO_REMOVE_COMMENTS_STORAGE_KEY,
+    false
+  );
+  const autoFormat = getWorkspaceState(AUTO_FORMAT_STORAGE_KEY, false);
+  const autoFixErrors = getWorkspaceState(AUTO_FIX_ERRORS_STORAGE_KEY, false);
+
+  const runCommand = getWorkspaceState(WORKSPACE_RUN_COMMAND_STORAGE_KEY, "");
+
+  const message = {
+    command: "initPrompts",
+    systemPrompt,
+    userPrompt,
+    systemPrompts,
+    userPrompts,
+    availableTools: availableToolNames,
+    runCommand,
+    enabledTools: enabledToolNames,
+    providerSettingsList,
+    currentProviderSetting,
+    availableVendors,
+    autoRemoveComments,
+    autoFormat,
+    autoFixErrors,
+  };
+
+  panel.webview.postMessage(message);
 }
 
 function sendInitialSystemMessage(
