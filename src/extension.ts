@@ -18,31 +18,10 @@ import { runTestMultiTask } from "./runTestMultiTask";
 import { runTestSerialTask } from "./runTestSerialTask";
 import { runTestTask } from "./runTestTask";
 import {
-  deleteProviderSettingFromStorage,
-  deleteSystemPromptFromStorage,
-  deleteUserPromptFromStorage,
-  getCurrentProviderSetting,
-  getCurrentProviderSettingFromGlobalState,
-  getEnabledToolNamesFromGlobalState,
-  getProviderSettingsFromStorage,
-  getSystemPromptsFromStorage,
-  getUserPromptsFromStorage,
-  saveProviderSettingToStorage,
-  saveSystemPromptToStorage,
-  saveUserPromptToStorage,
-  setCurrentSystemPromptToWorkspace,
-  setCurrentUserPromptToWorkspace,
-  updateProviderSettingInStorage,
-  useProviderSettingInGlobalState,
-  useSystemPromptInStorage,
-  useUserPromptInStorage,
-} from "./settings";
-import {
-  getSettingsObject,
   GetState,
-  SetSettings,
   SetState,
   SettingsObject,
+  useProviderByName,
   useSettingsObject,
 } from "./settingsObject";
 import { commitStaged, stageFiles } from "./utils/git";
@@ -110,6 +89,18 @@ const getTextAsset = async (extensionPath: string, assetFileName: string) => {
 export function activate(context: vscode.ExtensionContext) {
   console.log('Extension "aragula-ai" active');
 
+  const getGlobalState: GetState = <T>(key: string, defaultValue: T): T =>
+    context.globalState.get<T>(key, defaultValue);
+
+  const setGlobalState: SetState = async <T>(key: string, value: T) =>
+    context.globalState.update(key, value).then(() => value);
+
+  const getWorkspaceState: GetState = <T>(key: string, defaultValue: T): T =>
+    context.workspaceState.get<T>(key, defaultValue);
+
+  const setWorkspaceState: SetState = async <T>(key: string, value: T) =>
+    context.workspaceState.update(key, value).then(() => value);
+
   const addFiles = async (multi: vscode.Uri[]) => {
     const openFilePaths = await readOpenFilePaths(multi);
     let tabId = Date.now().toString();
@@ -124,11 +115,23 @@ export function activate(context: vscode.ExtensionContext) {
       break;
     }
 
+    const getTabState: GetState = <T>(key: string, defaultValue: T) =>
+      getWorkspaceState(`${tabId}-${key}`, defaultValue);
+
+    const setTabState: SetState = async <T>(key: string, value: T) =>
+      setWorkspaceState(`${tabId}-${key}`, value);
+
     if (existingPanelInfo) {
       existingPanelInfo.panel.reveal(vscode.ViewColumn.One);
       sendFilesToExistingChat(existingPanelInfo.panel, openFilePaths);
     } else {
-      await openChatWindow(context, openFilePaths, tabId);
+      await openChatWindow(
+        context,
+        openFilePaths,
+        tabId,
+        getWorkspaceState,
+        setWorkspaceState
+      );
     }
   };
 
@@ -157,7 +160,18 @@ export function activate(context: vscode.ExtensionContext) {
           return;
         }
 
-        const currentProviderSetting = getCurrentProviderSetting(context);
+        const [settings, setSettings] = useSettingsObject(
+          getWorkspaceState,
+          setWorkspaceState
+        );
+
+        const currentProviderSetting = useProviderByName(
+          settings,
+          settings.providerName
+        );
+        if (!currentProviderSetting) {
+          throw new Error("No provider selected");
+        }
 
         const abortController = new AbortController();
 
@@ -234,26 +248,10 @@ async function readOpenFilePaths(uris: vscode.Uri[]): Promise<string[]> {
 async function openChatWindow(
   context: vscode.ExtensionContext,
   openedFilePaths: string[],
-  tabId: string
+  tabId: string,
+  getWorkspaceState: GetState,
+  setWorkspaceState: SetState
 ) {
-  const getGlobalState: GetState = <T>(key: string, defaultValue: T): T =>
-    context.globalState.get<T>(key, defaultValue);
-
-  const setGlobalState: SetState = async <T>(key: string, value: T) =>
-    context.globalState.update(key, value).then(() => value);
-
-  const getWorkspaceState: GetState = <T>(key: string, defaultValue: T): T =>
-    context.workspaceState.get<T>(key, defaultValue);
-
-  const setWorkspaceState: SetState = async <T>(key: string, value: T) =>
-    context.workspaceState.update(key, value).then(() => value);
-
-  const getTabState: GetState = <T>(key: string, defaultValue: T) =>
-    getWorkspaceState(`${tabId}-${key}`, defaultValue);
-
-  const setTabState: SetState = async <T>(key: string, value: T) =>
-    setWorkspaceState(`${tabId}-${key}`, value);
-
   const panel = vscode.window.createWebviewPanel(
     "askAIChat",
     `Ask AI - ${tabId}`,
@@ -297,16 +295,19 @@ async function openChatWindow(
     context.subscriptions
   );
 
-  const globalSettings = getSettingsObject(getWorkspaceState);
-  await sendInitialSettingsToWebview(panel, globalSettings);
+  const [settings, setSettings] = useSettingsObject(
+    getWorkspaceState,
+    setWorkspaceState
+  );
+  await sendInitialSettingsToWebview(panel, settings);
 
   panel.webview.postMessage({
     command: "sendEnabledTools",
-    enabledTools: getEnabledToolNamesFromGlobalState(context),
+    enabledTools: settings.enabledTools,
   });
   panel.webview.postMessage({
     command: "sendCurrentProviderSetting",
-    currentProviderSetting: getCurrentProviderSettingFromGlobalState(context),
+    currentProviderSetting: useProviderByName(settings, settings.providerName),
   });
 }
 
@@ -385,7 +386,11 @@ async function handleWebviewMessage(
       cancelTask(taskIdToCancel, activeTasks);
       break;
     case "sendMessage":
-      handleSendMessage(context, panel, message, tabId, log);
+      await setSettings((prev) => ({
+        ...prev,
+        userPrompt: message.user || "",
+      }));
+      await handleSendMessage(context, panel, message, tabId, log);
       break;
     case "runCommand":
       handleRunCommand(message.runCommand, logTask)
@@ -443,72 +448,241 @@ async function handleWebviewMessage(
       handleAddFilesFromDialog(panel, message.filePaths, openedFilePaths);
       break;
     case "saveSystemPromptToLibrary":
-      handleSaveSystemPromptToLibrary(context, panel, message.prompt);
+      {
+        const updatedSettings = await setSettings((prev) => {
+          const filtered = prev.systemPromptList.filter(
+            (p) => p !== message.prompt
+          );
+          return { ...prev, systemPromptList: [message.prompt, ...filtered] };
+        });
+        panel.webview.postMessage({
+          command: "systemPromptsList",
+          prompts: updatedSettings.systemPromptList,
+        });
+      }
       break;
     case "saveUserPromptToLibrary":
-      handleSaveUserPromptToLibrary(context, panel, message.prompt);
+      {
+        const updatedSettings = await setSettings((prev) => {
+          const filtered = prev.userPromptList.filter(
+            (p) => p !== message.prompt
+          );
+          return { ...prev, userPromptList: [message.prompt, ...filtered] };
+        });
+        panel.webview.postMessage({
+          command: "userPromptsList",
+          prompts: updatedSettings.userPromptList,
+        });
+      }
       break;
     case "deleteSystemPromptFromLibrary":
-      handleDeleteSystemPromptFromLibrary(context, panel, message.prompt);
+      {
+        const updatedSettings = await setSettings((prev) => {
+          const filtered = prev.systemPromptList.filter(
+            (p) => p !== message.prompt
+          );
+          return { ...prev, systemPromptList: filtered };
+        });
+        panel.webview.postMessage({
+          command: "systemPromptsList",
+          prompts: updatedSettings.systemPromptList,
+        });
+      }
       break;
     case "deleteUserPromptFromLibrary":
-      handleDeleteUserPromptFromLibrary(context, panel, message.prompt);
+      {
+        const updatedSettings = await setSettings((prev) => {
+          const filtered = prev.userPromptList.filter(
+            (p) => p !== message.prompt
+          );
+          return { ...prev, userPromptList: filtered };
+        });
+        panel.webview.postMessage({
+          command: "userPromptsList",
+          prompts: updatedSettings.userPromptList,
+        });
+      }
       break;
     case "requestSystemPrompts":
-      handleRequestSystemPrompts(context, panel);
+      panel.webview.postMessage({
+        command: "systemPromptsList",
+        prompts: settings.systemPromptList,
+      });
       break;
     case "requestUserPrompts":
-      handleRequestUserPrompts(context, panel);
+      panel.webview.postMessage({
+        command: "userPromptsList",
+        prompts: settings.userPromptList,
+      });
       break;
     case "useSystemPromptFromLibrary":
-      handleUseSystemPromptFromLibrary(context, panel, message.prompt, tabId);
+      {
+        const updatedSettings = await setSettings((prev) => {
+          const filtered = prev.systemPromptList.filter(
+            (p) => p !== message.prompt
+          );
+          return {
+            ...prev,
+            systemPromptList: [message.prompt, ...filtered],
+            systemPrompt: message.prompt,
+          };
+        });
+        panel.webview.postMessage({
+          command: "systemPromptsList",
+          prompts: updatedSettings.systemPromptList,
+        });
+      }
       break;
     case "useUserPromptFromLibrary":
-      handleUseUserPromptFromLibrary(context, panel, message.prompt, tabId);
+      {
+        const updatedSettings = await setSettings((prev) => {
+          const filtered = prev.userPromptList.filter(
+            (p) => p !== message.prompt
+          );
+          return {
+            ...prev,
+            userPromptList: [message.prompt, ...filtered],
+            userPrompt: message.prompt,
+          };
+        });
+        panel.webview.postMessage({
+          command: "userPromptsList",
+          prompts: updatedSettings.userPromptList,
+        });
+      }
       break;
     case "enableTool":
-      handleEnableTool(context, panel, message.toolName, setSettings);
+      await setSettings((prev) => ({
+        ...prev,
+        enabledTools: prev.enabledTools
+          .filter((name) => name !== message.toolName)
+          .concat(message.toolName),
+      }));
+      panel.webview.postMessage({
+        command: "updateEnabledTools",
+        enabledTools: settings.enabledTools,
+      });
+      panel.webview.postMessage({
+        command: "sendEnabledTools",
+        enabledTools: settings.enabledTools,
+      });
       break;
     case "disableTool":
-      handleDisableTool(context, panel, message.toolName, setSettings);
+      await setSettings((prev) => ({
+        ...prev,
+        enabledTools: prev.enabledTools.filter(
+          (name) => name !== message.toolName
+        ),
+      }));
+      panel.webview.postMessage({
+        command: "updateEnabledTools",
+        enabledTools: settings.enabledTools,
+      });
+      panel.webview.postMessage({
+        command: "sendEnabledTools",
+        enabledTools: settings.enabledTools,
+      });
       break;
     case "requestProviderSettings":
-      handleRequestProviderSettings(context, panel);
+      panel.webview.postMessage({
+        command: "providerSettingsList",
+        providerSettingsList: settings.providerList,
+        currentProviderSetting: useProviderByName(
+          settings,
+          settings.providerName
+        ),
+      });
       break;
     case "saveProviderSetting":
-      handleSaveProviderSetting(context, panel, message.providerSetting);
+      {
+        const oldName = message.providerSetting.name;
+        const newSetting = message.providerSetting;
+        const updatedSettings = await setSettings((prev) => {
+          const updatedList = prev.providerList.map((p) =>
+            p.name === oldName ? newSetting : p
+          );
+          return { ...prev, providerList: updatedList };
+        });
+        panel.webview.postMessage({
+          command: "providerSettingsList",
+          providerSettingsList: updatedSettings.providerList,
+        });
+        panel.webview.postMessage({ command: "providerSettingsUpdated" });
+      }
       break;
     case "updateProviderSetting":
-      handleUpdateProviderSetting(
-        context,
-        panel,
-        message.oldProviderSettingName,
-        message.providerSetting
-      );
+      {
+        const oldName = message.oldProviderSettingName;
+        const newSetting = message.providerSetting;
+        const updatedSettings = await setSettings((prev) => {
+          const updatedList = prev.providerList.map((p) =>
+            p.name === oldName ? newSetting : p
+          );
+          return { ...prev, providerList: updatedList };
+        });
+        panel.webview.postMessage({
+          command: "providerSettingsList",
+          providerSettingsList: updatedSettings.providerList,
+        });
+        panel.webview.postMessage({ command: "providerSettingsUpdated" });
+      }
       break;
     case "deleteProviderSettingFromLibrary":
-      handleDeleteProviderSettingFromLibrary(
-        context,
-        panel,
-        message.providerSettingName
-      );
+      {
+        const updatedSettings = await setSettings((prev) => {
+          const filtered = prev.providerList.filter(
+            (p) => p.name !== message.providerSettingName
+          );
+          return { ...prev, providerList: filtered };
+        });
+        panel.webview.postMessage({
+          command: "providerSettingsList",
+          providerSettingsList: updatedSettings.providerList,
+        });
+        panel.webview.postMessage({ command: "providerSettingsUpdated" });
+      }
       break;
     case "useProviderSettingFromLibrary":
-      handleUseProviderSettingFromLibrary(
-        context,
-        panel,
-        message.providerSettingName,
-        tabId
-      );
+      await setSettings((prev) => ({
+        ...prev,
+        providerName: message.providerSettingName,
+      }));
+      panel.webview.postMessage({
+        command: "providerSettingsList",
+        providerSettingsList: settings.providerList,
+        currentProviderSetting: useProviderByName(
+          settings,
+          message.providerSettingName
+        ),
+      });
+      panel.webview.postMessage({
+        command: "sendCurrentProviderSetting",
+        currentProviderSetting: useProviderByName(
+          settings,
+          message.providerSettingName
+        ),
+      });
       break;
     case "requestAvailableVendors":
-      handleRequestAvailableVendors(context, panel);
+      panel.webview.postMessage({
+        command: "availableVendors",
+        availableVendors: availableVendors,
+      });
       break;
     case "requestEnabledTools":
-      handleRequestEnabledTools(context, panel);
+      panel.webview.postMessage({
+        command: "sendEnabledTools",
+        enabledTools: settings.enabledTools,
+      });
       break;
     case "requestCurrentProviderSetting":
-      handleRequestCurrentProviderSetting(context, panel);
+      panel.webview.postMessage({
+        command: "sendCurrentProviderSetting",
+        currentProviderSetting: useProviderByName(
+          settings,
+          settings.providerName
+        ),
+      });
       break;
     case "removeCommentsInFiles":
       handleRemoveCommentsInFiles(message.filePaths, log);
@@ -532,7 +706,7 @@ async function handleWebviewMessage(
       }));
       break;
     case "commitFiles":
-      handleCommitFiles(context, message.fileNames, logTask);
+      handleCommitFiles(settings, message.fileNames, logTask);
       break;
     case "planAndExecute":
       handlePlanAndExecute(message, logTask);
@@ -552,7 +726,7 @@ async function handleWebviewMessage(
 }
 
 const handleCommitFiles = (
-  context: vscode.ExtensionContext,
+  settings: SettingsObject,
   fileNames: string[],
   log: TaskLogger
 ) =>
@@ -568,7 +742,13 @@ const handleCommitFiles = (
       }
 
       const workspaceRoot = getWorkspaceRoot();
-      const currentProviderSetting = getCurrentProviderSetting(context);
+      const currentProviderSetting = useProviderByName(
+        settings,
+        settings.providerName
+      );
+      if (!currentProviderSetting) {
+        throw new Error("No provider selected");
+      }
 
       log({ summary: "Stage files" });
       await stageFiles(fileNames);
@@ -594,271 +774,6 @@ const handleCommitFiles = (
       });
     }
   );
-
-async function handleRequestCurrentProviderSetting(
-  context: vscode.ExtensionContext,
-  panel: vscode.WebviewPanel
-) {
-  const currentProviderSetting =
-    getCurrentProviderSettingFromGlobalState(context);
-  panel.webview.postMessage({
-    command: "sendCurrentProviderSetting",
-    currentProviderSetting: currentProviderSetting,
-  });
-}
-
-async function handleRequestEnabledTools(
-  context: vscode.ExtensionContext,
-  panel: vscode.WebviewPanel
-) {
-  const enabledTools = getEnabledToolNamesFromGlobalState(context);
-  panel.webview.postMessage({
-    command: "sendEnabledTools",
-    enabledTools: enabledTools,
-  });
-}
-
-async function handleRequestAvailableVendors(
-  context: vscode.ExtensionContext,
-  panel: vscode.WebviewPanel
-) {
-  panel.webview.postMessage({
-    command: "availableVendors",
-    availableVendors: availableVendors,
-  });
-}
-
-async function handleUpdateProviderSetting(
-  context: vscode.ExtensionContext,
-  panel: vscode.WebviewPanel,
-  oldProviderSettingName: string,
-  providerSetting: AiApiSettings
-) {
-  await updateProviderSettingInStorage(
-    context,
-    oldProviderSettingName,
-    providerSetting
-  );
-  const updatedProviderSettings = getProviderSettingsFromStorage(context);
-  panel.webview.postMessage({
-    command: "providerSettingsList",
-    providerSettingsList: updatedProviderSettings,
-  });
-  panel.webview.postMessage({ command: "providerSettingsUpdated" });
-}
-
-async function handleUseProviderSettingFromLibrary(
-  context: vscode.ExtensionContext,
-  panel: vscode.WebviewPanel,
-  providerSettingName: string,
-  tabId: string
-) {
-  await useProviderSettingInGlobalState(context, providerSettingName);
-  const updatedProviderSettings = getProviderSettingsFromStorage(context);
-  const currentProviderSetting = updatedProviderSettings.find(
-    (p) => p.name === providerSettingName
-  );
-
-  panel.webview.postMessage({
-    command: "providerSettingsList",
-    providerSettingsList: updatedProviderSettings,
-    currentProviderSetting: currentProviderSetting,
-  });
-  panel.webview.postMessage({
-    command: "sendCurrentProviderSetting",
-    currentProviderSetting: currentProviderSetting,
-  });
-}
-
-async function handleDeleteProviderSettingFromLibrary(
-  context: vscode.ExtensionContext,
-  panel: vscode.WebviewPanel,
-  providerSettingName: string
-) {
-  await deleteProviderSettingFromStorage(context, providerSettingName);
-  const updatedProviderSettings = getProviderSettingsFromStorage(context);
-  panel.webview.postMessage({
-    command: "providerSettingsList",
-    providerSettingsList: updatedProviderSettings,
-  });
-  panel.webview.postMessage({ command: "providerSettingsUpdated" });
-}
-
-async function handleSaveProviderSetting(
-  context: vscode.ExtensionContext,
-  panel: vscode.WebviewPanel,
-  providerSetting: AiApiSettings
-) {
-  await saveProviderSettingToStorage(context, providerSetting);
-  const updatedproviderSettings = getProviderSettingsFromStorage(context);
-  panel.webview.postMessage({
-    command: "providerSettingsList",
-    providerSettingsList: updatedproviderSettings,
-  });
-  panel.webview.postMessage({ command: "providerSettingsUpdated" });
-}
-
-async function handleRequestProviderSettings(
-  context: vscode.ExtensionContext,
-  panel: vscode.WebviewPanel
-) {
-  const providerSettingsList = getProviderSettingsFromStorage(context);
-  const currentProviderSetting =
-    getCurrentProviderSettingFromGlobalState(context) ||
-    providerSettingsList[0];
-
-  panel.webview.postMessage({
-    command: "providerSettingsList",
-    providerSettingsList: providerSettingsList,
-    currentProviderSetting: currentProviderSetting,
-  });
-}
-
-async function handleEnableTool(
-  context: vscode.ExtensionContext,
-  panel: vscode.WebviewPanel,
-  toolName: string,
-  setSettings: SetSettings
-) {
-  const enabledTools = await setSettings((prev) => ({
-    ...prev,
-    enabledTools: prev.enabledTools
-      .filter((name) => name !== toolName)
-      .concat(toolName),
-  }));
-  panel.webview.postMessage({
-    command: "updateEnabledTools",
-    enabledTools: enabledTools,
-  });
-  panel.webview.postMessage({
-    command: "sendEnabledTools",
-    enabledTools: enabledTools,
-  });
-}
-
-async function handleDisableTool(
-  context: vscode.ExtensionContext,
-  panel: vscode.WebviewPanel,
-  toolName: string,
-  setSettings: SetSettings
-) {
-  const enabledTools = await setSettings((prev) => ({
-    ...prev,
-    enabledTools: prev.enabledTools.filter((name) => name !== toolName),
-  }));
-  panel.webview.postMessage({
-    command: "updateEnabledTools",
-    enabledTools: enabledTools,
-  });
-  panel.webview.postMessage({
-    command: "sendEnabledTools",
-    enabledTools: enabledTools,
-  });
-}
-
-async function handleUseSystemPromptFromLibrary(
-  context: vscode.ExtensionContext,
-  panel: vscode.WebviewPanel,
-  prompt: string,
-  tabId: string
-) {
-  await useSystemPromptInStorage(context, prompt);
-  setCurrentSystemPromptToWorkspace(context, tabId, prompt);
-  const updatedSystemPrompts = getSystemPromptsFromStorage(context);
-  panel.webview.postMessage({
-    command: "systemPromptsList",
-    prompts: updatedSystemPrompts,
-  });
-}
-
-async function handleUseUserPromptFromLibrary(
-  context: vscode.ExtensionContext,
-  panel: vscode.WebviewPanel,
-  prompt: string,
-  tabId: string
-) {
-  await useUserPromptInStorage(context, prompt);
-  setCurrentUserPromptToWorkspace(context, tabId, prompt);
-  const updatedUserPrompts = getUserPromptsFromStorage(context);
-  panel.webview.postMessage({
-    command: "userPromptsList",
-    prompts: updatedUserPrompts,
-  });
-}
-
-async function handleRequestSystemPrompts(
-  context: vscode.ExtensionContext,
-  panel: vscode.WebviewPanel
-) {
-  const systemPrompts = getSystemPromptsFromStorage(context);
-  panel.webview.postMessage({
-    command: "systemPromptsList",
-    prompts: systemPrompts,
-  });
-}
-
-async function handleRequestUserPrompts(
-  context: vscode.ExtensionContext,
-  panel: vscode.WebviewPanel
-) {
-  const userPrompts = getUserPromptsFromStorage(context);
-  panel.webview.postMessage({
-    command: "userPromptsList",
-    prompts: userPrompts,
-  });
-}
-
-async function handleSaveSystemPromptToLibrary(
-  context: vscode.ExtensionContext,
-  panel: vscode.WebviewPanel,
-  prompt: string
-) {
-  await saveSystemPromptToStorage(context, prompt);
-  const updatedSystemPrompts = getSystemPromptsFromStorage(context);
-  panel.webview.postMessage({
-    command: "systemPromptsList",
-    prompts: updatedSystemPrompts,
-  });
-}
-
-async function handleSaveUserPromptToLibrary(
-  context: vscode.ExtensionContext,
-  panel: vscode.WebviewPanel,
-  prompt: string
-) {
-  await saveUserPromptToStorage(context, prompt);
-  const updatedUserPrompts = getUserPromptsFromStorage(context);
-  panel.webview.postMessage({
-    command: "userPromptsList",
-    prompts: updatedUserPrompts,
-  });
-}
-
-async function handleDeleteSystemPromptFromLibrary(
-  context: vscode.ExtensionContext,
-  panel: vscode.WebviewPanel,
-  prompt: string
-) {
-  await deleteSystemPromptFromStorage(context, prompt);
-  const updatedSystemPrompts = getSystemPromptsFromStorage(context);
-  panel.webview.postMessage({
-    command: "systemPromptsList",
-    prompts: updatedSystemPrompts,
-  });
-}
-
-async function handleDeleteUserPromptFromLibrary(
-  context: vscode.ExtensionContext,
-  panel: vscode.WebviewPanel,
-  prompt: string
-) {
-  await deleteUserPromptFromStorage(context, prompt);
-  const updatedUserPrompts = getUserPromptsFromStorage(context);
-  panel.webview.postMessage({
-    command: "userPromptsList",
-    prompts: updatedUserPrompts,
-  });
-}
 
 async function handleAddFilesFromDialog(
   panel: vscode.WebviewPanel,

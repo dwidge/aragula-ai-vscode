@@ -71,3 +71,13 @@ export const useSettingsObject = (
     setSettingsObject(getState, setState, setter(getSettings()));
   return [getSettings(), setSettings];
 };
+
+export const useProviderByName = (
+  settings: SettingsObject,
+  name: string | null
+): AiApiSettings | undefined =>
+  settings.providerList.find((p) => p.name === name);
+
+/** Helper to delete a string from an array */
+export const deleteStringFromArray = (arr: string[], str: string): string[] =>
+  arr.filter((item) => item !== str);

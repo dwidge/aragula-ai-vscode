@@ -12,7 +12,6 @@ import { executeToolCalls, ToolCallResult } from "./executeToolCalls";
 import { handleFormatFilesInFiles } from "./handleFormatFilesInFiles";
 import { handleRemoveCommentsInFiles } from "./handleRemoveCommentsInFiles";
 import { readFiles } from "./readFiles";
-import { setCurrentUserPromptToWorkspace } from "./settings";
 import { Logger } from "./utils/Logger";
 
 interface ActiveRequest {
@@ -51,8 +50,6 @@ export async function handleSendMessage(
 ) {
   const providerSetting = message.providerSetting;
   const messageId = message.messageId;
-
-  setCurrentUserPromptToWorkspace(context, tabId, message.user);
 
   try {
     const response = await performAiRequest(message, log, signal);
