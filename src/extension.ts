@@ -5,12 +5,10 @@ import { AiApiSettings } from "./aiTools/AiApi";
 import { availableToolNames, availableVendors } from "./availableToolNames";
 import { checkAndFixErrors } from "./checkAndFixErrors";
 import { generateCommitMessage } from "./generateCommitMessage";
-import {
-  getWorkspaceAbsolutePath,
-  getWorkspaceRoot,
-} from "./getWorkspaceAbsolutePath";
+import { getWorkspaceRoot } from "./getWorkspaceAbsolutePath";
 import { handleFormatFilesInFiles } from "./handleFormatFilesInFiles";
 import { handleRemoveCommentsInFiles } from "./handleRemoveCommentsInFiles";
+import { addFiles, openFilesDialog, removeFiles } from "./handleRemoveFile";
 import { handleRunCommand } from "./handleRunCommand";
 import { handleSendMessage } from "./handleSendMessage";
 import { handlePlanAndExecute } from "./planTool";
@@ -210,7 +208,7 @@ function sendFilesToExistingChat(
   filePaths: string[]
 ) {
   postMessage({
-    command: "addFilesFromDialog",
+    command: "addFiles",
     filePaths: filePaths,
   });
 }
@@ -396,20 +394,13 @@ async function handleWebviewMessage(
       postMessage({ command: "clearMessages" });
       break;
     case "removeFile":
-      handleRemoveFile(postMessage, message.filePath, openedFilePaths);
+      removeFiles(postMessage, message.filePath, openedFilePaths);
       break;
     case "addFiles":
-      await handleAddFiles(postMessage, message.filePaths, openedFilePaths);
+      await addFiles(postMessage, message.filePaths, openedFilePaths);
       break;
-    case "requestAddFiles":
-      requestAddFilesDialog(postMessage);
-      break;
-    case "addFilesFromDialog":
-      await handleAddFilesFromDialog(
-        postMessage,
-        message.filePaths,
-        openedFilePaths
-      );
+    case "openFilesDialog":
+      openFilesDialog(postMessage);
       break;
     case "updateSettings":
       {
@@ -506,70 +497,6 @@ const handleCommitFiles = (
       });
     }
   );
-
-async function handleAddFilesFromDialog(
-  postMessage: PostMessage,
-  filePaths: string[],
-  openedFilePaths: string[]
-) {
-  await handleAddFiles(postMessage, filePaths, openedFilePaths);
-}
-
-async function requestAddFilesDialog(postMessage: PostMessage) {
-  const files = await vscode.window.showOpenDialog({
-    canSelectFiles: true,
-    canSelectFolders: false,
-    canSelectMany: true,
-    openLabel: "Add Files to AI Chat",
-  });
-  if (files) {
-    const filePaths = files.map((file) =>
-      vscode.workspace.asRelativePath(file)
-    );
-    postMessage({ command: "addFilesFromDialog", filePaths });
-  }
-}
-
-function handleRemoveFile(
-  postMessage: PostMessage,
-  filePath: string,
-  openedFilePaths: string[]
-) {
-  const index = openedFilePaths.indexOf(filePath);
-  if (index > -1) {
-    openedFilePaths.splice(index, 1);
-  }
-
-  postMessage({
-    command: "setOpenFiles",
-    files: openedFilePaths,
-  });
-}
-
-async function handleAddFiles(
-  postMessage: PostMessage,
-  filePaths: string[],
-  openedFilePaths: string[]
-) {
-  const addedFiles: string[] = [];
-  for (const filePath of filePaths) {
-    if (!openedFilePaths.includes(filePath)) {
-      try {
-        await fs.access(getWorkspaceAbsolutePath(filePath), fs.constants.R_OK);
-        openedFilePaths.push(filePath);
-        addedFiles.push(filePath);
-      } catch (error) {
-        vscode.window.showWarningMessage(`Failed to read file: ${filePath}`);
-        continue;
-      }
-    }
-  }
-  postMessage({
-    command: "setOpenFiles",
-    files: openedFilePaths,
-  });
-  return addedFiles;
-}
 
 export function deactivate() {
   chatPanels.forEach((panelInfo) => {

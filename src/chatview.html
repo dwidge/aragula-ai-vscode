@@ -1621,7 +1621,7 @@
       /**
        * Adds files to the open files list, updates UI and extension.
        * Prevents duplicate file paths.
-       * This function is called by the webview's drag/drop handler and addFilesFromDialog handler.
+       * This function is called by the webview's drag/drop handler and addFiles handler.
        * @param {string[]} files - Array of file paths to add.
        */
       function addFiles(files) {
@@ -1641,7 +1641,7 @@
        * Opens the file dialog to add files.
        */
       function addFilesDialog() {
-        vscode.postMessage({ command: "requestAddFiles" });
+        vscode.postMessage({ command: "openFilesDialog" });
       }
 
       /**
@@ -2517,7 +2517,7 @@
             saveState();
             renderSelectedFiles();
             break;
-          case "addFilesFromDialog":
+          case "addFiles":
             addFiles(message.filePaths);
             break;
           case "settingsUpdated":
