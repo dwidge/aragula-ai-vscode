@@ -1030,8 +1030,9 @@
 
       /**
        * Loads state from localStorage: chat history, open files, run command input.
-       * Note: Plan state, prompts, auto settings, enabled tools, current provider
-       * are loaded from workspaceState/globalState via settingsUpdated message.
+       * Note: Plan state, prompts, auto settings, enabled tools, current provider,
+       * available vendors/tools are loaded from workspaceState/globalState via
+       * the single `settingsUpdated` message upon activation.
        */
       function loadState() {
         chatHistory = loadFromLocalStorage(STORAGE_KEYS.chatHistory, []);
@@ -2317,13 +2318,6 @@
         renderChatHistory();
         renderSelectedFiles();
 
-        vscode.postMessage({ command: "requestSystemPrompts" });
-        vscode.postMessage({ command: "requestUserPrompts" });
-        vscode.postMessage({ command: "requestProviderSettings" });
-        vscode.postMessage({ command: "requestAvailableVendors" });
-        vscode.postMessage({ command: "requestEnabledTools" });
-        vscode.postMessage({ command: "requestCurrentProviderSetting" });
-
         document.addEventListener("click", function (event) {
           if (
             systemPromptsPopupVisible &&
@@ -2565,9 +2559,9 @@
             autoFormat = settings.autoFormat ?? true;
             autoFixErrors = settings.autoFixErrors ?? true;
 
-            currentProviderSetting = providerSettingsList.find(
-              (p) => p.name === settings.providerName
-            );
+            currentProviderSetting = message.currentProviderSetting;
+            availableVendors = message.availableVendors || [];
+            availableTools = message.availableTools || [];
 
             systemPromptEl.value = currentSystemPrompt;
             userInputEl.value = currentUserPrompt;
@@ -2581,15 +2575,9 @@
             renderEnabledTools();
             renderSelectedProvider();
             renderProviderSettingsPopupList();
-
-            break;
-          case "availableVendors":
-            availableVendors = message.availableVendors;
             renderVendorDropdown();
-            break;
-          case "availableTools":
-            availableTools = message.availableTools;
             renderToolPopupList();
+
             break;
           case "resetRunCommandButton":
             resetRunCommandButton();

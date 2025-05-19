@@ -287,34 +287,41 @@ async function openChatWindow(
   );
 
   const [settings, setSettings] = useSettingsObject(globalSettings);
-  await sendSettingsToWebview(postMessage, settings);
+  const currentProviderSetting = useProviderByName(
+    settings,
+    settings.providerName
+  );
 
-  postMessage({
-    command: "sendCurrentProviderSetting",
-    currentProviderSetting: useProviderByName(settings, settings.providerName),
-  });
-  postMessage({
-    command: "availableVendors",
-    availableVendors: availableVendors,
-  });
-  postMessage({
-    command: "availableTools",
-    availableTools: availableToolNames,
-  });
+  await sendSettingsToWebview(
+    postMessage,
+    settings,
+    currentProviderSetting,
+    availableVendors,
+    availableToolNames
+  );
 }
 
 /**
- * Sends the full settings object to the webview.
+ * Sends the full settings object and related state to the webview.
  * @param postMessage Function to post message to webview.
  * @param settings The settings object to send.
+ * @param currentProviderSetting The currently selected provider settings.
+ * @param availableVendors List of available AI vendors.
+ * @param availableTools List of available AI tools.
  */
 async function sendSettingsToWebview(
   postMessage: PostMessage,
-  settings: SettingsObject
+  settings: SettingsObject,
+  currentProviderSetting: AiApiSettings | undefined,
+  availableVendors: string[],
+  availableTools: string[]
 ) {
   const message = {
     command: "settingsUpdated",
-    settings: settings,
+    settings,
+    currentProviderSetting,
+    availableVendors,
+    availableTools,
   };
   console.log("sendSettingsToWebview1", message);
 
@@ -407,7 +414,17 @@ async function handleWebviewMessage(
           ...prev,
           ...message.settings,
         }));
-        await sendSettingsToWebview(postMessage, updatedSettings);
+        const currentProviderSetting = useProviderByName(
+          updatedSettings,
+          updatedSettings.providerName
+        );
+        await sendSettingsToWebview(
+          postMessage,
+          updatedSettings,
+          currentProviderSetting,
+          availableVendors,
+          availableToolNames
+        );
       }
       break;
     case "removeCommentsInFiles":
