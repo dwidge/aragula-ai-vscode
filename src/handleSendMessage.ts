@@ -11,6 +11,7 @@ import { checkAndFixErrors } from "./checkAndFixErrors";
 import { executeToolCalls, ToolCallResult } from "./executeToolCalls";
 import { handleFormatFilesInFiles } from "./handleFormatFilesInFiles";
 import { handleRemoveCommentsInFiles } from "./handleRemoveCommentsInFiles";
+import { PostMessage } from "./PostMessage";
 import { readFiles } from "./readFiles";
 import { Logger } from "./utils/Logger";
 
@@ -32,7 +33,7 @@ export function cancelActiveRequest(messageId: string, log: Logger) {
 /** Handles a sendMessage request from the webview. */
 export async function handleSendMessage(
   context: vscode.ExtensionContext,
-  panel: vscode.WebviewPanel,
+  postMessage: PostMessage,
   message: {
     user: string;
     system: string;
@@ -54,7 +55,7 @@ export async function handleSendMessage(
   try {
     const response = await performAiRequest(message, log, signal);
 
-    panel.webview.postMessage({
+    postMessage({
       command: "updateMessage",
       messageId,
       text: response.assistant,
@@ -85,7 +86,7 @@ export async function handleSendMessage(
       await checkAndFixErrors(modifiedFiles, providerSetting, log);
     }
 
-    panel.webview.postMessage({
+    postMessage({
       command: "updateMessage",
       messageId,
       text: response.assistant,
@@ -96,7 +97,7 @@ export async function handleSendMessage(
   } catch (error: any) {
     if (error.name === "AbortError") {
       log("Request was aborted by user.", "info");
-      panel.webview.postMessage({
+      postMessage({
         command: "updateMessage",
         messageId,
         text: "Request was aborted.",
@@ -105,7 +106,7 @@ export async function handleSendMessage(
       });
     } else {
       log(`API call failed: ${error.message}`, "error");
-      panel.webview.postMessage({
+      postMessage({
         command: "updateMessage",
         messageId,
         text: `API call failed: ${error.message}`,

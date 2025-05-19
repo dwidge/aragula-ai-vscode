@@ -14,6 +14,7 @@ import { handleRemoveCommentsInFiles } from "./handleRemoveCommentsInFiles";
 import { handleRunCommand } from "./handleRunCommand";
 import { handleSendMessage } from "./handleSendMessage";
 import { handlePlanAndExecute } from "./planTool";
+import { newPostMessage, PostMessage } from "./PostMessage";
 import { runTestMultiTask } from "./runTestMultiTask";
 import { runTestSerialTask } from "./runTestSerialTask";
 import { runTestTask } from "./runTestTask";
@@ -120,7 +121,8 @@ export function activate(context: vscode.ExtensionContext) {
 
     if (existingPanelInfo) {
       existingPanelInfo.panel.reveal(vscode.ViewColumn.One);
-      sendFilesToExistingChat(existingPanelInfo.panel, openFilePaths);
+      const postMessage = newPostMessage(existingPanelInfo.panel);
+      sendFilesToExistingChat(postMessage, openFilePaths);
     } else {
       await openChatWindow(context, openFilePaths, tabId, globalSettings);
     }
@@ -204,10 +206,10 @@ export function activate(context: vscode.ExtensionContext) {
 }
 
 function sendFilesToExistingChat(
-  panel: vscode.WebviewPanel,
+  postMessage: PostMessage,
   filePaths: string[]
 ) {
-  panel.webview.postMessage({
+  postMessage({
     command: "addFilesFromDialog",
     filePaths: filePaths,
   });
@@ -265,13 +267,16 @@ async function openChatWindow(
     "chatview.html"
   );
   panel.webview.html = htmlContent.replace("${tabId}", tabId);
-  sendInitialSystemMessage(panel, openedFilePaths);
+
+  const postMessage = newPostMessage(panel);
+
+  sendInitialSystemMessage(postMessage, openedFilePaths);
 
   panel.webview.onDidReceiveMessage(
     (message) =>
       handleWebviewMessage(
         context,
-        panel,
+        postMessage,
         message,
         openedFilePaths,
         tabId,
@@ -282,20 +287,20 @@ async function openChatWindow(
   );
 
   const [settings, setSettings] = useSettingsObject(globalSettings);
-  await sendInitialSettingsToWebview(panel, settings);
+  await sendInitialSettingsToWebview(postMessage, settings);
 
-  panel.webview.postMessage({
+  postMessage({
     command: "sendEnabledTools",
     enabledTools: settings.enabledTools,
   });
-  panel.webview.postMessage({
+  postMessage({
     command: "sendCurrentProviderSetting",
     currentProviderSetting: useProviderByName(settings, settings.providerName),
   });
 }
 
 async function sendInitialSettingsToWebview(
-  panel: vscode.WebviewPanel,
+  postMessage: PostMessage,
   globalSettings: SettingsObject
 ) {
   const {
@@ -325,14 +330,14 @@ async function sendInitialSettingsToWebview(
   };
   console.log("sendInitialSettingsToWebview1", message);
 
-  panel.webview.postMessage(message);
+  postMessage(message);
 }
 
 function sendInitialSystemMessage(
-  panel: vscode.WebviewPanel,
+  postMessage: PostMessage,
   openedFilePaths: string[]
 ) {
-  panel.webview.postMessage({
+  postMessage({
     command: "setOpenFiles",
     files: openedFilePaths,
   });
@@ -340,7 +345,7 @@ function sendInitialSystemMessage(
 
 async function handleWebviewMessage(
   context: vscode.ExtensionContext,
-  panel: vscode.WebviewPanel,
+  postMessage: PostMessage,
   message: any,
   openedFilePaths: string[],
   tabId: string,
@@ -355,7 +360,7 @@ async function handleWebviewMessage(
   const activeTasks = panelInfo.activeTasks;
 
   const logTask: TaskLogger = createTask(async (v) => {
-    await panel.webview.postMessage({ ...v, tabId });
+    await postMessage({ ...v, tabId });
   }, activeTasks);
 
   const log: Logger = createMessageLogger(logTask);
@@ -372,13 +377,13 @@ async function handleWebviewMessage(
         ...prev,
         userPrompt: message.user || "",
       }));
-      await handleSendMessage(context, panel, message, tabId, log);
+      await handleSendMessage(context, postMessage, message, tabId, log);
       break;
     case "runCommand":
       handleRunCommand(message.runCommand, logTask)
         .catch((e) => console.log("runCommandE1", e))
         .finally(() => {
-          panel.webview.postMessage({ command: "resetRunCommandButton" });
+          postMessage({ command: "resetRunCommandButton" });
         });
       break;
     case "checkErrorsInFiles":
@@ -415,19 +420,19 @@ async function handleWebviewMessage(
       }));
       break;
     case "clearMessages":
-      panel.webview.postMessage({ command: "clearMessages" });
+      postMessage({ command: "clearMessages" });
       break;
     case "removeFile":
-      handleRemoveFile(panel, message.filePath, openedFilePaths);
+      handleRemoveFile(postMessage, message.filePath, openedFilePaths);
       break;
     case "addFiles":
-      handleAddFiles(panel, message.filePaths, openedFilePaths);
+      handleAddFiles(postMessage, message.filePaths, openedFilePaths);
       break;
     case "requestAddFiles":
-      requestAddFilesDialog(panel);
+      requestAddFilesDialog(postMessage);
       break;
     case "addFilesFromDialog":
-      handleAddFilesFromDialog(panel, message.filePaths, openedFilePaths);
+      handleAddFilesFromDialog(postMessage, message.filePaths, openedFilePaths);
       break;
     case "saveSystemPromptToLibrary":
       {
@@ -437,7 +442,7 @@ async function handleWebviewMessage(
           );
           return { ...prev, systemPromptList: [message.prompt, ...filtered] };
         });
-        panel.webview.postMessage({
+        postMessage({
           command: "systemPromptsList",
           prompts: updatedSettings.systemPromptList,
         });
@@ -451,7 +456,7 @@ async function handleWebviewMessage(
           );
           return { ...prev, userPromptList: [message.prompt, ...filtered] };
         });
-        panel.webview.postMessage({
+        postMessage({
           command: "userPromptsList",
           prompts: updatedSettings.userPromptList,
         });
@@ -465,7 +470,7 @@ async function handleWebviewMessage(
           );
           return { ...prev, systemPromptList: filtered };
         });
-        panel.webview.postMessage({
+        postMessage({
           command: "systemPromptsList",
           prompts: updatedSettings.systemPromptList,
         });
@@ -479,20 +484,20 @@ async function handleWebviewMessage(
           );
           return { ...prev, userPromptList: filtered };
         });
-        panel.webview.postMessage({
+        postMessage({
           command: "userPromptsList",
           prompts: updatedSettings.userPromptList,
         });
       }
       break;
     case "requestSystemPrompts":
-      panel.webview.postMessage({
+      postMessage({
         command: "systemPromptsList",
         prompts: settings.systemPromptList,
       });
       break;
     case "requestUserPrompts":
-      panel.webview.postMessage({
+      postMessage({
         command: "userPromptsList",
         prompts: settings.userPromptList,
       });
@@ -509,7 +514,7 @@ async function handleWebviewMessage(
             systemPrompt: message.prompt,
           };
         });
-        panel.webview.postMessage({
+        postMessage({
           command: "systemPromptsList",
           prompts: updatedSettings.systemPromptList,
         });
@@ -527,7 +532,7 @@ async function handleWebviewMessage(
             userPrompt: message.prompt,
           };
         });
-        panel.webview.postMessage({
+        postMessage({
           command: "userPromptsList",
           prompts: updatedSettings.userPromptList,
         });
@@ -540,11 +545,11 @@ async function handleWebviewMessage(
           .filter((name) => name !== message.toolName)
           .concat(message.toolName),
       }));
-      panel.webview.postMessage({
+      postMessage({
         command: "updateEnabledTools",
         enabledTools: settings.enabledTools,
       });
-      panel.webview.postMessage({
+      postMessage({
         command: "sendEnabledTools",
         enabledTools: settings.enabledTools,
       });
@@ -556,17 +561,17 @@ async function handleWebviewMessage(
           (name) => name !== message.toolName
         ),
       }));
-      panel.webview.postMessage({
+      postMessage({
         command: "updateEnabledTools",
         enabledTools: settings.enabledTools,
       });
-      panel.webview.postMessage({
+      postMessage({
         command: "sendEnabledTools",
         enabledTools: settings.enabledTools,
       });
       break;
     case "requestProviderSettings":
-      panel.webview.postMessage({
+      postMessage({
         command: "providerSettingsList",
         providerSettingsList: settings.providerList,
         currentProviderSetting: useProviderByName(
@@ -585,11 +590,11 @@ async function handleWebviewMessage(
             .concat(newSetting);
           return { ...prev, providerList: updatedList };
         });
-        panel.webview.postMessage({
+        postMessage({
           command: "providerSettingsList",
           providerSettingsList: updatedSettings.providerList,
         });
-        panel.webview.postMessage({ command: "providerSettingsUpdated" });
+        postMessage({ command: "providerSettingsUpdated" });
       }
       break;
     case "updateProviderSetting":
@@ -602,11 +607,11 @@ async function handleWebviewMessage(
             .concat(newSetting);
           return { ...prev, providerList: updatedList };
         });
-        panel.webview.postMessage({
+        postMessage({
           command: "providerSettingsList",
           providerSettingsList: updatedSettings.providerList,
         });
-        panel.webview.postMessage({ command: "providerSettingsUpdated" });
+        postMessage({ command: "providerSettingsUpdated" });
       }
       break;
     case "deleteProviderSettingFromLibrary":
@@ -617,11 +622,11 @@ async function handleWebviewMessage(
           );
           return { ...prev, providerList: filtered };
         });
-        panel.webview.postMessage({
+        postMessage({
           command: "providerSettingsList",
           providerSettingsList: updatedSettings.providerList,
         });
-        panel.webview.postMessage({ command: "providerSettingsUpdated" });
+        postMessage({ command: "providerSettingsUpdated" });
       }
       break;
     case "useProviderSettingFromLibrary":
@@ -629,7 +634,7 @@ async function handleWebviewMessage(
         ...prev,
         providerName: message.providerSettingName,
       }));
-      panel.webview.postMessage({
+      postMessage({
         command: "providerSettingsList",
         providerSettingsList: settings.providerList,
         currentProviderSetting: useProviderByName(
@@ -637,7 +642,7 @@ async function handleWebviewMessage(
           message.providerSettingName
         ),
       });
-      panel.webview.postMessage({
+      postMessage({
         command: "sendCurrentProviderSetting",
         currentProviderSetting: useProviderByName(
           settings,
@@ -646,19 +651,19 @@ async function handleWebviewMessage(
       });
       break;
     case "requestAvailableVendors":
-      panel.webview.postMessage({
+      postMessage({
         command: "availableVendors",
         availableVendors: availableVendors,
       });
       break;
     case "requestEnabledTools":
-      panel.webview.postMessage({
+      postMessage({
         command: "sendEnabledTools",
         enabledTools: settings.enabledTools,
       });
       break;
     case "requestCurrentProviderSetting":
-      panel.webview.postMessage({
+      postMessage({
         command: "sendCurrentProviderSetting",
         currentProviderSetting: useProviderByName(
           settings,
@@ -758,14 +763,14 @@ const handleCommitFiles = (
   );
 
 async function handleAddFilesFromDialog(
-  panel: vscode.WebviewPanel,
+  postMessage: PostMessage,
   filePaths: string[],
   openedFilePaths: string[]
 ) {
-  await handleAddFiles(panel, filePaths, openedFilePaths);
+  await handleAddFiles(postMessage, filePaths, openedFilePaths);
 }
 
-async function requestAddFilesDialog(panel: vscode.WebviewPanel) {
+async function requestAddFilesDialog(postMessage: PostMessage) {
   const files = await vscode.window.showOpenDialog({
     canSelectFiles: true,
     canSelectFolders: false,
@@ -776,24 +781,24 @@ async function requestAddFilesDialog(panel: vscode.WebviewPanel) {
     const filePaths = files.map((file) =>
       vscode.workspace.asRelativePath(file)
     );
-    panel.webview.postMessage({ command: "addFilesFromDialog", filePaths });
+    postMessage({ command: "addFilesFromDialog", filePaths });
   }
 }
 
 function handleRemoveFile(
-  panel: vscode.WebviewPanel,
+  postMessage: PostMessage,
   filePath: string,
   openedFilePaths: string[]
 ) {
   const updatedFilePaths = openedFilePaths.filter((f) => f !== filePath);
-  panel.webview.postMessage({
+  postMessage({
     command: "setOpenFiles",
     files: updatedFilePaths,
   });
 }
 
 async function handleAddFiles(
-  panel: vscode.WebviewPanel,
+  postMessage: PostMessage,
   filePaths: string[],
   openedFilePaths: string[]
 ) {
@@ -812,7 +817,7 @@ async function handleAddFiles(
       }
     }
   }
-  panel.webview.postMessage({
+  postMessage({
     command: "setOpenFiles",
     files: currentOpenedFiles,
   });
