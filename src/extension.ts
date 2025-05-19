@@ -287,7 +287,7 @@ async function openChatWindow(
   );
 
   const [settings, setSettings] = useSettingsObject(globalSettings);
-  await sendInitialSettingsToWebview(postMessage, settings);
+  await sendSettingsToWebview(postMessage, settings);
 
   postMessage({
     command: "sendCurrentProviderSetting",
@@ -303,29 +303,34 @@ async function openChatWindow(
   });
 }
 
-async function sendInitialSettingsToWebview(
+/**
+ * Sends the full settings object to the webview.
+ * @param postMessage Function to post message to webview.
+ * @param settings The settings object to send.
+ */
+async function sendSettingsToWebview(
   postMessage: PostMessage,
-  globalSettings: SettingsObject
+  settings: SettingsObject
 ) {
   const settingsPayload = {
-    systemPrompt: globalSettings.systemPrompt,
-    userPrompt: globalSettings.userPrompt,
-    runCommand: globalSettings.runCommand,
-    systemPromptList: globalSettings.systemPromptList,
-    userPromptList: globalSettings.userPromptList,
-    providerList: globalSettings.providerList,
-    providerName: globalSettings.providerName,
-    enabledTools: globalSettings.enabledTools,
-    autoRemoveComments: globalSettings.autoRemoveComments,
-    autoFormat: globalSettings.autoFormat,
-    autoFixErrors: globalSettings.autoFixErrors,
+    systemPrompt: settings.systemPrompt,
+    userPrompt: settings.userPrompt,
+    runCommand: settings.runCommand,
+    systemPromptList: settings.systemPromptList,
+    userPromptList: settings.userPromptList,
+    providerList: settings.providerList,
+    providerName: settings.providerName,
+    enabledTools: settings.enabledTools,
+    autoRemoveComments: settings.autoRemoveComments,
+    autoFormat: settings.autoFormat,
+    autoFixErrors: settings.autoFixErrors,
   };
 
   const message = {
     command: "settingsUpdated",
     settings: settingsPayload,
   };
-  console.log("sendInitialSettingsToWebview1", message);
+  console.log("sendSettingsToWebview1", message);
 
   postMessage(message);
 }
@@ -670,26 +675,21 @@ async function handleWebviewMessage(
         ),
       });
       break;
+    case "updateSettings":
+      {
+        console.log("updateSettings1", message.settings);
+        const updatedSettings = await setSettings((prev) => ({
+          ...prev,
+          ...message.settings,
+        }));
+        await sendSettingsToWebview(postMessage, updatedSettings);
+      }
+      break;
     case "removeCommentsInFiles":
       handleRemoveCommentsInFiles(message.filePaths, log);
       break;
     case "formatFilesInFiles":
       handleFormatFilesInFiles(message.filePaths, log);
-      break;
-    case "setAutoRemoveComments":
-      await setSettings((prev) => ({
-        ...prev,
-        autoRemoveComments: message.checked,
-      }));
-      break;
-    case "setAutoFormat":
-      await setSettings((prev) => ({ ...prev, autoFormat: message.checked }));
-      break;
-    case "setAutoFixErrors":
-      await setSettings((prev) => ({
-        ...prev,
-        autoFixErrors: message.checked,
-      }));
       break;
     case "commitFiles":
       handleCommitFiles(settings, message.fileNames, logTask);

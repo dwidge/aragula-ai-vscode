@@ -2372,20 +2372,20 @@
 
       autoRemoveCommentsCheckbox.addEventListener("change", () => {
         vscode.postMessage({
-          command: "setAutoRemoveComments",
-          checked: autoRemoveCommentsCheckbox.checked,
+          command: "updateSettings",
+          settings: { autoRemoveComments: autoRemoveCommentsCheckbox.checked },
         });
       });
       autoFormatCheckbox.addEventListener("change", () => {
         vscode.postMessage({
-          command: "setAutoFormat",
-          checked: autoFormatCheckbox.checked,
+          command: "updateSettings",
+          settings: { autoFormat: autoFormatCheckbox.checked },
         });
       });
       autoFixErrorsCheckbox.addEventListener("change", () => {
         vscode.postMessage({
-          command: "setAutoFixErrors",
-          checked: autoFixErrorsCheckbox.checked,
+          command: "updateSettings",
+          settings: { autoFixErrors: autoFixErrorsCheckbox.checked },
         });
       });
 
