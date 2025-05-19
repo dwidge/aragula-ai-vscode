@@ -541,7 +541,8 @@
         display: none;
       }
       .select-provider-button,
-      .duplicate-provider-button {
+      .duplicate-provider-button,
+      .add-provider-button {
         background: none;
         border: none;
         color: var(--file-button-text-color);
@@ -557,7 +558,8 @@
         justify-content: center;
       }
       .select-provider-button:hover,
-      .duplicate-provider-button:hover {
+      .duplicate-provider-button:hover,
+      .add-provider-button:hover {
         color: white;
         background-color: var(--button-background);
       }
@@ -632,6 +634,13 @@
       <div id="provider-popup" class="provider-popup">
         <div class="provider-popup-header">
           <span>Providers</span>
+          <button
+            class="add-provider-button"
+            title="Add New Provider"
+            onclick="handleAddProviderButton()"
+          >
+            +
+          </button>
         </div>
         <ul id="provider-popup-list" class="provider-list"></ul>
 
@@ -859,6 +868,7 @@
       let userPromptsPopupVisible = false;
       let toolPopupVisible = false;
       let providerSettingsPopupVisible = false;
+      /** @type {string | null} */
       let editingProviderName = null;
       /** @type {string} */
       let currentSystemPrompt = "";
@@ -866,7 +876,6 @@
       let currentUserPrompt = "";
       /** @type {string} */
       let currentRunCommand = "";
-      let providerFormChanged = false;
       /** @type {boolean} */
       let autoRemoveComments = true;
       /** @type {boolean} */
@@ -1328,7 +1337,7 @@
       }
 
       /**
-       * Updates the collapsibility state of a message element based on its content.
+       * Updates the collapsibility state of a message based on its content.
        * Hides/shows the collapse button and sets the non-collapsible class on the header.
        * @param {HTMLElement} messageEl - The message element (<pre>) to update.
        */
@@ -1515,13 +1524,6 @@
         localStorage.setItem(STORAGE_KEYS.runCommandInput, value);
         sendSettingsUpdate({ runCommand: value });
       };
-
-      const updateProviderSettingDebounced = debounce(() => {
-        if (providerFormChanged) {
-          handleSaveProviderSettings();
-          providerFormChanged = false;
-        }
-      }, 500);
 
       /**
        * Resets the send button state to enable and hide loader.
@@ -2028,6 +2030,9 @@
           renderProviderSettingsPopupList();
           positionProviderSettingsPopup();
           renderVendorDropdown();
+          if (editingProviderName === null) {
+            handleAddProviderButton();
+          }
         }
       }
 
@@ -2108,6 +2113,9 @@
           renderSelectedProvider();
           sendSettingsUpdate({ providerName: null });
         }
+        if (editingProviderName === providerSettingName) {
+          handleAddProviderButton();
+        }
       }
 
       function insertSystemPrompt(prompt) {
@@ -2146,7 +2154,6 @@
           renderSelectedProvider();
           sendSettingsUpdate({ providerName: providerSettingName });
         }
-        toggleProviderSettingsPopup();
       }
 
       function loadProviderSettingToForm(providerSetting) {
@@ -2167,7 +2174,6 @@
               : "";
           clearProviderFormErrors();
         }
-        providerFormChanged = false;
       }
 
       function handleDuplicateProviderSetting(providerSettingName) {
@@ -2199,11 +2205,9 @@
         providerApiKeyInput.value = "";
         providerBaseURLInput.value = "";
         providerModelInput.value = "";
-        providerVendorInput.value = "";
         providerMaxTokensInput.value = "";
         providerTemperatureInput.value = "";
         clearProviderFormErrors();
-        providerFormChanged = false;
       }
 
       function clearProviderFormErrors() {
@@ -2287,25 +2291,27 @@
         } else {
           providerSettingsList = [...providerSettingsList, providerSetting];
         }
+
         renderProviderSettingsPopupList();
 
-        sendSettingsUpdate({ providerList: providerSettingsList });
+        const settingsToUpdate = { providerList: providerSettingsList };
 
         if (
           currentProviderSetting?.name === editingProviderName ||
-          editingProviderName === null
+          (editingProviderName === null && providerSettingsList.length === 1)
         ) {
           currentProviderSetting = providerSetting;
           renderSelectedProvider();
-          sendSettingsUpdate({ providerName: providerSetting.name });
+          settingsToUpdate.providerName = providerSetting.name;
+        } else if (editingProviderName === null) {
         }
 
-        editingProviderName = null;
+        sendSettingsUpdate(settingsToUpdate);
+
         handleAddProviderButton();
       }
 
       function handleCancelProviderSettings() {
-        editingProviderName = null;
         handleAddProviderButton();
       }
 
@@ -2345,8 +2351,7 @@
           if (
             providerSettingsPopupVisible &&
             !providerSettingsPopupEl.contains(event.target) &&
-            event.target !== providerSettingsButton &&
-            !providerFormEl.contains(event.target)
+            event.target !== providerSettingsButton
           ) {
             toggleProviderSettingsPopup();
           }
@@ -2390,35 +2395,6 @@
       });
       autoFixErrorsCheckbox.addEventListener("change", () => {
         sendSettingsUpdate({ autoFixErrors: autoFixErrorsCheckbox.checked });
-      });
-
-      providerNameInput.addEventListener("input", () => {
-        providerFormChanged = true;
-        updateProviderSettingDebounced();
-      });
-      providerVendorInput.addEventListener("change", () => {
-        providerFormChanged = true;
-        updateProviderSettingDebounced();
-      });
-      providerApiKeyInput.addEventListener("input", () => {
-        providerFormChanged = true;
-        updateProviderSettingDebounced();
-      });
-      providerBaseURLInput.addEventListener("input", () => {
-        providerFormChanged = true;
-        updateProviderSettingDebounced();
-      });
-      providerModelInput.addEventListener("input", () => {
-        providerFormChanged = true;
-        updateProviderSettingDebounced();
-      });
-      providerMaxTokensInput.addEventListener("input", () => {
-        providerFormChanged = true;
-        updateProviderSettingDebounced();
-      });
-      providerTemperatureInput.addEventListener("input", () => {
-        providerFormChanged = true;
-        updateProviderSettingDebounced();
       });
 
       window.addEventListener("message", (event) => {
@@ -2553,6 +2529,7 @@
             currentRunCommand = settings.runCommand || "";
             systemPrompts = settings.systemPromptList || [];
             userPrompts = settings.userPromptList || [];
+            const currentEditingNameBeforeUpdate = editingProviderName;
             providerSettingsList = settings.providerList || [];
             enabledTools = settings.enabledTools || [];
             autoRemoveComments = settings.autoRemoveComments ?? true;
@@ -2577,6 +2554,26 @@
             renderProviderSettingsPopupList();
             renderVendorDropdown();
             renderToolPopupList();
+
+            const wasEditing = currentEditingNameBeforeUpdate !== null;
+            const editedProviderStillExists = wasEditing
+              ? providerSettingsList.some(
+                  (p) => p.name === currentEditingNameBeforeUpdate
+                )
+              : false;
+
+            if (wasEditing && editedProviderStillExists) {
+              const currentEditingProvider = providerSettingsList.find(
+                (p) => p.name === currentEditingNameBeforeUpdate
+              );
+              if (currentEditingProvider) {
+                loadProviderSettingToForm(currentEditingProvider);
+              } else {
+                handleAddProviderButton();
+              }
+            } else {
+              handleAddProviderButton();
+            }
 
             break;
           case "resetRunCommandButton":
