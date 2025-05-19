@@ -536,36 +536,40 @@ async function handleWebviewMessage(
       }
       break;
     case "enableTool":
-      await setSettings((prev) => ({
-        ...prev,
-        enabledTools: prev.enabledTools
-          .filter((name) => name !== message.toolName)
-          .concat(message.toolName),
-      }));
-      postMessage({
-        command: "updateEnabledTools",
-        enabledTools: settings.enabledTools,
-      });
-      postMessage({
-        command: "sendEnabledTools",
-        enabledTools: settings.enabledTools,
-      });
+      {
+        const updatedSettings = await setSettings((prev) => ({
+          ...prev,
+          enabledTools: prev.enabledTools
+            .filter((name) => name !== message.toolName)
+            .concat(message.toolName),
+        }));
+        postMessage({
+          command: "updateEnabledTools",
+          enabledTools: updatedSettings.enabledTools,
+        });
+        postMessage({
+          command: "sendEnabledTools",
+          enabledTools: updatedSettings.enabledTools,
+        });
+      }
       break;
     case "disableTool":
-      await setSettings((prev) => ({
-        ...prev,
-        enabledTools: prev.enabledTools.filter(
-          (name) => name !== message.toolName
-        ),
-      }));
-      postMessage({
-        command: "updateEnabledTools",
-        enabledTools: settings.enabledTools,
-      });
-      postMessage({
-        command: "sendEnabledTools",
-        enabledTools: settings.enabledTools,
-      });
+      {
+        const updatedSettings = await setSettings((prev) => ({
+          ...prev,
+          enabledTools: prev.enabledTools.filter(
+            (name) => name !== message.toolName
+          ),
+        }));
+        postMessage({
+          command: "updateEnabledTools",
+          enabledTools: updatedSettings.enabledTools,
+        });
+        postMessage({
+          command: "sendEnabledTools",
+          enabledTools: updatedSettings.enabledTools,
+        });
+      }
       break;
     case "requestProviderSettings":
       postMessage({
@@ -627,25 +631,23 @@ async function handleWebviewMessage(
       }
       break;
     case "useProviderSettingFromLibrary":
-      await setSettings((prev) => ({
-        ...prev,
-        providerName: message.providerSettingName,
-      }));
-      postMessage({
-        command: "providerSettingsList",
-        providerSettingsList: settings.providerList,
-        currentProviderSetting: useProviderByName(
-          settings,
-          message.providerSettingName
-        ),
-      });
-      postMessage({
-        command: "sendCurrentProviderSetting",
-        currentProviderSetting: useProviderByName(
-          settings,
-          message.providerSettingName
-        ),
-      });
+      {
+        const updatedSettings = await setSettings((prev) => ({
+          ...prev,
+          providerName: message.providerSettingName,
+        }));
+        postMessage({
+          command: "providerSettingsList",
+          providerSettingsList: updatedSettings.providerList,
+        });
+        postMessage({
+          command: "sendCurrentProviderSetting",
+          currentProviderSetting: useProviderByName(
+            updatedSettings,
+            updatedSettings.providerName
+          ),
+        });
+      }
       break;
     case "requestAvailableVendors":
       postMessage({
