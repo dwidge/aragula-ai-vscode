@@ -18,8 +18,9 @@ import { runTestMultiTask } from "./runTestMultiTask";
 import { runTestSerialTask } from "./runTestSerialTask";
 import { runTestTask } from "./runTestTask";
 import {
-  GetState,
-  SetState,
+  GetterSetter,
+  newVsCodeState,
+  SETTINGS_STORAGE_KEY,
   SettingsObject,
   useProviderByName,
   useSettingsObject,
@@ -89,17 +90,14 @@ const getTextAsset = async (extensionPath: string, assetFileName: string) => {
 export function activate(context: vscode.ExtensionContext) {
   console.log('Extension "aragula-ai" active');
 
-  const getGlobalState: GetState = <T>(key: string, defaultValue: T): T =>
-    context.globalState.get<T>(key, defaultValue);
-
-  const setGlobalState: SetState = async <T>(key: string, value: T) =>
-    context.globalState.update(key, value).then(() => value);
-
-  const getWorkspaceState: GetState = <T>(key: string, defaultValue: T): T =>
-    context.workspaceState.get<T>(key, defaultValue);
-
-  const setWorkspaceState: SetState = async <T>(key: string, value: T) =>
-    context.workspaceState.update(key, value).then(() => value);
+  const globalSettings: GetterSetter = newVsCodeState(
+    context.globalState,
+    SETTINGS_STORAGE_KEY
+  );
+  const workspaceSettings: GetterSetter = newVsCodeState(
+    context.workspaceState,
+    SETTINGS_STORAGE_KEY
+  );
 
   const addFiles = async (multi: vscode.Uri[]) => {
     const openFilePaths = await readOpenFilePaths(multi);
@@ -115,23 +113,16 @@ export function activate(context: vscode.ExtensionContext) {
       break;
     }
 
-    const getTabState: GetState = <T>(key: string, defaultValue: T) =>
-      getWorkspaceState(`${tabId}-${key}`, defaultValue);
-
-    const setTabState: SetState = async <T>(key: string, value: T) =>
-      setWorkspaceState(`${tabId}-${key}`, value);
+    const tabState: GetterSetter = newVsCodeState(
+      context.workspaceState,
+      tabId
+    );
 
     if (existingPanelInfo) {
       existingPanelInfo.panel.reveal(vscode.ViewColumn.One);
       sendFilesToExistingChat(existingPanelInfo.panel, openFilePaths);
     } else {
-      await openChatWindow(
-        context,
-        openFilePaths,
-        tabId,
-        getWorkspaceState,
-        setWorkspaceState
-      );
+      await openChatWindow(context, openFilePaths, tabId, globalSettings);
     }
   };
 
@@ -160,10 +151,7 @@ export function activate(context: vscode.ExtensionContext) {
           return;
         }
 
-        const [settings, setSettings] = useSettingsObject(
-          getWorkspaceState,
-          setWorkspaceState
-        );
+        const [settings, setSettings] = useSettingsObject(globalSettings);
 
         const currentProviderSetting = useProviderByName(
           settings,
@@ -249,8 +237,7 @@ async function openChatWindow(
   context: vscode.ExtensionContext,
   openedFilePaths: string[],
   tabId: string,
-  getWorkspaceState: GetState,
-  setWorkspaceState: SetState
+  globalSettings: GetterSetter
 ) {
   const panel = vscode.window.createWebviewPanel(
     "askAIChat",
@@ -288,17 +275,13 @@ async function openChatWindow(
         message,
         openedFilePaths,
         tabId,
-        getWorkspaceState,
-        setWorkspaceState
+        globalSettings
       ),
     undefined,
     context.subscriptions
   );
 
-  const [settings, setSettings] = useSettingsObject(
-    getWorkspaceState,
-    setWorkspaceState
-  );
+  const [settings, setSettings] = useSettingsObject(globalSettings);
   await sendInitialSettingsToWebview(panel, settings);
 
   panel.webview.postMessage({
@@ -361,10 +344,9 @@ async function handleWebviewMessage(
   message: any,
   openedFilePaths: string[],
   tabId: string,
-  getState: GetState,
-  setState: SetState
+  globalSettings: GetterSetter
 ) {
-  const [settings, setSettings] = useSettingsObject(getState, setState);
+  const [settings, setSettings] = useSettingsObject(globalSettings);
 
   const panelInfo = chatPanels.get(tabId);
   if (!panelInfo) {
