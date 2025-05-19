@@ -1489,20 +1489,31 @@
         };
       }
 
-      const updateSystemPrompt = debounce((value) => {
+      /**
+       * Sends a partial settings update to the extension.
+       * @param {object} settingsPartial - An object containing the settings fields to update.
+       */
+      const sendSettingsUpdate = debounce((settingsPartial) => {
+        vscode.postMessage({
+          command: "updateSettings",
+          settings: settingsPartial,
+        });
+      }, 500);
+
+      const updateSystemPrompt = (value) => {
         localStorage.setItem(STORAGE_KEYS.systemPromptInput, value);
-        vscode.postMessage({ command: "setSystemPrompt", systemPrompt: value });
-      }, 3000);
+        sendSettingsUpdate({ systemPrompt: value });
+      };
 
-      const updateUserPrompt = debounce((value) => {
+      const updateUserPrompt = (value) => {
         localStorage.setItem(STORAGE_KEYS.userInput, value);
-        vscode.postMessage({ command: "setUserPrompt", userPrompt: value });
-      }, 3000);
+        sendSettingsUpdate({ userPrompt: value });
+      };
 
-      const updateRunCommand = debounce((value) => {
+      const updateRunCommand = (value) => {
         localStorage.setItem(STORAGE_KEYS.runCommandInput, value);
-        vscode.postMessage({ command: "setRunCommand", runCommand: value });
-      }, 3000);
+        sendSettingsUpdate({ runCommand: value });
+      };
 
       const updateProviderSettingDebounced = debounce(() => {
         if (providerFormChanged) {
@@ -2057,78 +2068,72 @@
 
       function addSystemPromptToLibrary() {
         const prompt = systemPromptEl.value.trim();
-        if (prompt) {
-          vscode.postMessage({
-            command: "saveSystemPromptToLibrary",
-            prompt: prompt,
-          });
+        if (prompt && !systemPrompts.includes(prompt)) {
+          systemPrompts = [prompt, ...systemPrompts];
+          renderSystemPromptsList();
+          sendSettingsUpdate({ systemPromptList: systemPrompts });
         }
       }
 
       function addUserPromptToLibrary() {
         const prompt = userInputEl.value.trim();
-        if (prompt) {
-          vscode.postMessage({
-            command: "saveUserPromptToLibrary",
-            prompt: prompt,
-          });
+        if (prompt && !userPrompts.includes(prompt)) {
+          userPrompts = [prompt, ...userPrompts];
+          renderUserPromptsList();
+          sendSettingsUpdate({ userPromptList: userPrompts });
         }
       }
 
       function deleteSystemPrompt(prompt) {
-        vscode.postMessage({
-          command: "deleteSystemPromptFromLibrary",
-          prompt: prompt,
-        });
+        systemPrompts = systemPrompts.filter((p) => p !== prompt);
+        renderSystemPromptsList();
+        sendSettingsUpdate({ systemPromptList: systemPrompts });
       }
 
       function deleteUserPrompt(prompt) {
-        vscode.postMessage({
-          command: "deleteUserPromptFromLibrary",
-          prompt: prompt,
-        });
+        userPrompts = userPrompts.filter((p) => p !== prompt);
+        renderUserPromptsList();
+        sendSettingsUpdate({ userPromptList: userPrompts });
       }
 
       function deleteProviderSetting(providerSettingName) {
-        vscode.postMessage({
-          command: "deleteProviderSettingFromLibrary",
-          providerSettingName: providerSettingName,
-        });
+        providerSettingsList = providerSettingsList.filter(
+          (p) => p.name !== providerSettingName
+        );
+        renderProviderSettingsPopupList();
+        sendSettingsUpdate({ providerList: providerSettingsList });
+        if (currentProviderSetting?.name === providerSettingName) {
+          currentProviderSetting = undefined;
+          renderSelectedProvider();
+          sendSettingsUpdate({ providerName: null });
+        }
       }
 
       function insertSystemPrompt(prompt) {
         systemPromptEl.value = prompt;
-        vscode.postMessage({
-          command: "useSystemPromptFromLibrary",
-          prompt: prompt,
-        });
+        updateSystemPrompt(prompt);
         toggleSystemPromptsPopup();
       }
 
       function insertUserPrompt(prompt) {
         userInputEl.value = prompt;
-        vscode.postMessage({
-          command: "useUserPromptFromLibrary",
-          prompt: prompt,
-        });
+        updateUserPrompt(prompt);
         toggleUserPromptsPopup();
       }
 
       function enableTool(toolName) {
         if (!enabledTools.includes(toolName)) {
           enabledTools = [...enabledTools, toolName];
-          saveState();
           renderEnabledTools();
-          vscode.postMessage({ command: "enableTool", toolName: toolName });
+          sendSettingsUpdate({ enabledTools: enabledTools });
         }
         toggleToolPopup();
       }
 
       function disableTool(toolName) {
         enabledTools = enabledTools.filter((tool) => tool !== toolName);
-        saveState();
         renderEnabledTools();
-        vscode.postMessage({ command: "disableTool", toolName: toolName });
+        sendSettingsUpdate({ enabledTools: enabledTools });
       }
 
       function selectProviderSetting(providerSettingName) {
@@ -2137,12 +2142,8 @@
         );
         if (providerSetting) {
           currentProviderSetting = providerSetting;
-          saveState();
           renderSelectedProvider();
-          vscode.postMessage({
-            command: "useProviderSettingFromLibrary",
-            providerSettingName: providerSettingName,
-          });
+          sendSettingsUpdate({ providerName: providerSettingName });
         }
         toggleProviderSettingsPopup();
       }
@@ -2174,11 +2175,18 @@
         );
         if (originalProviderSetting) {
           const newProviderSetting = { ...originalProviderSetting };
-          newProviderSetting.name = `${originalProviderSetting.name} Copy`;
-          vscode.postMessage({
-            command: "saveProviderSetting",
-            providerSetting: newProviderSetting,
-          });
+          let newName = `${originalProviderSetting.name} Copy`;
+          let counter = 1;
+          while (providerSettingsList.some((p) => p.name === newName)) {
+            counter++;
+            newName = `${originalProviderSetting.name} Copy ${counter}`;
+          }
+          newProviderSetting.name = newName;
+
+          providerSettingsList = [...providerSettingsList, newProviderSetting];
+          renderProviderSettingsPopupList();
+          sendSettingsUpdate({ providerList: providerSettingsList });
+
           loadProviderSettingToForm(newProviderSetting);
         }
       }
@@ -2228,15 +2236,16 @@
           providerNameError.style.display = "block";
           isValid = false;
         } else {
-          if (editingProviderName === null) {
-            const existingProvider = providerSettingsList.find(
-              (p) => p.name === providerSetting.name
-            );
-            if (existingProvider) {
-              providerNameError.textContent = `Provider "${providerSetting.name}" already exists.`;
-              providerNameError.style.display = "block";
-              isValid = false;
-            }
+          const existingProvider = providerSettingsList.find(
+            (p) => p.name === providerSetting.name
+          );
+          if (
+            existingProvider &&
+            existingProvider.name !== editingProviderName
+          ) {
+            providerNameError.textContent = `Provider "${providerSetting.name}" already exists.`;
+            providerNameError.style.display = "block";
+            isValid = false;
           }
         }
         if (!providerSetting.vendor) {
@@ -2271,16 +2280,23 @@
         }
 
         if (editingProviderName) {
-          vscode.postMessage({
-            command: "updateProviderSetting",
-            oldProviderSettingName: editingProviderName,
-            providerSetting: providerSetting,
-          });
+          providerSettingsList = providerSettingsList.map((p) =>
+            p.name === editingProviderName ? providerSetting : p
+          );
         } else {
-          vscode.postMessage({
-            command: "saveProviderSetting",
-            providerSetting: providerSetting,
-          });
+          providerSettingsList = [...providerSettingsList, providerSetting];
+        }
+        renderProviderSettingsPopupList();
+
+        sendSettingsUpdate({ providerList: providerSettingsList });
+
+        if (
+          currentProviderSetting?.name === editingProviderName ||
+          editingProviderName === null
+        ) {
+          currentProviderSetting = providerSetting;
+          renderSelectedProvider();
+          sendSettingsUpdate({ providerName: providerSetting.name });
         }
 
         editingProviderName = null;
@@ -2371,22 +2387,15 @@
       });
 
       autoRemoveCommentsCheckbox.addEventListener("change", () => {
-        vscode.postMessage({
-          command: "updateSettings",
-          settings: { autoRemoveComments: autoRemoveCommentsCheckbox.checked },
+        sendSettingsUpdate({
+          autoRemoveComments: autoRemoveCommentsCheckbox.checked,
         });
       });
       autoFormatCheckbox.addEventListener("change", () => {
-        vscode.postMessage({
-          command: "updateSettings",
-          settings: { autoFormat: autoFormatCheckbox.checked },
-        });
+        sendSettingsUpdate({ autoFormat: autoFormatCheckbox.checked });
       });
       autoFixErrorsCheckbox.addEventListener("change", () => {
-        vscode.postMessage({
-          command: "updateSettings",
-          settings: { autoFixErrors: autoFixErrorsCheckbox.checked },
-        });
+        sendSettingsUpdate({ autoFixErrors: autoFixErrorsCheckbox.checked });
       });
 
       providerNameInput.addEventListener("input", () => {
@@ -2543,18 +2552,6 @@
           case "addFilesFromDialog":
             addFiles(message.filePaths);
             break;
-          case "systemPromptsList":
-            systemPrompts = message.prompts;
-            renderSystemPromptsList();
-            break;
-          case "userPromptsList":
-            userPrompts = message.prompts;
-            renderUserPromptsList();
-            break;
-          case "providerSettingsList":
-            providerSettingsList = message.providerSettingsList;
-            renderProviderSettingsPopupList();
-            break;
           case "settingsUpdated":
             const settings = message.settings;
             currentSystemPrompt = settings.systemPrompt || "";
@@ -2586,9 +2583,6 @@
             renderProviderSettingsPopupList();
 
             break;
-          case "providerSettingsUpdated":
-            vscode.postMessage({ command: "requestProviderSettings" });
-            break;
           case "availableVendors":
             availableVendors = message.availableVendors;
             renderVendorDropdown();
@@ -2596,14 +2590,6 @@
           case "availableTools":
             availableTools = message.availableTools;
             renderToolPopupList();
-            break;
-          case "sendEnabledTools":
-            enabledTools = message.enabledTools;
-            renderEnabledTools();
-            break;
-          case "sendCurrentProviderSetting":
-            currentProviderSetting = message.currentProviderSetting;
-            renderSelectedProvider();
             break;
           case "resetRunCommandButton":
             resetRunCommandButton();
