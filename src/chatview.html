@@ -1621,6 +1621,7 @@
       /**
        * Adds files to the open files list, updates UI and extension.
        * Prevents duplicate file paths.
+       * This function is called by the webview's drag/drop handler and addFilesFromDialog handler.
        * @param {string[]} files - Array of file paths to add.
        */
       function addFiles(files) {
@@ -1676,10 +1677,7 @@
         }
 
         if (filePaths.length > 0) {
-          vscode.postMessage({
-            command: "addFilesFromDialog",
-            filePaths: filePaths,
-          });
+          addFiles(filePaths);
         }
       }
 

@@ -399,13 +399,17 @@ async function handleWebviewMessage(
       handleRemoveFile(postMessage, message.filePath, openedFilePaths);
       break;
     case "addFiles":
-      handleAddFiles(postMessage, message.filePaths, openedFilePaths);
+      await handleAddFiles(postMessage, message.filePaths, openedFilePaths);
       break;
     case "requestAddFiles":
       requestAddFilesDialog(postMessage);
       break;
     case "addFilesFromDialog":
-      handleAddFilesFromDialog(postMessage, message.filePaths, openedFilePaths);
+      await handleAddFilesFromDialog(
+        postMessage,
+        message.filePaths,
+        openedFilePaths
+      );
       break;
     case "updateSettings":
       {
@@ -531,10 +535,14 @@ function handleRemoveFile(
   filePath: string,
   openedFilePaths: string[]
 ) {
-  const updatedFilePaths = openedFilePaths.filter((f) => f !== filePath);
+  const index = openedFilePaths.indexOf(filePath);
+  if (index > -1) {
+    openedFilePaths.splice(index, 1);
+  }
+
   postMessage({
     command: "setOpenFiles",
-    files: updatedFilePaths,
+    files: openedFilePaths,
   });
 }
 
@@ -544,13 +552,11 @@ async function handleAddFiles(
   openedFilePaths: string[]
 ) {
   const addedFiles: string[] = [];
-  const currentOpenedFiles = [...openedFilePaths];
-
   for (const filePath of filePaths) {
-    if (!currentOpenedFiles.includes(filePath)) {
+    if (!openedFilePaths.includes(filePath)) {
       try {
         await fs.access(getWorkspaceAbsolutePath(filePath), fs.constants.R_OK);
-        currentOpenedFiles.push(filePath);
+        openedFilePaths.push(filePath);
         addedFiles.push(filePath);
       } catch (error) {
         vscode.window.showWarningMessage(`Failed to read file: ${filePath}`);
@@ -560,7 +566,7 @@ async function handleAddFiles(
   }
   postMessage({
     command: "setOpenFiles",
-    files: currentOpenedFiles,
+    files: openedFilePaths,
   });
   return addedFiles;
 }
