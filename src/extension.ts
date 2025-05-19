@@ -312,23 +312,9 @@ async function sendSettingsToWebview(
   postMessage: PostMessage,
   settings: SettingsObject
 ) {
-  const settingsPayload = {
-    systemPrompt: settings.systemPrompt,
-    userPrompt: settings.userPrompt,
-    runCommand: settings.runCommand,
-    systemPromptList: settings.systemPromptList,
-    userPromptList: settings.userPromptList,
-    providerList: settings.providerList,
-    providerName: settings.providerName,
-    enabledTools: settings.enabledTools,
-    autoRemoveComments: settings.autoRemoveComments,
-    autoFormat: settings.autoFormat,
-    autoFixErrors: settings.autoFixErrors,
-  };
-
   const message = {
     command: "settingsUpdated",
-    settings: settingsPayload,
+    settings: settings,
   };
   console.log("sendSettingsToWebview1", message);
 
