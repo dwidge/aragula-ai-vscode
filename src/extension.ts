@@ -290,12 +290,16 @@ async function openChatWindow(
   await sendInitialSettingsToWebview(postMessage, settings);
 
   postMessage({
-    command: "sendEnabledTools",
-    enabledTools: settings.enabledTools,
-  });
-  postMessage({
     command: "sendCurrentProviderSetting",
     currentProviderSetting: useProviderByName(settings, settings.providerName),
+  });
+  postMessage({
+    command: "availableVendors",
+    availableVendors: availableVendors,
+  });
+  postMessage({
+    command: "availableTools",
+    availableTools: availableToolNames,
   });
 }
 
@@ -303,30 +307,23 @@ async function sendInitialSettingsToWebview(
   postMessage: PostMessage,
   globalSettings: SettingsObject
 ) {
-  const {
-    systemPrompt,
-    userPrompt,
-    autoRemoveComments,
-    autoFormat,
-    autoFixErrors,
-    runCommand,
-  } = globalSettings;
+  const settingsPayload = {
+    systemPrompt: globalSettings.systemPrompt,
+    userPrompt: globalSettings.userPrompt,
+    runCommand: globalSettings.runCommand,
+    systemPromptList: globalSettings.systemPromptList,
+    userPromptList: globalSettings.userPromptList,
+    providerList: globalSettings.providerList,
+    providerName: globalSettings.providerName,
+    enabledTools: globalSettings.enabledTools,
+    autoRemoveComments: globalSettings.autoRemoveComments,
+    autoFormat: globalSettings.autoFormat,
+    autoFixErrors: globalSettings.autoFixErrors,
+  };
 
   const message = {
-    command: "initPrompts",
-    availableTools: availableToolNames,
-    availableVendors,
-    systemPrompts: globalSettings.systemPromptList,
-    userPrompts: globalSettings.userPromptList,
-    providerSettingsList: globalSettings.providerList,
-    systemPrompt,
-    userPrompt,
-    runCommand,
-    enabledTools: globalSettings.enabledTools,
-    currentProviderSetting: globalSettings.providerName,
-    autoRemoveComments,
-    autoFormat,
-    autoFixErrors,
+    command: "settingsUpdated",
+    settings: settingsPayload,
   };
   console.log("sendInitialSettingsToWebview1", message);
 

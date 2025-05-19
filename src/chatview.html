@@ -920,12 +920,6 @@
         systemPromptInput: `systemPromptInput-${tabId}`,
         runCommandInput: `runCommandInput-${tabId}`,
         openFiles: `openFiles-${tabId}`,
-        enabledTools: "enabledTools",
-        currentProviderSettingName: "currentProviderSettingName",
-        autoRemoveComments: `autoRemoveComments-${tabId}`,
-        autoFormat: `autoFormat-${tabId}`,
-        autoFixErrors: `autoFixErrors-${tabId}`,
-        planState: `planState-${tabId}`,
       };
 
       const messagesContainer = document.getElementById("messages-container");
@@ -1037,7 +1031,7 @@
       /**
        * Loads state from localStorage: chat history, open files, run command input.
        * Note: Plan state, prompts, auto settings, enabled tools, current provider
-       * are loaded from workspaceState/globalState via initPrompts message.
+       * are loaded from workspaceState/globalState via settingsUpdated message.
        */
       function loadState() {
         chatHistory = loadFromLocalStorage(STORAGE_KEYS.chatHistory, []);
@@ -2561,20 +2555,22 @@
             providerSettingsList = message.providerSettingsList;
             renderProviderSettingsPopupList();
             break;
-          case "initPrompts":
-            currentSystemPrompt = message.systemPrompt || "";
-            currentUserPrompt = message.userPrompt || "";
-            currentRunCommand = message.runCommand || "";
-            systemPrompts = message.systemPrompts || [];
-            userPrompts = message.userPrompts || [];
-            availableTools = message.availableTools || [];
-            enabledTools = message.enabledTools || [];
-            currentProviderSetting = message.currentProviderSetting;
-            availableVendors = message.availableVendors || [];
-            autoRemoveComments = message.autoRemoveComments ?? true;
-            autoFormat = message.autoFormat ?? true;
-            autoFixErrors = message.autoFixErrors ?? true;
-            planState = message.planState;
+          case "settingsUpdated":
+            const settings = message.settings;
+            currentSystemPrompt = settings.systemPrompt || "";
+            currentUserPrompt = settings.userPrompt || "";
+            currentRunCommand = settings.runCommand || "";
+            systemPrompts = settings.systemPromptList || [];
+            userPrompts = settings.userPromptList || [];
+            providerSettingsList = settings.providerList || [];
+            enabledTools = settings.enabledTools || [];
+            autoRemoveComments = settings.autoRemoveComments ?? true;
+            autoFormat = settings.autoFormat ?? true;
+            autoFixErrors = settings.autoFixErrors ?? true;
+
+            currentProviderSetting = providerSettingsList.find(
+              (p) => p.name === settings.providerName
+            );
 
             systemPromptEl.value = currentSystemPrompt;
             userInputEl.value = currentUserPrompt;
@@ -2588,13 +2584,7 @@
             renderEnabledTools();
             renderSelectedProvider();
             renderProviderSettingsPopupList();
-            renderVendorDropdown();
-            renderSelectedFiles();
-            renderChatHistory();
-            break;
-          case "updateEnabledTools":
-            enabledTools = message.enabledTools;
-            renderEnabledTools();
+
             break;
           case "providerSettingsUpdated":
             vscode.postMessage({ command: "requestProviderSettings" });
@@ -2602,6 +2592,10 @@
           case "availableVendors":
             availableVendors = message.availableVendors;
             renderVendorDropdown();
+            break;
+          case "availableTools":
+            availableTools = message.availableTools;
+            renderToolPopupList();
             break;
           case "sendEnabledTools":
             enabledTools = message.enabledTools;
