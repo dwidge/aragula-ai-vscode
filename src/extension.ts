@@ -580,9 +580,9 @@ async function handleWebviewMessage(
         const oldName = message.providerSetting.name;
         const newSetting = message.providerSetting;
         const updatedSettings = await setSettings((prev) => {
-          const updatedList = prev.providerList.map((p) =>
-            p.name === oldName ? newSetting : p
-          );
+          const updatedList = prev.providerList
+            .filter((p) => p.name !== oldName)
+            .concat(newSetting);
           return { ...prev, providerList: updatedList };
         });
         panel.webview.postMessage({
@@ -597,9 +597,9 @@ async function handleWebviewMessage(
         const oldName = message.oldProviderSettingName;
         const newSetting = message.providerSetting;
         const updatedSettings = await setSettings((prev) => {
-          const updatedList = prev.providerList.map((p) =>
-            p.name === oldName ? newSetting : p
-          );
+          const updatedList = prev.providerList
+            .filter((p) => p.name !== oldName)
+            .concat(newSetting);
           return { ...prev, providerList: updatedList };
         });
         panel.webview.postMessage({
