@@ -974,48 +974,96 @@ function convertFromClaudeToolCalls(claudeToolCalls: any[]): ToolCall[] {
   }));
 }
 
+/**
+ * Helper function to format system and user prompts for manual input.
+ */
+function buildPromptMessagesManual(prompt: {
+  user: string;
+  system?: string;
+}): string[] {
+  const parts: string[] = [];
+  if (prompt.system) {
+    parts.push(`# System Prompt\n${prompt.system}`);
+  }
+  if (prompt.user) {
+    parts.push(`# User Prompt\n${prompt.user}`);
+  }
+  return parts;
+}
+
+/**
+ * Helper function to format tool call results (like file contents) for manual input.
+ */
+function buildToolCallMessagesManual(prompt: { tools?: ToolCall[] }): string[] {
+  const parts: string[] = [];
+  if (prompt.tools && prompt.tools.length > 0) {
+    parts.push("# Tool Calls");
+    // Todo: This seems to only support readFile tool calls in an adhoc way. We need to fix this to support any tool call and any type, except native which just fallbacks to json. It can reuse existing tool call encoders.
+    for (const toolCall of prompt.tools) {
+      if (
+        toolCall.name === "readFile" &&
+        toolCall.response !== undefined &&
+        typeof toolCall.parameters === "object" &&
+        toolCall.parameters !== null &&
+        "path" in toolCall.parameters &&
+        typeof (toolCall.parameters as { path?: string }).path === "string"
+      ) {
+        const filePath = (toolCall.parameters as { path: string }).path;
+        parts.push(`// ./${filePath}\n${toolCall.response}`);
+      }
+    }
+  }
+  return parts;
+}
+
+/**
+ * Helper function to format available tool definitions for manual input.
+ */
+function buildToolDefMessagesManual(tools?: ToolDefinition[]): string[] {
+  const parts: string[] = [];
+  if (tools && tools.length > 0) {
+    parts.push("# Available Tools");
+    for (const toolDef of tools) {
+      const toolType = toolDef.type || "native";
+      if (toolType === "xml") {
+        parts.push(encodeToolToXml(toolDef));
+      } else if (toolType === "json" || toolType === "native") {
+        parts.push(encodeToolToJson(toolDef));
+      } else if (toolType === "backtick") {
+        parts.push(encodeToolToBacktick(toolDef));
+      }
+    }
+  }
+  return parts;
+}
+
 function newManualApi(settings: AiApiSettings): AiApiCaller {
   return async (prompt, tools, options) => {
     const logger = options?.logger || (() => {});
 
-    let formattedPrompt = "";
+    const promptMessages = buildPromptMessagesManual(prompt);
+    const toolcallMessages = buildToolCallMessagesManual(prompt);
+    const tooldefMessages = buildToolDefMessagesManual(tools);
 
-    if (prompt.system) {
-      formattedPrompt += `# System Prompt\n${prompt.system}\n\n`;
-    }
+    const fullPrompt = [
+      ...promptMessages,
+      ...toolcallMessages,
+      ...tooldefMessages,
+    ].join("\n\n");
 
-    if (prompt.user) {
-      formattedPrompt += `# User Prompt\n${prompt.user}\n\n`;
-    }
+    logger(fullPrompt, "prompt");
+    logger(
+      "Copy the prompt above into your AI GUI, and paste the response below.",
+      "info"
+    );
 
-    if (prompt.tools && prompt.tools.length > 0) {
-      formattedPrompt += "# Files Content\n\n";
-      for (const toolCall of prompt.tools) {
-        if (
-          toolCall.name === "readFile" &&
-          toolCall.response !== undefined && // Check if response exists
-          typeof toolCall.parameters === "object" &&
-          toolCall.parameters !== null &&
-          "path" in toolCall.parameters &&
-          typeof (toolCall.parameters as { path?: string }).path === "string" // Narrow type for path
-        ) {
-          const filePath = (toolCall.parameters as { path: string }).path;
-          formattedPrompt += `// ./${filePath}\n${toolCall.response}\n\n`;
-        }
-      }
-    }
-
-    if (tools && tools.length > 0) {
-      formattedPrompt += "# Available Tools\n\n";
-      for (const toolDef of tools) {
-        formattedPrompt += `${encodeToolToXml(toolDef)}\n\n`;
-      }
-    }
-
-    logger(formattedPrompt, "prompt");
+    // Todo: We need to await the pasted reponse here. This await takes a long time, which is fine. When user pastes and clicks continue button, this promise resolves and we can parse the response here and return the assistant message and any tool calls.
+    // So we need some mechanism/message handler that can keep track of the promise with an id, and resolve it when the chatview sends a message from the button.
+    // Make it elegant with a helper async function that encapsulates this complexity.
+    // Make an elegant resuable helper that takes a TaskLogger, createUserPrompter, so we can await a generic string feedback from user given a message string. It resolves to a string if user types/pastes into the textarea and clicks a button, or throws if user cancels.
 
     return {
-      assistant: "Please copy the prompt and paste the AI response below.",
+      assistant: "",
       tools: [],
     };
   };
