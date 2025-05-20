@@ -976,8 +976,48 @@ function convertFromClaudeToolCalls(claudeToolCalls: any[]): ToolCall[] {
 
 function newManualApi(settings: AiApiSettings): AiApiCaller {
   return async (prompt, tools, options) => {
-    options?.logger?.("Manual AI vendor selected. No API call made.", "info");
-    return { assistant: "", tools: [] };
+    const logger = options?.logger || (() => {});
+
+    let formattedPrompt = "";
+
+    if (prompt.system) {
+      formattedPrompt += `# System Prompt\n${prompt.system}\n\n`;
+    }
+
+    if (prompt.user) {
+      formattedPrompt += `# User Prompt\n${prompt.user}\n\n`;
+    }
+
+    if (prompt.tools && prompt.tools.length > 0) {
+      formattedPrompt += "# Files Content\n\n";
+      for (const toolCall of prompt.tools) {
+        if (
+          toolCall.name === "readFile" &&
+          toolCall.response !== undefined && // Check if response exists
+          typeof toolCall.parameters === "object" &&
+          toolCall.parameters !== null &&
+          "path" in toolCall.parameters &&
+          typeof (toolCall.parameters as { path?: string }).path === "string" // Narrow type for path
+        ) {
+          const filePath = (toolCall.parameters as { path: string }).path;
+          formattedPrompt += `// ./${filePath}\n${toolCall.response}\n\n`;
+        }
+      }
+    }
+
+    if (tools && tools.length > 0) {
+      formattedPrompt += "# Available Tools\n\n";
+      for (const toolDef of tools) {
+        formattedPrompt += `${encodeToolToXml(toolDef)}\n\n`;
+      }
+    }
+
+    logger(formattedPrompt, "prompt");
+
+    return {
+      assistant: "Please copy the prompt and paste the AI response below.",
+      tools: [],
+    };
   };
 }
 
