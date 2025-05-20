@@ -55,13 +55,15 @@ export async function handleSendMessage(
   try {
     const response = await performAiRequest(message, log, signal);
 
-    postMessage({
-      command: "updateMessage",
-      messageId,
-      text: response.assistant,
-      sender: "assistant",
-      messageType: "assistant",
-    });
+    if (providerSetting.vendor !== "manual") {
+      postMessage({
+        command: "updateMessage",
+        messageId,
+        text: response.assistant,
+        sender: "assistant",
+        messageType: "assistant",
+      });
+    }
 
     const enabledToolDefinitions = filterToolsByName(
       availableToolsDefinitions,
@@ -86,13 +88,16 @@ export async function handleSendMessage(
       await checkAndFixErrors(modifiedFiles, providerSetting, log);
     }
 
-    postMessage({
-      command: "updateMessage",
-      messageId,
-      text: response.assistant,
-      sender: "assistant",
-      messageType: "assistant",
-    });
+    if (providerSetting.vendor !== "manual") {
+      postMessage({
+        command: "updateMessage",
+        messageId,
+        text: response.assistant,
+        sender: "assistant",
+        messageType: "assistant",
+      });
+    }
+
     context.workspaceState.update(`responseText-${tabId}`, response);
   } catch (error: any) {
     if (error.name === "AbortError") {
