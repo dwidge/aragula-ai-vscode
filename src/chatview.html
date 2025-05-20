@@ -2256,16 +2256,19 @@
           providerVendorError.style.display = "block";
           isValid = false;
         }
-        if (!providerSetting.apiKey) {
-          providerApiKeyError.textContent = "API Key is required";
-          providerApiKeyError.style.display = "block";
-          isValid = false;
+        if (providerSetting.vendor !== "manual") {
+          if (!providerSetting.apiKey) {
+            providerApiKeyError.textContent = "API Key is required";
+            providerApiKeyError.style.display = "block";
+            isValid = false;
+          }
+          if (!providerSetting.model) {
+            providerModelError.textContent = "Model is required";
+            providerModelError.style.display = "block";
+            isValid = false;
+          }
         }
-        if (!providerSetting.model) {
-          providerModelError.textContent = "Model is required";
-          providerModelError.style.display = "block";
-          isValid = false;
-        }
+
         if (
           providerSetting.temperature !== undefined &&
           (isNaN(providerSetting.temperature) ||

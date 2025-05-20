@@ -15,4 +15,5 @@ export const availableVendors: string[] = [
   "groq",
   "cerebras",
   "claude",
+  "manual",
 ];

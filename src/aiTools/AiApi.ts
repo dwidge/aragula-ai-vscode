@@ -106,7 +106,14 @@ export interface AiApiSettings {
   model: string;
   max_tokens?: number;
   temperature?: number;
-  vendor: "openai" | "gemini" | "groq" | "cerebras" | "claude" | string;
+  vendor:
+    | "openai"
+    | "gemini"
+    | "groq"
+    | "cerebras"
+    | "claude"
+    | "manual"
+    | string;
 }
 
 /**
@@ -967,6 +974,13 @@ function convertFromClaudeToolCalls(claudeToolCalls: any[]): ToolCall[] {
   }));
 }
 
+function newManualApi(settings: AiApiSettings): AiApiCaller {
+  return async (prompt, tools, options) => {
+    options?.logger?.("Manual AI vendor selected. No API call made.", "info");
+    return { assistant: "", tools: [] };
+  };
+}
+
 export const newAiApi = (providerSetting: AiApiSettings): AiApiCaller => {
   switch (providerSetting.vendor) {
     case "openai":
@@ -979,6 +993,9 @@ export const newAiApi = (providerSetting: AiApiSettings): AiApiCaller => {
       return newCerebrasApi(providerSetting);
     case "claude":
       return newClaudeApi(providerSetting);
+    case "manual":
+      return newManualApi(providerSetting);
+
     default:
       throw new Error(`Vendor "${providerSetting.vendor}" not supported.`);
   }
