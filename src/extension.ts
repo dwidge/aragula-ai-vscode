@@ -13,6 +13,7 @@ import { handleRunCommand } from "./handleRunCommand";
 import { handleSendMessage } from "./handleSendMessage";
 import { handlePlanAndExecute } from "./planTool";
 import { newPostMessage, PostMessage } from "./PostMessage";
+import { runTestFormTask } from "./runTestFormTask";
 import { runTestMultiTask } from "./runTestMultiTask";
 import { runTestSerialTask } from "./runTestSerialTask";
 import { runTestTask } from "./runTestTask";
@@ -32,6 +33,7 @@ import {
   createMessageLogger,
   createTask,
   Logger,
+  PendingFormRequests,
   TaskLogger,
 } from "./utils/Logger";
 
@@ -45,6 +47,7 @@ const logError: Logger = (e: unknown) => {
 interface ChatPanelInfo {
   panel: vscode.WebviewPanel;
   activeTasks: ActiveTasks;
+  pendingFormRequests: PendingFormRequests;
 }
 
 const chatPanels = new Map<string, ChatPanelInfo>();
@@ -249,11 +252,16 @@ async function openChatWindow(
     string,
     [AbortController, string | undefined]
   >();
-  chatPanels.set(tabId, { panel, activeTasks });
+  const pendingFormRequests: PendingFormRequests = new Map();
+  chatPanels.set(tabId, { panel, activeTasks, pendingFormRequests });
 
   panel.onDidDispose(() => {
     try {
       cancelAllTasks(activeTasks);
+      pendingFormRequests.forEach(({ reject }) =>
+        reject(new Error("Form request cancelled: Webview panel closed."))
+      );
+      pendingFormRequests.clear();
     } catch (e) {
       console.log("onDidDisposeE1", e);
     }
@@ -351,10 +359,16 @@ async function handleWebviewMessage(
     throw new Error(`Panel info not found for tabId: ${tabId}`);
   }
   const activeTasks = panelInfo.activeTasks;
+  const pendingFormRequests = panelInfo.pendingFormRequests;
 
-  const logTask: TaskLogger = createTask(async (v) => {
-    await postMessage({ ...v, tabId });
-  }, activeTasks);
+  const logTask: TaskLogger = createTask(
+    async (v) => {
+      await postMessage({ ...v, tabId });
+    },
+    activeTasks,
+    undefined,
+    pendingFormRequests
+  );
 
   const log: Logger = createMessageLogger(logTask);
 
@@ -364,6 +378,23 @@ async function handleWebviewMessage(
     case "cancelTask":
       const taskIdToCancel = message.id;
       cancelTask(taskIdToCancel, activeTasks);
+      break;
+    case "formResponse":
+      const formResponse = message.formResponse;
+      const pending = pendingFormRequests.get(formResponse.id);
+      if (pending) {
+        if (formResponse.isCancelled) {
+          const abortError = new Error("Form submission cancelled by user.");
+          abortError.name = "AbortError";
+          pending.reject(abortError);
+        } else {
+          pending.resolve({
+            button: formResponse.button,
+            formData: formResponse.formData,
+          });
+        }
+        pendingFormRequests.delete(formResponse.id);
+      }
       break;
     case "sendMessage":
       await handleSendMessage(context, postMessage, message, tabId, log);
@@ -443,6 +474,9 @@ async function handleWebviewMessage(
     case "runTestSerialTask":
       runTestSerialTask(logTask);
       break;
+    case "runTestFormTask":
+      runTestFormTask(logTask);
+      break;
     default:
       console.warn("Unknown command from webview:", message.command);
   }
@@ -501,5 +535,13 @@ const handleCommitFiles = (
 export function deactivate() {
   chatPanels.forEach((panelInfo) => {
     cancelAllTasks(panelInfo.activeTasks);
+    panelInfo.pendingFormRequests.forEach(({ reject }) =>
+      reject(
+        new Error(
+          "Form request cancelled: Webview panel closed during deactivation."
+        )
+      )
+    );
+    panelInfo.pendingFormRequests.clear();
   });
 }

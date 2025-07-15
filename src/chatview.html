@@ -52,6 +52,7 @@
         --cancel-button-hover-color: #d32f2f;
         --task-message-background: #d1c4e9;
         --plan-step-message-border: #b39ddb;
+        --form-prompt-message-background: #e6ee9c;
       }
       @media (prefers-color-scheme: dark) {
         :root {
@@ -101,6 +102,7 @@
           --cancel-button-hover-color: #ef9a9a;
           --task-message-background: #4527a0;
           --plan-step-message-border: #673ab7;
+          --form-prompt-message-background: #5c6bc0;
         }
       }
       body {
@@ -338,6 +340,9 @@
       }
       .task-message {
         background-color: var(--task-message-background);
+      }
+      .form-prompt-message {
+        background-color: var(--form-prompt-message-background);
       }
 
       .loader {
@@ -621,6 +626,68 @@
       #runCommandInput {
         flex-grow: 1;
       }
+
+      .form-container {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        padding: 10px;
+        border: 1px solid var(--pre-border);
+        border-radius: 5px;
+        background-color: var(--textarea-background);
+      }
+      .form-field {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+      }
+      .form-field label {
+        font-weight: bold;
+        font-size: 0.9em;
+      }
+      .form-field input[type="text"],
+      .form-field input[type="number"],
+      .form-field input[type="email"],
+      .form-field textarea {
+        width: 100%;
+        padding: 8px;
+        border-radius: 4px;
+        border: 1px solid var(--form-input-border);
+        background-color: var(--form-input-background);
+        color: var(--form-input-text-color);
+        box-sizing: border-box;
+      }
+      .form-buttons-row {
+        display: flex;
+        gap: 10px;
+        justify-content: flex-end;
+        margin-top: 10px;
+      }
+      .form-buttons-row button {
+        padding: 8px 12px;
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 0.9em;
+      }
+      .form-buttons-row .submit-button {
+        background-color: var(--button-background);
+        color: white;
+      }
+      .form-buttons-row .submit-button:hover {
+        background-color: var(--button-hover);
+      }
+      .form-buttons-row .cancel-button {
+        background-color: var(--cancel-button-color);
+        color: white;
+      }
+      .form-buttons-row .cancel-button:hover {
+        background-color: var(--cancel-button-hover-color);
+      }
+      .form-error-message {
+        color: red;
+        font-size: 0.8em;
+        margin-top: 2px;
+      }
     </style>
   </head>
   <body ondragover="allowDrop(event)" ondrop="dropHandler(event)">
@@ -826,6 +893,10 @@
             Test Serial Task
           </button>
           <!-- New Test Serial Task Button -->
+          <button id="testFormTaskButton" onclick="handleTestFormTask()">
+            Test Form Task
+          </button>
+          <!-- New Test Form Task Button -->
         </div>
       </div>
 
@@ -1025,6 +1096,7 @@
       const testSerialTaskButton = document.getElementById(
         "testSerialTaskButton"
       );
+      const testFormTaskButton = document.getElementById("testFormTaskButton");
 
       /**
        * @typedef {Object} AiProviderSettings
@@ -1115,10 +1187,19 @@
        * @param {string} [params.detail] - Full detail for the collapsible content.
        * @param {number} [params.progress] - Progress value (0 to 1) for a task.
        * @param {boolean} [params.isCollapsed=false] - Initial collapsed state.
+       * @param {object} [params.formSchema=null] - JSON schema for a form to render.
        * @param {HTMLElement} [targetContainer=messagesContainer] - The container to append the message to.
        */
       function renderMessage(
-        { id, type = "log", summary, detail, progress, isCollapsed = false },
+        {
+          id,
+          type = "log",
+          summary,
+          detail,
+          progress,
+          isCollapsed = false,
+          formSchema = null,
+        },
         targetContainer = messagesContainer
       ) {
         const el = document.createElement("pre");
@@ -1195,6 +1276,14 @@
         messageDetailTextDiv.textContent = detail || "";
         messageBodyContentDiv.appendChild(messageDetailTextDiv);
 
+        if (formSchema) {
+          messageDetailTextDiv.style.display = "none";
+          const formContainer = document.createElement("div");
+          formContainer.classList.add("form-container");
+          buildFormElements(formContainer, formSchema, id);
+          messageBodyContentDiv.appendChild(formContainer);
+        }
+
         const childMessagesContainer = document.createElement("div");
         childMessagesContainer.classList.add("child-messages-container");
         childMessagesContainer.style.display = isCollapsed ? "none" : "";
@@ -1207,7 +1296,6 @@
 
         updateMessageCollapsibility(el);
         updateCancelButtonVisibility(el, type, progress);
-
         targetContainer.appendChild(el);
       }
 
@@ -1219,11 +1307,12 @@
        * @param {string} [params.summary] - New summary.
        * @param {string} [params.detail] - New detail.
        * @param {number} [params.progress] - New progress value.
+       * @param {object} [params.formSchema] - New JSON schema for a form to render (null to remove form).
        * @param {HTMLElement} [container=messagesContainer] - The container where the message is rendered.
        */
       function updateMessageElement(
         id,
-        { type, summary, detail, progress },
+        { type, summary, detail, progress, formSchema = undefined },
         container = messagesContainer
       ) {
         const el = container.querySelector(`#message-${id}`);
@@ -1238,6 +1327,8 @@
         const childMessagesContainer = el.querySelector(
           ".child-messages-container"
         );
+        let formContainer = el.querySelector(".form-container");
+
         const currentType = el.classList.contains("user-message")
           ? "user"
           : el.classList.contains("assistant-message")
@@ -1260,6 +1351,8 @@
           ? "loading"
           : el.classList.contains("task-message")
           ? "task"
+          : el.classList.contains("form-prompt-message")
+          ? "form-prompt"
           : "log";
 
         if (summary !== undefined && previewSpan) {
@@ -1268,7 +1361,6 @@
 
         if (detail !== undefined && messageDetailTextDiv) {
           messageDetailTextDiv.textContent = detail;
-          updateMessageCollapsibility(el);
         }
         if (type !== undefined && badge) {
           badge.textContent = type;
@@ -1283,11 +1375,61 @@
             "warning-message",
             "info-message",
             "loading-message",
-            "task-message"
+            "task-message",
+            "form-prompt-message"
           );
           el.classList.add(`${type}-message`);
           if (["prompt", "tool"].includes(type)) {
             el.classList.add("tool-message");
+          }
+        }
+
+        if (formSchema !== undefined) {
+          if (formSchema === null) {
+            if (formContainer) {
+              formContainer.remove();
+              formContainer = null;
+            }
+            if (messageDetailTextDiv) {
+              messageDetailTextDiv.style.display = "";
+            }
+            const headerDiv = el.querySelector(".message-header");
+            const collapseButton = el.querySelector(".collapse-button");
+            if (headerDiv) headerDiv.classList.remove("non-collapsible");
+            if (collapseButton) collapseButton.style.display = "";
+          } else if (formSchema !== null) {
+            if (!formContainer) {
+              formContainer = document.createElement("div");
+              formContainer.classList.add("form-container");
+              const messageBodyContentDiv = el.querySelector(
+                ".message-body-content"
+              );
+              if (messageBodyContentDiv) {
+                messageBodyContentDiv.appendChild(formContainer);
+              }
+            }
+            if (messageDetailTextDiv) {
+              messageDetailTextDiv.style.display = "none";
+            }
+            formContainer.innerHTML = "";
+            buildFormElements(formContainer, formSchema, id);
+
+            const headerDiv = el.querySelector(".message-header");
+            const collapseButton = el.querySelector(".collapse-button");
+            const contentDiv = el.querySelector(".collapsible-content");
+            const childMessagesContainer = el.querySelector(
+              ".child-messages-container"
+            );
+
+            if (headerDiv) headerDiv.classList.add("non-collapsible");
+            if (collapseButton) collapseButton.style.display = "none";
+            if (contentDiv) contentDiv.classList.remove("collapsed");
+            if (childMessagesContainer)
+              childMessagesContainer.style.display = "";
+          }
+        } else {
+          if (messageDetailTextDiv) {
+            messageDetailTextDiv.style.display = formContainer ? "none" : "";
           }
         }
 
@@ -1337,6 +1479,163 @@
       }
 
       /**
+       * Dynamically builds form elements based on a JSON schema.
+       * @param {HTMLElement} container - The container to append form elements to.
+       * @param {object} schema - The JSON schema for the form.
+       * @param {string} formId - The ID of the form request.
+       */
+      function buildFormElements(container, schema, formId) {
+        if (!schema || !schema.properties) {
+          console.error("Invalid form schema:", schema);
+          return;
+        }
+
+        const form = document.createElement("form");
+        form.onsubmit = (e) => e.preventDefault();
+
+        const inputElements = {};
+        const errorElements = {};
+
+        for (const key in schema.properties) {
+          const prop = schema.properties[key];
+          const fieldDiv = document.createElement("div");
+          fieldDiv.classList.add("form-field");
+
+          const label = document.createElement("label");
+          label.textContent = prop.title || key;
+          label.setAttribute("for", `form-${formId}-${key}`);
+          fieldDiv.appendChild(label);
+
+          let input;
+          switch (prop.type) {
+            case "string":
+              input = document.createElement("input");
+              input.type = "text";
+              if (prop.format === "email") {
+                input.type = "email";
+              }
+              break;
+            case "number":
+            case "integer":
+              input = document.createElement("input");
+              input.type = "number";
+              if (prop.minimum !== undefined) input.min = prop.minimum;
+              if (prop.maximum !== undefined) input.max = prop.maximum;
+              if (prop.step !== undefined) input.step = prop.step;
+              break;
+            default:
+              input = document.createElement("input");
+              input.type = "text";
+          }
+          input.id = `form-${formId}-${key}`;
+          input.name = key;
+          input.classList.add("form-input");
+          input.placeholder = prop.title || key;
+          fieldDiv.appendChild(input);
+
+          const errorSpan = document.createElement("span");
+          errorSpan.classList.add("form-error-message");
+          errorSpan.style.display = "none";
+          fieldDiv.appendChild(errorSpan);
+
+          inputElements[key] = input;
+          errorElements[key] = errorSpan;
+
+          form.appendChild(fieldDiv);
+        }
+
+        const buttonRow = document.createElement("div");
+        buttonRow.classList.add("form-buttons-row");
+
+        const submitButton = document.createElement("button");
+        submitButton.classList.add("submit-button");
+        submitButton.textContent = "Submit";
+        submitButton.onclick = () => {
+          let isValid = true;
+          const submittedData = {};
+          for (const key in schema.properties) {
+            const prop = schema.properties[key];
+            const input = inputElements[key];
+            const errorSpan = errorElements[key];
+
+            errorSpan.style.display = "none";
+
+            let value = input.value.trim();
+            if (prop.type === "number" || prop.type === "integer") {
+              value = parseFloat(value);
+              if (
+                isNaN(value) &&
+                schema.required &&
+                schema.required.includes(key)
+              ) {
+                errorSpan.textContent = `${
+                  prop.title || key
+                } is required and must be a number.`;
+                errorSpan.style.display = "block";
+                isValid = false;
+              } else if (!isNaN(value)) {
+                submittedData[key] = value;
+              }
+            } else {
+              if (schema.required && schema.required.includes(key) && !value) {
+                errorSpan.textContent = `${prop.title || key} is required.`;
+                errorSpan.style.display = "block";
+                isValid = false;
+              }
+              submittedData[key] = value;
+            }
+          }
+
+          if (isValid) {
+            Object.values(inputElements).forEach((input) => {
+              input.readOnly = true;
+              input.disabled = true;
+            });
+            submitButton.textContent = "Submitted";
+            submitButton.disabled = true;
+            cancelButton.style.display = "none";
+            cancelButton.disabled = true;
+
+            vscode.postMessage({
+              command: "formResponse",
+              formResponse: {
+                id: formId,
+                isCancelled: false,
+                formData: submittedData,
+              },
+            });
+          }
+        };
+        buttonRow.appendChild(submitButton);
+
+        const cancelButton = document.createElement("button");
+        cancelButton.classList.add("cancel-button");
+        cancelButton.textContent = "Cancel";
+        cancelButton.onclick = () => {
+          Object.values(inputElements).forEach((input) => {
+            input.readOnly = true;
+            input.disabled = true;
+          });
+          cancelButton.textContent = "Cancelled";
+          cancelButton.disabled = true;
+          submitButton.style.display = "none";
+          submitButton.disabled = true;
+
+          vscode.postMessage({
+            command: "formResponse",
+            formResponse: {
+              id: formId,
+              isCancelled: true,
+            },
+          });
+        };
+        buttonRow.appendChild(cancelButton);
+
+        form.appendChild(buttonRow);
+        container.appendChild(form);
+      }
+
+      /**
        * Updates the collapsibility state of a message based on its content.
        * Hides/shows the collapse button and sets the non-collapsible class on the header.
        * @param {HTMLElement} messageEl - The message element (<pre>) to update.
@@ -1351,14 +1650,22 @@
         const childMessagesContainer = messageEl.querySelector(
           ".child-messages-container"
         );
+        const formContainer = messageEl.querySelector(".form-container");
 
         const hasDetailText =
           detailTextDiv && detailTextDiv.textContent.trim() !== "";
         const hasChildMessages =
           childMessagesContainer && childMessagesContainer.children.length > 0;
+        const hasForm = formContainer !== null;
+
         const isCollapsible = hasDetailText || hasChildMessages;
 
-        if (isCollapsible) {
+        if (hasForm) {
+          headerDiv.classList.add("non-collapsible");
+          if (collapseButton) collapseButton.style.display = "none";
+          if (contentDiv) contentDiv.classList.remove("collapsed");
+          if (childMessagesContainer) childMessagesContainer.style.display = "";
+        } else if (isCollapsible) {
           headerDiv.classList.remove("non-collapsible");
           if (collapseButton) collapseButton.style.display = "";
         } else {
@@ -1373,7 +1680,7 @@
       /**
        * Updates the visibility of the cancel button based on message type and progress.
        * @param {HTMLElement} messageEl - The message element (<pre>) to update.
-       * @param {string} type - The message type. // Keep type parameter for context, but don't use it for visibility check
+       * @param {string} type - The message type.
        * @param {number} [progress] - The progress value.
        */
       function updateCancelButtonVisibility(messageEl, type, progress) {
@@ -1866,6 +2173,13 @@
        */
       function handleTestSerialTask() {
         vscode.postMessage({ command: "runTestSerialTask" });
+      }
+
+      /**
+       * Handles triggering the test form task simulation.
+       */
+      function handleTestFormTask() {
+        vscode.postMessage({ command: "runTestFormTask" });
       }
 
       function renderSystemPromptsList() {
@@ -2400,6 +2714,7 @@
 
       window.addEventListener("message", (event) => {
         const message = event.data;
+        console.log("message1", message);
 
         if (message.command === "log") {
           const { id, parentId, message: taskLog } = message;
@@ -2440,17 +2755,10 @@
               childMessagesContainer.style.display = "";
               targetContainer = childMessagesContainer;
             } else {
-              const parentStepEl = document.getElementById(parentId);
-              if (parentStepEl) {
-                targetContainer =
-                  parentStepEl.querySelector(".step-messages-container") ||
-                  messagesContainer;
-              } else {
-                console.warn(
-                  `Log message ${id} received with unknown parentId: ${parentId}`
-                );
-                targetContainer = messagesContainer;
-              }
+              console.warn(
+                `Log message ${id} received with unknown parentId: ${parentId}. Logging to main container.`
+              );
+              targetContainer = messagesContainer;
             }
           }
 
@@ -2464,6 +2772,7 @@
                 summary: taskLog.summary,
                 detail: taskLog.detail,
                 progress: taskLog.progress,
+                formSchema: taskLog.formSchema,
               },
               targetContainer
             );
@@ -2483,6 +2792,7 @@
                   "warning",
                   "error",
                 ].includes(taskLog.type || "log"),
+                formSchema: taskLog.formSchema,
               },
               targetContainer
             );
@@ -2497,6 +2807,69 @@
         }
 
         switch (message.command) {
+          case "promptForm":
+            {
+              const formRequest = message.formRequest;
+              let formTargetContainer = messagesContainer;
+              let formParentMessageEl = null;
+
+              if (formRequest.parentId) {
+                formParentMessageEl = messagesContainer.querySelector(
+                  `#message-${formRequest.parentId}`
+                );
+                if (formParentMessageEl) {
+                  let childMessagesContainer =
+                    formParentMessageEl.querySelector(
+                      ".child-messages-container"
+                    );
+                  if (!childMessagesContainer) {
+                    childMessagesContainer = document.createElement("div");
+                    childMessagesContainer.classList.add(
+                      "child-messages-container"
+                    );
+                    const messageBodyContent =
+                      formParentMessageEl.querySelector(
+                        ".message-body-content"
+                      );
+                    if (messageBodyContent) {
+                      messageBodyContent.appendChild(childMessagesContainer);
+                    } else {
+                      const collapsibleContent =
+                        formParentMessageEl.querySelector(
+                          ".collapsible-content"
+                        );
+                      if (collapsibleContent) {
+                        collapsibleContent.appendChild(childMessagesContainer);
+                      } else {
+                        formParentMessageEl.appendChild(childMessagesContainer);
+                      }
+                    }
+                    childMessagesContainer.style.display = "";
+                    formTargetContainer = childMessagesContainer;
+                  } else {
+                    formTargetContainer = childMessagesContainer;
+                  }
+                }
+              }
+              renderMessage(
+                {
+                  id: formRequest.id,
+                  type: "form-prompt",
+                  summary: formRequest.message,
+                  detail: "",
+                  isCollapsed: false,
+                  formSchema: formRequest.schema,
+                },
+                formTargetContainer
+              );
+
+              if (formParentMessageEl) {
+                updateMessageCollapsibility(formParentMessageEl);
+              }
+              scrollToBottom();
+            }
+            break;
+
           case "updateMessage":
             updateMainChatMessageHistory(
               message.messageId,
@@ -2509,6 +2882,7 @@
               type: message.messageType,
               summary: message.summary,
               detail: message.detail || message.text || "",
+              formSchema: null,
             });
             scrollToBottom();
             break;
@@ -2522,6 +2896,9 @@
             break;
           case "addFiles":
             addFiles(message.filePaths);
+            break;
+          case "openFilesDialog":
+            openFilesDialog();
             break;
           case "settingsUpdated":
             const settings = message.settings;
@@ -2622,6 +2999,7 @@
       window.handleTestTask = handleTestTask;
       window.handleTestMultiTask = handleTestMultiTask;
       window.handleTestSerialTask = handleTestSerialTask;
+      window.handleTestFormTask = handleTestFormTask;
     </script>
   </body>
 </html>

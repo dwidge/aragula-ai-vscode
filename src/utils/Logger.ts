@@ -1,3 +1,5 @@
+import { JsonSchema } from "../aiTools/JsonSchema";
+
 export type Logger = (message: string, type?: string) => void;
 
 export type TaskLog = {
@@ -8,6 +10,25 @@ export type TaskLog = {
   detail?: string;
   /** 0 pending, 0..1 busy, 1 complete, -1..0 failed */
   progress?: number;
+  /** JSON schema for a form to render, or null to remove an existing form */
+  formSchema?: JsonSchema | null;
+  /** Data for a form to render, or null to clear it */
+  formData?: object | null;
+  /** Buttons to show in task */
+  buttons?: string[];
+};
+
+export type FormRequest = {
+  id: string;
+  parentId: string;
+  message: string;
+  schema: object;
+};
+
+export type FormResponse = {
+  id: string;
+  isCancelled: boolean;
+  formData?: object;
 };
 
 type LogCommand = {
@@ -17,18 +38,30 @@ type LogCommand = {
   message?: TaskLog;
 };
 
+type FormCommand = {
+  command: "promptForm";
+  formRequest: FormRequest;
+};
+
+type FormResponseCommand = {
+  command: "formResponse";
+  formResponse: FormResponse;
+};
+
 /**
  * A runner function for a task.
  * @template R The return type of the runner.
  * @param setLog Function to update the log entry.
  * @param subLog TaskLogger for creating nested tasks.
  * @param signal AbortSignal to check for cancellation.
+ * @param requestForm Function to prompt the user for form input.
  * @returns A Promise resolving with the result of the task.
  */
 export type TaskRunner<R> = (
   setLog: (message: TaskLog) => Promise<void>,
   subLog: TaskLogger,
-  signal: AbortSignal
+  signal: AbortSignal,
+  requestForm: <T extends object>(message: string, schema: object) => Promise<T>
 ) => Promise<R>;
 
 /**
@@ -38,7 +71,7 @@ export type TaskRunner<R> = (
  * @template T The return type of the optional runner function.
  * @param message The main log message or summary for the task.
  * @param runner Optional async function to run. If provided, the log entry becomes a task.
- *               It receives a progress reporter (to update the task entry), a child logger, and an AbortSignal.
+ *               It receives a progress reporter (to update the task entry), a child logger, an AbortSignal, and a form request function.
  * @returns A Promise that resolves with the return value of the runner function if provided, otherwise resolves with void.
  */
 export type TaskLogger = <R>(
@@ -47,12 +80,17 @@ export type TaskLogger = <R>(
 ) => Promise<R>;
 
 export type ActiveTasks = Map<string, [AbortController, string | undefined]>;
+export type PendingFormRequests = Map<
+  string,
+  { resolve: (value: any) => void; reject: (reason?: any) => void }
+>;
 
 export const createTask =
   (
     postMessage: (v: object) => Promise<void>,
     activeTasks: ActiveTasks,
-    parentId?: string
+    parentId?: string,
+    pendingFormRequests?: PendingFormRequests
   ): TaskLogger =>
   async <R>(message: TaskLog, runner?: TaskRunner<R>): Promise<R> => {
     const id = randId();
@@ -65,6 +103,28 @@ export const createTask =
         message,
       } as LogCommand);
 
+    const requestForm = async <T extends object>(
+      formMessage: string,
+      schema: object
+    ): Promise<T> => {
+      if (!pendingFormRequests) {
+        throw new Error("Form requests not supported in this context.");
+      }
+      const formId = randId();
+      return new Promise<T>((resolve, reject) => {
+        pendingFormRequests.set(formId, { resolve, reject });
+        postMessage({
+          command: "promptForm",
+          formRequest: {
+            id: formId,
+            parentId: id,
+            message: formMessage,
+            schema,
+          },
+        } as FormCommand);
+      });
+    };
+
     await setLog(message);
 
     if (runner) {
@@ -73,8 +133,18 @@ export const createTask =
 
       try {
         await setLog({ progress: 0 });
-        const subLogger = createTask(postMessage, activeTasks, id);
-        const result = await runner(setLog, subLogger, abort.signal);
+        const subLogger = createTask(
+          postMessage,
+          activeTasks,
+          id,
+          pendingFormRequests
+        );
+        const result = await runner(
+          setLog,
+          subLogger,
+          abort.signal,
+          requestForm
+        );
         await setLog({ progress: 1 });
         return result;
       } catch (e: unknown) {
@@ -148,7 +218,11 @@ export const createMultiTask =
   async (
     setLog: (message: TaskLog) => Promise<void>,
     subLog: TaskLogger,
-    signal: AbortSignal
+    signal: AbortSignal,
+    requestForm: <T extends object>(
+      message: string,
+      schema: object
+    ) => Promise<T>
   ): Promise<T> => {
     const total = runners.length;
     let completed = 0;
@@ -181,13 +255,15 @@ export const createMultiTask =
  * @param subLog TaskLogger for creating nested tasks within this task.
  * @param signal AbortSignal to check for cancellation.
  * @param allResultPromises A tuple of Promises, where the i-th promise resolves with the result of the i-th runner. The runner should typically only await promises with indices less than its own if strict serial dependency is required, but the type allows accessing any promise.
+ * @param requestForm Function to prompt the user for form input.
  * @returns A Promise resolving with the result of this task (type R).
  */
 export type DependentRunner<R, AllResults extends readonly unknown[]> = (
   setLog: (message: TaskLog) => Promise<void>,
   subLog: TaskLogger,
   signal: AbortSignal,
-  allResultPromises: { [K in keyof AllResults]: Promise<AllResults[K]> }
+  allResultPromises: { [K in keyof AllResults]: Promise<AllResults[K]> },
+  requestForm: <T extends object>(message: string, schema: object) => Promise<T>
 ) => Promise<R>;
 
 /**
@@ -207,7 +283,11 @@ export const createDependentTasks =
   async (
     setLog: (message: TaskLog) => Promise<void>,
     subLog: TaskLogger,
-    signal: AbortSignal
+    signal: AbortSignal,
+    requestForm: <T extends object>(
+      message: string,
+      schema: object
+    ) => Promise<T>
   ): Promise<T> => {
     const total = runners.length;
     if (total === 0) {
@@ -231,26 +311,28 @@ export const createDependentTasks =
     }
 
     const wrappedRunners: { [K in keyof T]: TaskRunner<T[K]> } = runners.map(
-      (originalRunner, index) => async (taskSetLog, taskSubLog, taskSignal) => {
-        const allResultPromises = resultPromises as {
-          [K in keyof T]: Promise<T[K]>;
-        };
+      (originalRunner, index) =>
+        async (taskSetLog, taskSubLog, taskSignal, _requestForm) => {
+          const allResultPromises = resultPromises as {
+            [K in keyof T]: Promise<T[K]>;
+          };
 
-        try {
-          const result = await originalRunner(
-            taskSetLog,
-            taskSubLog,
-            taskSignal,
-            allResultPromises
-          );
-          resolveFns[index](result);
-          return result;
-        } catch (e) {
-          rejectFns[index](e);
-          throw e;
+          try {
+            const result = await originalRunner(
+              taskSetLog,
+              taskSubLog,
+              taskSignal,
+              allResultPromises,
+              requestForm
+            );
+            resolveFns[index](result);
+            return result;
+          } catch (e) {
+            rejectFns[index](e);
+            throw e;
+          }
         }
-      }
     ) as { [K in keyof T]: TaskRunner<T[K]> };
 
-    return createMultiTask(wrappedRunners)(setLog, subLog, signal);
+    return createMultiTask(wrappedRunners)(setLog, subLog, signal, requestForm);
   };
