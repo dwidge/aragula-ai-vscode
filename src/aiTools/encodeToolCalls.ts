@@ -1,6 +1,7 @@
-import { ToolDefinition, ToolCall, JsonSchema } from "./AiApi";
-import { toXml } from "./toXml";
 import assert from "assert";
+import { ToolCall, ToolDefinition } from "./AiApi";
+import { JsonSchema } from "./JsonSchema";
+import { toXml } from "./toXml";
 
 /**
  * Encodes an array of tools into an XML string.

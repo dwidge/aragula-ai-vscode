@@ -1,4 +1,4 @@
-import { Json } from "./AiApi";
+import { Json } from "./JsonSchema";
 
 /**
  * Escapes XML special characters in a string.
