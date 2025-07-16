@@ -397,16 +397,23 @@ async function handleWebviewMessage(
       }
       break;
     case "sendMessage":
-      await handleSendMessage(
-        context,
-        postMessage,
-        {
-          ...message,
-          privacySettings: settings.privacySettings,
-        },
-        tabId,
-        log
-      );
+      try {
+        await handleSendMessage(
+          context,
+          postMessage,
+          {
+            ...message,
+            privacySettings: settings.privacySettings,
+          },
+          tabId,
+          log
+        );
+      } catch (e) {
+        console.error("handleSendMessage error:", e);
+        log("Error during send message: " + e);
+      } finally {
+        postMessage({ command: "resetSendButton" });
+      }
       break;
     case "runCommand":
       handleRunCommand(message.runCommand, logTask)
@@ -472,7 +479,14 @@ async function handleWebviewMessage(
       handleCommitFiles(settings, message.fileNames, logTask);
       break;
     case "planAndExecute":
-      handlePlanAndExecute(message, logTask);
+      handlePlanAndExecute(message, logTask)
+        .catch((e) => {
+          console.error("handlePlanAndExecute error:", e);
+          log("Error during plan and execute: " + e, "error");
+        })
+        .finally(() => {
+          postMessage({ command: "resetPlanButton" });
+        });
       break;
     case "runTestTask":
       runTestTask(logTask);
