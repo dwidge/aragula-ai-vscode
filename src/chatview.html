@@ -441,11 +441,13 @@
         box-shadow: var(--popup-shadow);
         padding: 10px;
         display: none;
-        top: 0;
-        right: 0;
-        max-height: 300px;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        max-height: 90vh;
         overflow-y: auto;
-        max-width: 80vw;
+        max-width: 90vw;
+        min-width: 300px;
       }
       .prompt-popup .prompts-list,
       .tool-popup .tool-list,
@@ -2476,7 +2478,6 @@
           : "none";
         if (systemPromptsPopupVisible) {
           renderSystemPromptsList();
-          positionSystemPromptsPopup();
         }
       }
 
@@ -2487,7 +2488,6 @@
           : "none";
         if (userPromptsPopupVisible) {
           renderUserPromptsList();
-          positionUserPromptsPopup();
         }
       }
 
@@ -2496,7 +2496,6 @@
         toolPopupEl.style.display = toolPopupVisible ? "block" : "none";
         if (toolPopupVisible) {
           renderToolPopupList();
-          positionToolPopup();
         }
       }
 
@@ -2507,48 +2506,11 @@
           : "none";
         if (providerSettingsPopupVisible) {
           renderProviderSettingsPopupList();
-          positionProviderSettingsPopup();
           renderVendorDropdown();
           if (editingProviderName === null) {
             handleAddProviderButton();
           }
         }
-      }
-
-      function positionSystemPromptsPopup() {
-        const buttonRect = systemPromptLoadButton.getBoundingClientRect();
-        systemPromptsPopupEl.style.top = `${
-          buttonRect.bottom + window.scrollY
-        }px`;
-        systemPromptsPopupEl.style.right = `${
-          window.innerWidth - buttonRect.right
-        }px`;
-      }
-
-      function positionUserPromptsPopup() {
-        const buttonRect = userPromptLoadButton.getBoundingClientRect();
-        userPromptsPopupEl.style.top = `${
-          buttonRect.bottom + window.scrollY
-        }px`;
-        userPromptsPopupEl.style.right = `${
-          window.innerWidth - buttonRect.right
-        }px`;
-      }
-
-      function positionToolPopup() {
-        const buttonRect = addToolButton.getBoundingClientRect();
-        toolPopupEl.style.top = `${buttonRect.bottom + window.scrollY}px`;
-        toolPopupEl.style.right = `${window.innerWidth - buttonRect.right}px`;
-      }
-
-      function positionProviderSettingsPopup() {
-        const buttonRect = providerSettingsButton.getBoundingClientRect();
-        providerSettingsPopupEl.style.top = `${
-          buttonRect.bottom + window.scrollY
-        }px`;
-        providerSettingsPopupEl.style.right = `${
-          window.innerWidth - buttonRect.right
-        }px`;
       }
 
       function addSystemPromptToLibrary() {
@@ -2809,19 +2771,8 @@
           : "none";
         if (privacySettingsPopupVisible) {
           renderPrivacySettings();
-          positionPrivacySettingsPopup();
           handleAddPrivacyPairButton();
         }
-      }
-
-      function positionPrivacySettingsPopup() {
-        const buttonRect = privacySettingsButton.getBoundingClientRect();
-        privacySettingsPopupEl.style.top = `${
-          buttonRect.bottom + window.scrollY
-        }px`;
-        privacySettingsPopupEl.style.right = `${
-          window.innerWidth - buttonRect.right
-        }px`;
       }
 
       function renderPrivacySettings() {
