@@ -123,7 +123,10 @@ export function activate(context: vscode.ExtensionContext) {
     if (existingPanelInfo) {
       existingPanelInfo.panel.reveal(vscode.ViewColumn.One);
       const postMessage = newPostMessage(existingPanelInfo.panel);
-      sendFilesToExistingChat(postMessage, openFilePaths);
+      postMessage({
+        command: "addFiles",
+        filePaths: openFilePaths,
+      });
     } else {
       await openChatWindow(context, openFilePaths, tabId, globalSettings);
     }
@@ -206,16 +209,6 @@ export function activate(context: vscode.ExtensionContext) {
   );
 }
 
-function sendFilesToExistingChat(
-  postMessage: PostMessage,
-  filePaths: string[]
-) {
-  postMessage({
-    command: "addFiles",
-    filePaths: filePaths,
-  });
-}
-
 async function readOpenFilePaths(uris: vscode.Uri[]): Promise<string[]> {
   const openFilePaths: string[] = [];
   if (!uris) {
@@ -276,7 +269,10 @@ async function openChatWindow(
 
   const postMessage = newPostMessage(panel);
 
-  sendInitialSystemMessage(postMessage, openedFilePaths);
+  postMessage({
+    command: "addFiles",
+    filePaths: openedFilePaths,
+  });
 
   panel.webview.onDidReceiveMessage(
     (message) =>
@@ -332,16 +328,6 @@ async function sendSettingsToWebview(
   console.log("sendSettingsToWebview1", message);
 
   postMessage(message);
-}
-
-function sendInitialSystemMessage(
-  postMessage: PostMessage,
-  openedFilePaths: string[]
-) {
-  postMessage({
-    command: "setOpenFiles",
-    files: openedFilePaths,
-  });
 }
 
 async function handleWebviewMessage(
