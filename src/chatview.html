@@ -1143,9 +1143,6 @@
 
       const STORAGE_KEYS = {
         chatHistory: `chatMessages-${tabId}`,
-        userInput: `userInput-${tabId}`,
-        systemPromptInput: `systemPromptInput-${tabId}`,
-        runCommandInput: `runCommandInput-${tabId}`,
         openFiles: `openFiles-${tabId}`,
       };
 
@@ -1275,7 +1272,7 @@
        */
 
       /**
-       * Loads state from localStorage: chat history, open files, run command input.
+       * Loads state from localStorage: chat history, open files.
        * Note: Plan state, prompts, auto settings, enabled tools, current provider,
        * available vendors/tools are loaded from workspaceState/globalState via
        * the single `settingsUpdated` message upon activation.
@@ -1283,9 +1280,6 @@
       function loadState() {
         chatHistory = loadFromLocalStorage(STORAGE_KEYS.chatHistory, []);
         openFiles = loadFromLocalStorage(STORAGE_KEYS.openFiles, []);
-        currentRunCommand =
-          localStorage.getItem(STORAGE_KEYS.runCommandInput) || "";
-        runCommandInputEl.value = currentRunCommand;
       }
 
       /**
@@ -1305,16 +1299,13 @@
       }
 
       /**
-       * Saves state to localStorage: chat history, open files, run command input.
-       * Checkbox states, plan state, enabled tools, current provider are saved to workspaceState/globalState via extension messages.
+       * Saves state to localStorage: chat history, open files.
+       * Checkbox states, plan state, enabled tools, current provider, and prompt inputs
+       * are saved to workspaceState/globalState via extension messages.
        */
       function saveState() {
         saveToLocalStorage(STORAGE_KEYS.chatHistory, chatHistory);
         saveToLocalStorage(STORAGE_KEYS.openFiles, openFiles);
-        localStorage.setItem(
-          STORAGE_KEYS.runCommandInput,
-          runCommandInputEl.value
-        );
       }
 
       /**
@@ -1983,17 +1974,17 @@
       }, 500);
 
       const updateSystemPrompt = (value) => {
-        localStorage.setItem(STORAGE_KEYS.systemPromptInput, value);
+        currentSystemPrompt = value;
         sendSettingsUpdate({ systemPrompt: value });
       };
 
       const updateUserPrompt = (value) => {
-        localStorage.setItem(STORAGE_KEYS.userInput, value);
+        currentUserPrompt = value;
         sendSettingsUpdate({ userPrompt: value });
       };
 
       const updateRunCommand = (value) => {
-        localStorage.setItem(STORAGE_KEYS.runCommandInput, value);
+        currentRunCommand = value;
         sendSettingsUpdate({ runCommand: value });
       };
 
@@ -2912,10 +2903,6 @@
       }
 
       window.addEventListener("load", () => {
-        userInputEl.value = localStorage.getItem(STORAGE_KEYS.userInput) || "";
-        runCommandInputEl.value =
-          localStorage.getItem(STORAGE_KEYS.runCommandInput) || "";
-
         loadState();
         renderChatHistory();
         renderSelectedFiles();
@@ -3199,7 +3186,11 @@
             const settings = message.settings;
             currentSystemPrompt = settings.systemPrompt || "";
             currentUserPrompt = settings.userPrompt || "";
+            systemPromptEl.value = currentSystemPrompt;
+            userInputEl.value = currentUserPrompt;
             currentRunCommand = settings.runCommand || "";
+            runCommandInputEl.value = currentRunCommand;
+
             systemPrompts = settings.systemPromptList || [];
             userPrompts = settings.userPromptList || [];
             const currentEditingNameBeforeUpdate = editingProviderName;
@@ -3215,9 +3206,6 @@
             availableVendors = message.availableVendors || [];
             availableTools = message.availableTools || [];
 
-            systemPromptEl.value = currentSystemPrompt;
-            userInputEl.value = currentUserPrompt;
-            runCommandInputEl.value = currentRunCommand;
             autoRemoveCommentsCheckbox.checked = autoRemoveComments;
             autoFormatCheckbox.checked = autoFormat;
             autoFixErrorsCheckbox.checked = autoFixErrors;
