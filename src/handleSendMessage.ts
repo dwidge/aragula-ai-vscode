@@ -13,6 +13,13 @@ import { handleFormatFilesInFiles } from "./handleFormatFilesInFiles";
 import { handleRemoveCommentsInFiles } from "./handleRemoveCommentsInFiles";
 import { PostMessage } from "./PostMessage";
 import { readFiles } from "./readFiles";
+import {
+  applyPrivacyReplacements,
+  replaceToolCallContent,
+  restoreToolCallContent,
+  reversePrivacyReplacements,
+} from "./replaceToolCallContent";
+import { PrivacyPair } from "./settingsObject";
 import { Logger } from "./utils/Logger";
 
 interface ActiveRequest {
@@ -44,6 +51,7 @@ export async function handleSendMessage(
     autoFormat: boolean;
     autoFixErrors: boolean;
     messageId: string;
+    privacySettings?: PrivacyPair[];
   },
   tabId: string,
   log: Logger,
@@ -139,14 +147,25 @@ export async function performAiRequest(
     fileNames: string[];
     toolNames: string[];
     providerSetting: AiApiSettings;
+    privacySettings?: PrivacyPair[];
   },
   log: Logger,
   signal?: AbortSignal
 ): Promise<{ assistant: string; tools: ToolCall[] }> {
   log("enabledToolNames\n\n" + message.toolNames, "info");
+  const rawFilesContent: ToolCall[] = await readFiles(message.fileNames);
+  log(`Read ${rawFilesContent.length} files\n\n${message.fileNames}`, "info");
 
-  const filesContent: ToolCall[] = await readFiles(message.fileNames);
-  log(`Read ${filesContent.length} files\n\n${message.fileNames}`, "info");
+  const privacySettings = message.privacySettings || [];
+
+  const filesContent = rawFilesContent.map(
+    replaceToolCallContent(privacySettings)
+  );
+  const userMessage = applyPrivacyReplacements(message.user, privacySettings);
+  const systemMessage = applyPrivacyReplacements(
+    message.system,
+    privacySettings
+  );
 
   const enabledToolDefinitions: ToolDefinition[] = filterToolsByName(
     availableToolsDefinitions,
@@ -155,15 +174,26 @@ export async function performAiRequest(
 
   const response = await newAiApi(message.providerSetting)(
     {
-      user: message.user,
-      system: message.system,
+      user: userMessage,
+      system: systemMessage,
       tools: filesContent,
     },
     enabledToolDefinitions,
     { logger: log, signal }
   );
 
-  return response;
+  const responseTools = response.tools.map(
+    restoreToolCallContent(privacySettings)
+  );
+  const responseText = reversePrivacyReplacements(
+    response.assistant,
+    privacySettings
+  );
+
+  return {
+    assistant: responseText,
+    tools: responseTools,
+  };
 }
 
 export type CallAiProps = {
@@ -175,6 +205,7 @@ export type CallAiProps = {
   autoRemoveComments: boolean;
   autoFormat: boolean;
   autoFixErrors: boolean;
+  privacySettings?: PrivacyPair[];
 };
 
 /**
@@ -201,6 +232,7 @@ export async function callAI(
     autoRemoveComments,
     autoFormat,
     autoFixErrors,
+    privacySettings,
   } = message;
 
   const { assistant, tools } = await performAiRequest(
@@ -210,6 +242,7 @@ export async function callAI(
       fileNames: fileNames,
       toolNames: toolNames,
       providerSetting: providerSetting,
+      privacySettings,
     },
     log,
     new AbortController().signal

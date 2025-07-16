@@ -24,6 +24,12 @@ export interface SettingsObject {
   autoRemoveComments: boolean;
   autoFormat: boolean;
   autoFixErrors: boolean;
+  privacySettings?: PrivacyPair[];
+}
+
+export interface PrivacyPair {
+  search: string;
+  replace: string;
 }
 
 const defaultSettings: SettingsObject = {
@@ -40,6 +46,7 @@ const defaultSettings: SettingsObject = {
   autoRemoveComments: true,
   autoFormat: true,
   autoFixErrors: true,
+  privacySettings: [],
 };
 
 export function getSettingsObject(

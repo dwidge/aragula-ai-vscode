@@ -199,6 +199,7 @@ const generatePlan =
         autoRemoveComments: false,
         autoFormat: false,
         autoFixErrors: false,
+        privacySettings: [],
       },
       createMessageLogger(subLog)
     );

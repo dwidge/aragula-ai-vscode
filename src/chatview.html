@@ -431,7 +431,8 @@
 
       .prompt-popup,
       .tool-popup,
-      .provider-popup {
+      .provider-popup,
+      .privacy-popup {
         position: fixed;
         z-index: 10;
         background-color: var(--popup-background);
@@ -448,7 +449,8 @@
       }
       .prompt-popup .prompts-list,
       .tool-popup .tool-list,
-      .provider-popup .provider-list {
+      .provider-popup .provider-list,
+      .privacy-popup .privacy-list {
         border: none;
         overflow-y: auto;
         max-height: unset;
@@ -488,7 +490,59 @@
         background-color: var(--prompt-item-hover);
       }
 
+      .privacy-popup .privacy-list .privacy-item {
+        background-color: var(--prompt-item-background);
+        padding: 8px 10px;
+        border-bottom: 1px solid var(--pre-border);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        cursor: pointer;
+        word-wrap: break-word;
+        white-space: normal;
+        font-size: 0.9em;
+      }
+      .privacy-popup .privacy-list .privacy-item:last-child {
+        border-bottom: none;
+      }
+      .privacy-popup .privacy-list .privacy-item:hover {
+        background-color: var(--prompt-item-hover);
+      }
+      .privacy-item .edit-button,
+      .privacy-item .delete-button,
+      .add-privacy-pair-button {
+        background: none;
+        border: none;
+        color: var(--file-button-text-color);
+        cursor: pointer;
+        padding: 0 5px;
+        border-radius: 3px;
+        font-size: 1em;
+        line-height: 1;
+        width: 24px;
+        height: 24px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        margin-left: 5px;
+      }
+      .privacy-item .edit-button:hover,
+      .privacy-item .delete-button:hover,
+      .add-privacy-pair-button:hover {
+        color: white;
+        background-color: var(--button-background);
+      }
+      .privacy-item .delete-button:hover {
+        background-color: var(--prompt-delete-button-hover);
+      }
+
       .provider-popup-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 10px;
+      }
+      .privacy-popup-header {
         display: flex;
         justify-content: space-between;
         align-items: center;
@@ -500,11 +554,31 @@
         gap: 10px;
         margin-top: 10px;
       }
+      .privacy-form {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        margin-top: 15px;
+        border-top: 1px solid var(--pre-border);
+        padding-top: 15px;
+      }
       .provider-form label {
         margin-bottom: 5px;
         font-weight: bold;
       }
+      .privacy-form label {
+        margin-bottom: 5px;
+        font-weight: bold;
+      }
       .provider-form input {
+        margin-bottom: 0;
+        padding: 8px;
+        border-radius: 5px;
+        border: 1px solid var(--form-input-border);
+        background-color: var(--form-input-background);
+        color: var(--form-input-text-color);
+      }
+      .privacy-form input {
         margin-bottom: 0;
         padding: 8px;
         border-radius: 5px;
@@ -534,6 +608,12 @@
       }
 
       .provider-form-buttons {
+        display: flex;
+        gap: 10px;
+        justify-content: flex-end;
+        margin-top: 10px;
+      }
+      .privacy-form-buttons {
         display: flex;
         gap: 10px;
         justify-content: flex-end;
@@ -897,6 +977,58 @@
             Test Form Task
           </button>
           <!-- New Test Form Task Button -->
+          <button
+            id="privacySettingsButton"
+            onclick="togglePrivacySettingsPopup()"
+          >
+            Privacy
+          </button>
+        </div>
+      </div>
+
+      <div id="privacy-popup" class="privacy-popup">
+        <div class="privacy-popup-header">
+          <span>Privacy Settings</span>
+          <button
+            class="add-privacy-pair-button"
+            title="Add New Replacement Pair"
+            onclick="handleAddPrivacyPairButton()"
+          >
+            +
+          </button>
+        </div>
+        <div class="auto-checkbox" style="margin-bottom: 10px">
+          <input type="checkbox" id="isPrivacyMaskingEnabledCheckbox" />
+          <label for="isPrivacyMaskingEnabledCheckbox"
+            >Enable Data Masking</label
+          >
+        </div>
+        <ul id="privacy-popup-list" class="privacy-list"></ul>
+
+        <div id="privacy-form" class="privacy-form" style="display: none">
+          <h3>Add/Edit Replacement Pair</h3>
+          <label for="privacy-search">Sensitive String (Search):</label>
+          <input
+            type="text"
+            id="privacy-search"
+            class="form-input"
+            placeholder="String to replace (e.g., your_api_key)"
+          />
+          <div class="error-message-inline" id="privacy-search-error"></div>
+
+          <label for="privacy-replace">Dummy Placeholder (Replace):</label>
+          <input
+            type="text"
+            id="privacy-replace"
+            class="form-input"
+            placeholder="Replacement string (e.g., DUMMY_API_KEY_1)"
+          />
+          <div class="error-message-inline" id="privacy-replace-error"></div>
+
+          <div class="privacy-form-buttons">
+            <button onclick="handleSavePrivacyPair()">Save</button>
+            <button onclick="handleCancelPrivacyPair()">Cancel</button>
+          </div>
         </div>
       </div>
 
@@ -939,8 +1071,11 @@
       let userPromptsPopupVisible = false;
       let toolPopupVisible = false;
       let providerSettingsPopupVisible = false;
+      let privacySettingsPopupVisible = false;
       /** @type {string | null} */
       let editingProviderName = null;
+      /** @type {string | null} */
+      let editingPrivacyPairSearch = null;
       /** @type {string} */
       let currentSystemPrompt = "";
       /** @type {string} */
@@ -953,6 +1088,16 @@
       let autoFormat = true;
       /** @type {boolean} */
       let autoFixErrors = true;
+
+      /**
+       * @typedef {Object} PrivacyPair
+       * @property {string} search
+       * @property {string} replace
+       */
+      /** @type {PrivacyPair[]} */
+      let privacySettings = [];
+      /** @type {boolean} */
+      let isPrivacyMaskingEnabled = false;
 
       /**
        * @typedef {Object} PlanStep
@@ -1097,6 +1242,24 @@
         "testSerialTaskButton"
       );
       const testFormTaskButton = document.getElementById("testFormTaskButton");
+      const privacySettingsPopupEl = document.getElementById("privacy-popup");
+      const privacySettingsPopupListEl =
+        document.getElementById("privacy-popup-list");
+      const privacySettingsButton = document.getElementById(
+        "privacySettingsButton"
+      );
+      const privacyFormEl = document.getElementById("privacy-form");
+      const privacySearchInput = document.getElementById("privacy-search");
+      const privacyReplaceInput = document.getElementById("privacy-replace");
+      const privacySearchError = document.getElementById(
+        "privacy-search-error"
+      );
+      const privacyReplaceError = document.getElementById(
+        "privacy-replace-error"
+      );
+      const isPrivacyMaskingEnabledCheckbox = document.getElementById(
+        "isPrivacyMaskingEnabledCheckbox"
+      );
 
       /**
        * @typedef {Object} AiProviderSettings
@@ -2025,6 +2188,8 @@
           autoRemoveComments: autoRemoveComments,
           autoFormat: autoFormat,
           autoFixErrors: autoFixErrors,
+          privacySettings: privacySettings,
+          isPrivacyMaskingEnabled: isPrivacyMaskingEnabled,
         });
       }
 
@@ -2063,6 +2228,8 @@
           autoRemoveComments: autoRemoveComments,
           autoFormat: autoFormat,
           autoFixErrors: autoFixErrors,
+          privacySettings: privacySettings,
+          isPrivacyMaskingEnabled: isPrivacyMaskingEnabled,
         });
       }
 
@@ -2630,6 +2797,169 @@
         handleAddProviderButton();
       }
 
+      function handleCancelProviderSettings() {
+        providerFormEl.style.display = "none";
+        editingProviderName = null;
+      }
+
+      function togglePrivacySettingsPopup() {
+        privacySettingsPopupVisible = !privacySettingsPopupVisible;
+        privacySettingsPopupEl.style.display = privacySettingsPopupVisible
+          ? "block"
+          : "none";
+        if (privacySettingsPopupVisible) {
+          renderPrivacySettings();
+          positionPrivacySettingsPopup();
+          handleAddPrivacyPairButton();
+        }
+      }
+
+      function positionPrivacySettingsPopup() {
+        const buttonRect = privacySettingsButton.getBoundingClientRect();
+        privacySettingsPopupEl.style.top = `${
+          buttonRect.bottom + window.scrollY
+        }px`;
+        privacySettingsPopupEl.style.right = `${
+          window.innerWidth - buttonRect.right
+        }px`;
+      }
+
+      function renderPrivacySettings() {
+        privacySettingsPopupListEl.innerHTML = "";
+        if (privacySettings.length === 0) {
+          const noPairsMessage = document.createElement("li");
+          noPairsMessage.textContent = "No masking pairs configured.";
+          noPairsMessage.style.textAlign = "center";
+          noPairsMessage.style.padding = "10px";
+          noPairsMessage.style.color = "var(--text-color)";
+          noPairsMessage.style.backgroundColor =
+            "var(--prompt-item-background)";
+          privacySettingsPopupListEl.appendChild(noPairsMessage);
+          return;
+        }
+        privacySettings.forEach((pair) => {
+          const listItem = document.createElement("li");
+          listItem.classList.add("privacy-item");
+
+          const textSpan = document.createElement("span");
+          textSpan.classList.add("prompt-text");
+          textSpan.textContent = `${pair.search} → ${pair.replace}`;
+          listItem.appendChild(textSpan);
+
+          const buttonsContainer = document.createElement("div");
+          buttonsContainer.style.display = "flex";
+
+          const editButton = document.createElement("button");
+          editButton.classList.add("edit-button");
+          editButton.textContent = "✏️";
+          editButton.title = "Edit";
+          editButton.onclick = (event) => {
+            event.stopPropagation();
+            loadPrivacyPairToForm(pair);
+          };
+          buttonsContainer.appendChild(editButton);
+
+          const deleteButton = document.createElement("button");
+          deleteButton.classList.add("delete-button");
+          deleteButton.textContent = "🗑️";
+          deleteButton.title = "Delete";
+          deleteButton.onclick = (event) => {
+            event.stopPropagation();
+            deletePrivacyPair(pair.search);
+          };
+          buttonsContainer.appendChild(deleteButton);
+
+          listItem.appendChild(buttonsContainer);
+          privacySettingsPopupListEl.appendChild(listItem);
+        });
+      }
+
+      function handleAddPrivacyPairButton() {
+        editingPrivacyPairSearch = null;
+        privacySearchInput.value = "";
+        privacyReplaceInput.value = "";
+        clearPrivacyFormErrors();
+        privacyFormEl.style.display = "block";
+      }
+
+      function loadPrivacyPairToForm(pair) {
+        editingPrivacyPairSearch = pair.search;
+        privacySearchInput.value = pair.search;
+        privacyReplaceInput.value = pair.replace;
+        clearPrivacyFormErrors();
+        privacyFormEl.style.display = "block";
+      }
+
+      function handleSavePrivacyPair() {
+        const search = privacySearchInput.value.trim();
+        const replace = privacyReplaceInput.value.trim();
+
+        clearPrivacyFormErrors();
+
+        let isValid = true;
+        if (!search) {
+          privacySearchError.textContent = "Sensitive string cannot be empty.";
+          privacySearchError.style.display = "block";
+          isValid = false;
+        }
+
+        if (!isValid) {
+          return;
+        }
+
+        if (editingPrivacyPairSearch !== null) {
+          const index = privacySettings.findIndex(
+            (p) => p.search === editingPrivacyPairSearch
+          );
+          if (index !== -1) {
+            if (
+              search !== editingPrivacyPairSearch &&
+              privacySettings.some((p) => p.search === search)
+            ) {
+              privacySearchError.textContent = `A pair with sensitive string "${search}" already exists.`;
+              privacySearchError.style.display = "block";
+              return;
+            }
+            privacySettings[index] = { search, replace };
+          }
+        } else {
+          if (privacySettings.some((p) => p.search === search)) {
+            privacySearchError.textContent = `A pair with sensitive string "${search}" already exists.`;
+            privacySearchError.style.display = "block";
+            return;
+          }
+          privacySettings.push({ search, replace });
+        }
+
+        sendSettingsUpdate({ privacySettings: privacySettings });
+        renderPrivacySettings();
+        handleAddPrivacyPairButton();
+      }
+
+      function handleCancelPrivacyPair() {
+        privacyFormEl.style.display = "none";
+        editingPrivacyPairSearch = null;
+        clearPrivacyFormErrors();
+      }
+
+      function deletePrivacyPair(searchString) {
+        privacySettings = privacySettings.filter(
+          (p) => p.search !== searchString
+        );
+        sendSettingsUpdate({ privacySettings: privacySettings });
+        renderPrivacySettings();
+        if (editingPrivacyPairSearch === searchString) {
+          handleAddPrivacyPairButton();
+        }
+      }
+
+      function clearPrivacyFormErrors() {
+        privacySearchError.style.display = "none";
+        privacyReplaceError.style.display = "none";
+        privacySearchError.textContent = "";
+        privacyReplaceError.textContent = "";
+      }
+
       window.addEventListener("load", () => {
         userInputEl.value = localStorage.getItem(STORAGE_KEYS.userInput) || "";
         runCommandInputEl.value =
@@ -2669,6 +2999,14 @@
             event.target !== providerSettingsButton
           ) {
             toggleProviderSettingsPopup();
+          }
+          if (
+            privacySettingsPopupVisible &&
+            !privacySettingsPopupEl.contains(event.target) &&
+            event.target !== privacySettingsButton &&
+            event.target !== isPrivacyMaskingEnabledCheckbox
+          ) {
+            togglePrivacySettingsPopup();
           }
         });
 
@@ -2710,6 +3048,12 @@
       });
       autoFixErrorsCheckbox.addEventListener("change", () => {
         sendSettingsUpdate({ autoFixErrors: autoFixErrorsCheckbox.checked });
+      });
+      isPrivacyMaskingEnabledCheckbox.addEventListener("change", () => {
+        isPrivacyMaskingEnabled = isPrivacyMaskingEnabledCheckbox.checked;
+        sendSettingsUpdate({
+          isPrivacyMaskingEnabled: isPrivacyMaskingEnabled,
+        });
       });
 
       window.addEventListener("message", (event) => {
@@ -2913,6 +3257,8 @@
             autoRemoveComments = settings.autoRemoveComments ?? true;
             autoFormat = settings.autoFormat ?? true;
             autoFixErrors = settings.autoFixErrors ?? true;
+            privacySettings = settings.privacySettings || [];
+            isPrivacyMaskingEnabled = settings.isPrivacyMaskingEnabled ?? false;
 
             currentProviderSetting = message.currentProviderSetting;
             availableVendors = message.availableVendors || [];
@@ -2924,6 +3270,7 @@
             autoRemoveCommentsCheckbox.checked = autoRemoveComments;
             autoFormatCheckbox.checked = autoFormat;
             autoFixErrorsCheckbox.checked = autoFixErrors;
+            isPrivacyMaskingEnabledCheckbox.checked = isPrivacyMaskingEnabled;
 
             renderSystemPromptsList();
             renderUserPromptsList();
@@ -2932,6 +3279,7 @@
             renderProviderSettingsPopupList();
             renderVendorDropdown();
             renderToolPopupList();
+            renderPrivacySettings();
 
             const wasEditing = currentEditingNameBeforeUpdate !== null;
             const editedProviderStillExists = wasEditing
@@ -3000,6 +3348,10 @@
       window.handleTestMultiTask = handleTestMultiTask;
       window.handleTestSerialTask = handleTestSerialTask;
       window.handleTestFormTask = handleTestFormTask;
+      window.togglePrivacySettingsPopup = togglePrivacySettingsPopup;
+      window.handleSavePrivacyPair = handleSavePrivacyPair;
+      window.handleCancelPrivacyPair = handleCancelPrivacyPair;
+      window.handleAddPrivacyPairButton = handleAddPrivacyPairButton;
     </script>
   </body>
 </html>

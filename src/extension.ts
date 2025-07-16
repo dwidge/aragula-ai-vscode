@@ -397,7 +397,10 @@ async function handleWebviewMessage(
       }
       break;
     case "sendMessage":
-      await handleSendMessage(context, postMessage, message, tabId, log);
+      await handleSendMessage(context, postMessage, {
+        ...message,
+        privacySettings: settings.privacySettings,
+      }, tabId, log);
       break;
     case "runCommand":
       handleRunCommand(message.runCommand, logTask)
