@@ -1304,8 +1304,12 @@
        * are saved to workspaceState/globalState via extension messages.
        */
       function saveState() {
-        saveToLocalStorage(STORAGE_KEYS.chatHistory, chatHistory);
-        saveToLocalStorage(STORAGE_KEYS.openFiles, openFiles);
+        try {
+          saveToLocalStorage(STORAGE_KEYS.chatHistory, chatHistory);
+          saveToLocalStorage(STORAGE_KEYS.openFiles, openFiles);
+        } catch (e) {
+          console.error("saveStateE1: Error saving state to localStorage: ", e);
+        }
       }
 
       /**
@@ -3219,6 +3223,7 @@
             renderVendorDropdown();
             renderToolPopupList();
             renderPrivacySettings();
+            renderSelectedFiles();
 
             const wasEditing = currentEditingNameBeforeUpdate !== null;
             const editedProviderStillExists = wasEditing
