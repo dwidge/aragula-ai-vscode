@@ -1,10 +1,13 @@
 import { ToolCall } from "./aiTools/AiApi";
+import { StringProcessor, processJsonValue } from "./processJsonValue";
 import { PrivacyPair } from "./settingsObject";
 
-export function applyPrivacyReplacements(
+type ContentProcessor = (content: string, settings: PrivacyPair[]) => string;
+
+export const applyPrivacyReplacements: ContentProcessor = (
   content: string,
   privacySettings: PrivacyPair[]
-): string {
+): string => {
   let modifiedContent = content;
   for (const pair of privacySettings) {
     const escapedSearch = pair.search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -14,12 +17,12 @@ export function applyPrivacyReplacements(
     );
   }
   return modifiedContent;
-}
+};
 
-export function reversePrivacyReplacements(
+export const reversePrivacyReplacements: ContentProcessor = (
   content: string,
   privacySettings: PrivacyPair[]
-): string {
+): string => {
   let modifiedContent = content;
   for (let i = privacySettings.length - 1; i >= 0; i--) {
     const pair = privacySettings[i];
@@ -30,74 +33,50 @@ export function reversePrivacyReplacements(
     );
   }
   return modifiedContent;
-}
+};
 
 export const replaceToolCallContent =
   (privacySettings: PrivacyPair[]) =>
   (toolcall: ToolCall): ToolCall => {
-    if (
-      toolcall.name === "readFile" &&
-      typeof toolcall.parameters === "object" &&
-      toolcall.parameters !== null &&
-      "content" in toolcall.parameters &&
-      typeof toolcall.parameters.path === "string" &&
-      typeof toolcall.response === "object" &&
-      toolcall.response !== null &&
-      "content" in toolcall.response &&
-      typeof toolcall.response.content === "string"
-    ) {
-      return {
-        ...toolcall,
-        parameters: {
-          ...toolcall.parameters,
-          path: applyPrivacyReplacements(
-            toolcall.parameters.path,
-            privacySettings
-          ),
-        },
-        response: {
-          ...toolcall.response,
-          content: applyPrivacyReplacements(
-            toolcall.response.content,
-            privacySettings
-          ),
-        },
-      };
-    }
-    return toolcall;
+    const applyStringProcessor: StringProcessor = (content: string) =>
+      applyPrivacyReplacements(content, privacySettings);
+
+    const newParameters =
+      toolcall.parameters === undefined
+        ? undefined
+        : processJsonValue(toolcall.parameters, applyStringProcessor);
+
+    const newResponse =
+      toolcall.response === undefined
+        ? undefined
+        : processJsonValue(toolcall.response, applyStringProcessor);
+
+    return {
+      ...toolcall,
+      parameters: newParameters,
+      response: newResponse,
+    };
   };
 
 export const restoreToolCallContent =
   (privacySettings: PrivacyPair[]) =>
   (toolcall: ToolCall): ToolCall => {
-    if (
-      toolcall.name === "readFile" &&
-      typeof toolcall.parameters === "object" &&
-      toolcall.parameters !== null &&
-      "content" in toolcall.parameters &&
-      typeof toolcall.parameters.path === "string" &&
-      typeof toolcall.response === "object" &&
-      toolcall.response !== null &&
-      "content" in toolcall.response &&
-      typeof toolcall.response.content === "string"
-    ) {
-      return {
-        ...toolcall,
-        parameters: {
-          ...toolcall.parameters,
-          path: reversePrivacyReplacements(
-            toolcall.parameters.path,
-            privacySettings
-          ),
-        },
-        response: {
-          ...toolcall.response,
-          content: reversePrivacyReplacements(
-            toolcall.response.content,
-            privacySettings
-          ),
-        },
-      };
-    }
-    return toolcall;
+    const reverseStringProcessor: StringProcessor = (content: string) =>
+      reversePrivacyReplacements(content, privacySettings);
+
+    const newParameters =
+      toolcall.parameters === undefined
+        ? undefined
+        : processJsonValue(toolcall.parameters, reverseStringProcessor);
+
+    const newResponse =
+      toolcall.response === undefined
+        ? undefined
+        : processJsonValue(toolcall.response, reverseStringProcessor);
+
+    return {
+      ...toolcall,
+      parameters: newParameters,
+      response: newResponse,
+    };
   };
