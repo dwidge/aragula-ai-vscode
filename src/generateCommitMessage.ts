@@ -96,7 +96,7 @@ export const generateCommitMessage = async (
   }
 };
 
-const parseCommitMessage = (rawMessage: string): string => {
+export const parseCommitMessage = (rawMessage: string): string => {
   const trimmedMessage = rawMessage.trim();
   if (trimmedMessage.startsWith("```") && trimmedMessage.endsWith("```")) {
     const messageContent = trimmedMessage.slice(3, -3).trim();

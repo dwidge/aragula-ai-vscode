@@ -9,6 +9,7 @@ import { filterToolsByName } from "./aiTools/filterToolsByName";
 import { availableToolsDefinitions } from "./availableToolNames";
 import { checkAndFixErrors } from "./checkAndFixErrors";
 import { executeToolCalls, ToolCallResult } from "./executeToolCalls";
+import { getCommitMessageInstruction } from "./generateCommitMessageInstruction";
 import { handleFormatFilesInFiles } from "./handleFormatFilesInFiles";
 import { handleRemoveCommentsInFiles } from "./handleRemoveCommentsInFiles";
 import { PostMessage } from "./PostMessage";
@@ -19,6 +20,7 @@ import {
   restoreToolCallContent,
   reversePrivacyReplacements,
 } from "./replaceToolCallContent";
+import { setCommitMessage } from "./setCommitMessage";
 import { PrivacyPair } from "./settingsObject";
 import { Logger } from "./utils/Logger";
 
@@ -50,6 +52,8 @@ export async function handleSendMessage(
     autoRemoveComments: boolean;
     autoFormat: boolean;
     autoFixErrors: boolean;
+    autoGenerateCommit: boolean;
+    useConventionalCommits: boolean;
     messageId: string;
     privacySettings?: PrivacyPair[];
   },
@@ -59,6 +63,14 @@ export async function handleSendMessage(
 ) {
   const providerSetting = message.providerSetting;
   const messageId = message.messageId;
+
+  if (message.autoGenerateCommit) {
+    const commitInstruction = await getCommitMessageInstruction({
+      useConventionalCommits: message.useConventionalCommits,
+      filePaths: message.fileNames,
+    });
+    message.system = `${message.system}\n\n${commitInstruction}`;
+  }
 
   try {
     const response = await performAiRequest(message, log, signal);
@@ -94,6 +106,13 @@ export async function handleSendMessage(
 
     if (message.autoFixErrors) {
       await checkAndFixErrors(modifiedFiles, providerSetting, log);
+    }
+
+    if (message.autoGenerateCommit) {
+      const commitMessages = parseCommitMessages(response.assistant);
+      for (const { repoPath, message: commitMessage } of commitMessages) {
+        await setCommitMessage(repoPath, commitMessage);
+      }
     }
 
     if (providerSetting.vendor !== "manual") {
@@ -147,6 +166,8 @@ export async function performAiRequest(
     fileNames: string[];
     toolNames: string[];
     providerSetting: AiApiSettings;
+    autoGenerateCommit?: boolean;
+    useConventionalCommits?: boolean;
     privacySettings?: PrivacyPair[];
   },
   log: Logger,
@@ -299,6 +320,20 @@ export async function cleanupFiles(
   }
 
   return fileNames;
+}
+
+function parseCommitMessages(
+  responseText: string
+): { repoPath: string; message: string }[] {
+  const commitMessages: { repoPath: string; message: string }[] = [];
+  const commitRegex = /```commit\n\/\/ (.*)\n([\s\S]*?)\n```/g;
+  let match;
+  while ((match = commitRegex.exec(responseText)) !== null) {
+    const repoPath = match[1].trim();
+    const message = match[2].trim();
+    commitMessages.push({ repoPath, message });
+  }
+  return commitMessages;
 }
 
 export const getModifiedFileNames = (toolCallResults: ToolCallResult[]) =>

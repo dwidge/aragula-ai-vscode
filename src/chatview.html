@@ -959,6 +959,18 @@
           <button id="fixErrorsButton" onclick="handleFixErrors()">
             Fix Errors
           </button>
+          <div class="auto-checkbox">
+            <input type="checkbox" id="autoGenerateCommitCheckbox" />
+            <label for="autoGenerateCommitCheckbox"
+              >Generate Commit Message</label
+            >
+          </div>
+          <div class="auto-checkbox">
+            <input type="checkbox" id="useConventionalCommitsCheckbox" />
+            <label for="useConventionalCommitsCheckbox"
+              >Use Conventional Commits</label
+            >
+          </div>
           <button id="commitFilesButton" onclick="handleCommitFiles()">
             Commit Files
           </button>
@@ -1090,6 +1102,10 @@
       let autoFormat = true;
       /** @type {boolean} */
       let autoFixErrors = true;
+      /** @type {boolean} */
+      let autoGenerateCommit = false;
+      /** @type {boolean} */
+      let useConventionalCommits = false;
 
       /**
        * @typedef {Object} PrivacyPair
@@ -1231,6 +1247,12 @@
       const autoFormatCheckbox = document.getElementById("autoFormatCheckbox");
       const autoFixErrorsCheckbox = document.getElementById(
         "autoFixErrorsCheckbox"
+      );
+      const autoGenerateCommitCheckbox = document.getElementById(
+        "autoGenerateCommitCheckbox"
+      );
+      const useConventionalCommitsCheckbox = document.getElementById(
+        "useConventionalCommitsCheckbox"
       );
       const commitFilesButton = document.getElementById("commitFilesButton");
       const testTaskButton = document.getElementById("testTaskButton");
@@ -2171,6 +2193,8 @@
         const autoRemoveComments = autoRemoveCommentsCheckbox.checked;
         const autoFormat = autoFormatCheckbox.checked;
         const autoFixErrors = autoFixErrorsCheckbox.checked;
+        const autoGenerateCommit = autoGenerateCommitCheckbox.checked;
+        const useConventionalCommits = useConventionalCommitsCheckbox.checked;
 
         const messageId = Date.now().toString();
 
@@ -2185,6 +2209,8 @@
           autoRemoveComments: autoRemoveComments,
           autoFormat: autoFormat,
           autoFixErrors: autoFixErrors,
+          autoGenerateCommit: autoGenerateCommit,
+          useConventionalCommits: useConventionalCommits,
           privacySettings: privacySettings,
           isPrivacyMaskingEnabled: isPrivacyMaskingEnabled,
         });
@@ -2991,6 +3017,16 @@
       autoFixErrorsCheckbox.addEventListener("change", () => {
         sendSettingsUpdate({ autoFixErrors: autoFixErrorsCheckbox.checked });
       });
+
+      autoGenerateCommitCheckbox.addEventListener("change", () => {
+        autoGenerateCommit = autoGenerateCommitCheckbox.checked;
+        sendSettingsUpdate({ autoGenerateCommit });
+      });
+
+      useConventionalCommitsCheckbox.addEventListener("change", () => {
+        useConventionalCommits = useConventionalCommitsCheckbox.checked;
+        sendSettingsUpdate({ useConventionalCommits });
+      });
       isPrivacyMaskingEnabledCheckbox.addEventListener("change", () => {
         isPrivacyMaskingEnabled = isPrivacyMaskingEnabledCheckbox.checked;
         sendSettingsUpdate({
@@ -3213,6 +3249,12 @@
             autoRemoveCommentsCheckbox.checked = autoRemoveComments;
             autoFormatCheckbox.checked = autoFormat;
             autoFixErrorsCheckbox.checked = autoFixErrors;
+
+            autoGenerateCommit = settings.autoGenerateCommit ?? false;
+            autoGenerateCommitCheckbox.checked = autoGenerateCommit;
+
+            useConventionalCommits = settings.useConventionalCommits ?? false;
+            useConventionalCommitsCheckbox.checked = useConventionalCommits;
             isPrivacyMaskingEnabledCheckbox.checked = isPrivacyMaskingEnabled;
 
             renderSystemPromptsList();

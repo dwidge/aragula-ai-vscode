@@ -22,6 +22,7 @@ type Diff = {
 
 export interface Repository {
   rootUri: vscode.Uri;
+  inputBox: { value: string };
   state: { workingTreeChanges: Diff[] };
   diff(path?: string, other?: string): Promise<string>;
   diffWithHEAD(path?: string): Promise<string>;
