@@ -3031,8 +3031,16 @@
       });
 
       autoGenerateCommitCheckbox.addEventListener("change", () => {
-        autoGenerateCommit = autoGenerateCommitCheckbox.checked;
-        sendSettingsUpdate({ autoGenerateCommit });
+        const isChecked = autoGenerateCommitCheckbox.checked;
+        autoGenerateCommit = isChecked;
+        useConventionalCommitsCheckbox.disabled = !isChecked;
+        const settingsToUpdate = { autoGenerateCommit: isChecked };
+        if (!isChecked) {
+          useConventionalCommitsCheckbox.checked = false;
+          useConventionalCommits = false;
+          settingsToUpdate.useConventionalCommits = false;
+        }
+        sendSettingsUpdate(settingsToUpdate);
       });
 
       useConventionalCommitsCheckbox.addEventListener("change", () => {
@@ -3264,6 +3272,7 @@
 
             autoGenerateCommit = settings.autoGenerateCommit ?? false;
             autoGenerateCommitCheckbox.checked = autoGenerateCommit;
+            useConventionalCommitsCheckbox.disabled = !autoGenerateCommit;
 
             useConventionalCommits = settings.useConventionalCommits ?? false;
             useConventionalCommitsCheckbox.checked = useConventionalCommits;

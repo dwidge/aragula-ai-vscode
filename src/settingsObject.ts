@@ -24,6 +24,8 @@ export interface SettingsObject {
   autoRemoveComments: boolean;
   autoFormat: boolean;
   autoFixErrors: boolean;
+  autoGenerateCommit: boolean;
+  useConventionalCommits: boolean;
   privacySettings?: PrivacyPair[];
 }
 
@@ -46,6 +48,8 @@ const defaultSettings: SettingsObject = {
   autoRemoveComments: true,
   autoFormat: true,
   autoFixErrors: true,
+  autoGenerateCommit: false,
+  useConventionalCommits: false,
   privacySettings: [],
 };
 
