@@ -991,6 +991,9 @@
             Test Form Task
           </button>
           <!-- New Test Form Task Button -->
+          <button id="testSetCommitMessageButton" onclick="handleTestSetCommitMessage()">
+            Test Set Commit Message
+          </button>
           <button
             id="privacySettingsButton"
             onclick="togglePrivacySettingsPopup()"
@@ -1263,6 +1266,9 @@
         "testSerialTaskButton"
       );
       const testFormTaskButton = document.getElementById("testFormTaskButton");
+      const testSetCommitMessageButton = document.getElementById(
+        "testSetCommitMessageButton"
+      );
       const privacySettingsPopupEl = document.getElementById("privacy-popup");
       const privacySettingsPopupListEl =
         document.getElementById("privacy-popup-list");
@@ -2370,6 +2376,12 @@
        */
       function handleTestFormTask() {
         vscode.postMessage({ command: "runTestFormTask" });
+      }
+
+      function handleTestSetCommitMessage() {
+        vscode.postMessage({
+          command: "runTestSetCommitMessage",
+        });
       }
 
       function renderSystemPromptsList() {

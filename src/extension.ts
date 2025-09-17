@@ -16,6 +16,7 @@ import { newPostMessage, PostMessage } from "./PostMessage";
 import { runTestFormTask } from "./runTestFormTask";
 import { runTestMultiTask } from "./runTestMultiTask";
 import { runTestSerialTask } from "./runTestSerialTask";
+import { runTestSetCommitMessage } from "./runTestSetCommitMessage";
 import { runTestTask } from "./runTestTask";
 import {
   GetterSetter,
@@ -485,6 +486,9 @@ async function handleWebviewMessage(
       break;
     case "runTestFormTask":
       runTestFormTask(logTask);
+      break;
+    case "runTestSetCommitMessage":
+      runTestSetCommitMessage(logTask);
       break;
     default:
       console.warn("Unknown command from webview:", message.command);
