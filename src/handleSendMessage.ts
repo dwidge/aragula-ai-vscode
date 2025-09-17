@@ -12,6 +12,7 @@ import { executeToolCalls, ToolCallResult } from "./executeToolCalls";
 import { getCommitMessageInstruction } from "./generateCommitMessageInstruction";
 import { handleFormatFilesInFiles } from "./handleFormatFilesInFiles";
 import { handleRemoveCommentsInFiles } from "./handleRemoveCommentsInFiles";
+import { parseCommitMessages } from "./parseCommitMessages";
 import { PostMessage } from "./PostMessage";
 import { readFiles } from "./readFiles";
 import {
@@ -320,20 +321,6 @@ export async function cleanupFiles(
   }
 
   return fileNames;
-}
-
-function parseCommitMessages(
-  responseText: string
-): { repoPath: string; message: string }[] {
-  const commitMessages: { repoPath: string; message: string }[] = [];
-  const commitRegex = /```commit\n\/\/ (.*)\n([\s\S]*?)\n```/g;
-  let match;
-  while ((match = commitRegex.exec(responseText)) !== null) {
-    const repoPath = match[1].trim();
-    const message = match[2].trim();
-    commitMessages.push({ repoPath, message });
-  }
-  return commitMessages;
 }
 
 export const getModifiedFileNames = (toolCallResults: ToolCallResult[]) =>
