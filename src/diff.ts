@@ -127,8 +127,16 @@ export async function getCommitMessages(
     const { stdout, stderr } = await execAsync(
       `git log --pretty=format:"%h %s" -n ${limit}`,
       options
-    );
+    ).catch((e) => {
+      if (`${e}`.includes("does not have any commits yet")) {
+        return { stderr: "No commits", stdout: "" };
+      }
+      throw e;
+    });
 
+    if (stderr === "No commits") {
+      return [];
+    }
     if (stderr) {
       throw new Error(`Error running git log: ${stderr}`);
     }
