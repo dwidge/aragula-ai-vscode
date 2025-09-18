@@ -29,7 +29,7 @@ export async function getCommitMessageInstruction({
 
   if (matchingRoots.length > 1) {
     instruction.push(
-      "For each repo you modify, you must give a separate commit message block. Inside each commit block, the first line must be a comment containing the relative path to the repo root."
+      "For each repo you modify, you must give a separate commit message block. You can only give one commit message block per repo. Inside each commit block, the first line must be a comment containing the relative path to the repo root."
     );
     instruction.push("The available repository root paths are:");
     instruction.push(...Array.from(matchingRoots).map((p) => `- ${p}`));
@@ -55,6 +55,23 @@ export async function getCommitMessageInstruction({
     instruction.push(
       "You must use the Conventional Commits specification for the commit message."
     );
+    instruction.push(
+      "The optional scope can be a noun describing the area of the code affected (e.g., 'api', 'cli', 'ui') or a sub package name in monorepos, and a specific component or function name (if this commit is limited to that specific item), and these can be combined with a forward slash."
+    );
+    instruction.push("Example: feat(api/MyComponent): Improve performance");
+    instruction.push(
+      "Always capitalize the first letter of the subject, and do not end it with a full stop."
+    );
+    instruction.push("Example: feat(api): Add a new endpoint to the API");
+    instruction.push("Not: feat(api): add a new endpoint to the API.");
+    instruction.push(
+      "If the item name is already in the scope, do not repeat it unnecessarily in the subject."
+    );
+    instruction.push("Example: feat(MyComponent): Improve performance");
+    instruction.push(
+      "Not: feat(MyComponent): Improve performance of MyComponent"
+    );
+    instruction.push("The body should include a summary list of changes made.");
   } else {
     const repo = Array.from(matchingRoots)[0];
     const previousMessages = await getCommitMessages(vscode.Uri.file(repo));
