@@ -33,8 +33,7 @@ export const callOpenAiTools =
     ]
       .filter(Boolean)
       .join("\n\n")
-  ): Promise<string> => (
-    console.log("callOpenAi1", jsonTools?.length),
+  ): Promise<string> =>
     jsonTools?.length
       ? (await openai.beta.chat.completions
           .runTools({
@@ -52,10 +51,7 @@ export const callOpenAiTools =
                   ...t,
                   name: t.name,
                   strict: true,
-                  function: (args: any) => (
-                    console.log("CallingFunction1", t.name, args),
-                    t.function(c, args)
-                  ),
+                  function: (args: any) => t.function(c, args),
                   parse: JSON.parse,
                 },
               })
@@ -73,8 +69,7 @@ export const callOpenAiTools =
                 ]
               : [{ content: user, role: "user" }],
           })
-        ).choices[0]?.message?.content?.trim() ?? ""
-  );
+        ).choices[0]?.message?.content?.trim() ?? "";
 
 const createToolSystemPrompt = (tool: ToolDef): string => `
 <${tool.name}>

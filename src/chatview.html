@@ -991,7 +991,10 @@
             Test Form Task
           </button>
           <!-- New Test Form Task Button -->
-          <button id="testSetCommitMessageButton" onclick="handleTestSetCommitMessage()">
+          <button
+            id="testSetCommitMessageButton"
+            onclick="handleTestSetCommitMessage()"
+          >
             Test Set Commit Message
           </button>
           <button
@@ -3056,7 +3059,6 @@
 
       window.addEventListener("message", (event) => {
         const message = event.data;
-        console.log("message1", message);
 
         if (message.command === "log") {
           const { id, parentId, message: taskLog } = message;

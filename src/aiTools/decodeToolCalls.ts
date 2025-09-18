@@ -1,6 +1,6 @@
+import { extractFilesFromAIResponse } from "@dwidge/llm-file-diff";
 import { parseXmlSchema } from "@dwidge/xml-parser";
 import { ToolCall, ToolDefinition } from "./AiApi.js";
-import { extractFilesFromAIResponse } from "@dwidge/llm-file-diff";
 
 /**
  * Decodes tool calls from a response string, auto-detecting format (XML or JSON).
@@ -58,7 +58,6 @@ export function decodeXmlToolCalls(
       properties: { [tool.name]: tool.parameters },
     } as const;
     const parsedToolCalls = parseXmlSchema(response, schema);
-    console.log("parsedToolCalls1", schema, parsedToolCalls);
 
     if (Array.isArray(parsedToolCalls) && parsedToolCalls.length > 0) {
       parsedToolCalls.forEach((parsedToolCall) => {

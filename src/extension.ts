@@ -91,8 +91,6 @@ const getTextAsset = async (extensionPath: string, assetFileName: string) => {
 };
 
 export function activate(context: vscode.ExtensionContext) {
-  console.log('Extension "aragula-ai" active');
-
   const globalSettings: GetterSetter = newVsCodeState(
     context.globalState,
     SETTINGS_STORAGE_KEY
@@ -319,16 +317,13 @@ async function sendSettingsToWebview(
   availableVendors: string[],
   availableTools: string[]
 ) {
-  const message = {
+  postMessage({
     command: "settingsUpdated",
     settings,
     currentProviderSetting,
     availableVendors,
     availableTools,
-  };
-  console.log("sendSettingsToWebview1", message);
-
-  postMessage(message);
+  });
 }
 
 async function handleWebviewMessage(
@@ -358,8 +353,6 @@ async function handleWebviewMessage(
   );
 
   const log: Logger = createMessageLogger(logTask);
-
-  console.log("handleWebviewMessage1", tabId, message);
 
   switch (message.command) {
     case "cancelTask":
@@ -438,7 +431,6 @@ async function handleWebviewMessage(
       break;
     case "updateSettings":
       {
-        console.log("updateSettings1", message.settings);
         const updatedSettings = await setSettings((prev) => ({
           ...prev,
           ...message.settings,
