@@ -13,8 +13,9 @@ export async function getCommitMessageInstruction({
 }): Promise<string> {
   const allRepoRoots = await getRepoRoots();
   const relativeRepoRoots = allRepoRoots.map(toRelativePath);
+  const relativeFilePaths = filePaths.map(toRelativePath);
   const matchingRoots = relativeRepoRoots.filter(
-    isDirContainingSomeFile(filePaths)
+    isDirContainingSomeFile(relativeFilePaths)
   );
 
   if (matchingRoots.length === 0) {
@@ -28,17 +29,13 @@ export async function getCommitMessageInstruction({
 
   if (matchingRoots.length > 1) {
     instruction.push(
-      "Inside the commit block, the first line must be a comment containing the relative path to the repository root from the workspace root."
+      "For each repo you modify, you must give a separate commit message block. Inside each commit block, the first line must be a comment containing the relative path to the repo root."
     );
-    instruction.push("The relevant repository paths are:");
-    instruction.push(
-      ...Array.from(matchingRoots).map(
-        (repo) => `- ${toRelativePath(repo) || "."}`
-      )
-    );
+    instruction.push("The available repository root paths are:");
+    instruction.push(...Array.from(matchingRoots).map((p) => `- ${p}`));
     instruction.push("Example:");
     instruction.push("```commit");
-    instruction.push("// packages/my-lib");
+    instruction.push("// ./packages/my-lib");
     instruction.push("feat: Add a new feature");
     instruction.push("");
     instruction.push("- Add a new feature to the project.");
