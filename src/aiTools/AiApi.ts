@@ -68,7 +68,11 @@ export interface AiApiCaller {
       tools?: ToolCall[];
     },
     tools?: ToolDefinition[],
-    options?: { logger?: Logger; signal?: AbortSignal }
+    options?: {
+      logger?: Logger;
+      signal?: AbortSignal;
+      onChunk?: (chunk: { text?: string }) => void;
+    }
   ): Promise<{ assistant: string; tools: ToolCall[] }>;
 }
 
@@ -277,9 +281,13 @@ const callOpenAi = async (
   },
   prompt: { user: string; system?: string; tools?: ToolCall[] },
   tools?: ToolDefinition[],
-  options?: { signal?: AbortSignal; logger?: Logger }
+  options?: {
+    signal?: AbortSignal;
+    logger?: Logger;
+    onChunk?: (chunk: { text?: string }) => void;
+  }
 ): Promise<{ assistant: string; tools: ToolCall[] }> => {
-  const { signal, logger = () => {} } = options || {};
+  const { signal, logger = () => {}, onChunk } = options || {};
 
   if (signal?.aborted) {
     throw new Error("AbortError: Request aborted by user.");
@@ -289,41 +297,122 @@ const callOpenAi = async (
   const promptMessages = buildPromptMessagesOpenAi(prompt);
   const tooldefMessages = buildToolDefMessagesOpenAi(tools);
 
-  const openaiPrompt: OpenAI.Chat.Completions.ChatCompletionCreateParamsNonStreaming =
-    {
-      model: apiSettings.model,
-      max_tokens: apiSettings.max_tokens,
-      temperature: apiSettings.temperature,
-      messages: [...toolcallMessages, ...promptMessages, ...tooldefMessages],
-      tools: tools
-        ?.filter((t) => t.type === "native")
-        ?.map(convertToOpenAiTool),
-      tool_choice: "auto",
-    };
+  const messages = [...toolcallMessages, ...promptMessages, ...tooldefMessages];
+  const nativeTools = tools
+    ?.filter((t) => t.type === "native")
+    ?.map(convertToOpenAiTool);
 
-  logger(
-    "Calling OpenAi " +
-      apiSettings.model +
-      "\n\n" +
-      JSON.stringify(openaiPrompt, null, 2),
-    "prompt"
-  );
+  if (onChunk) {
+    const openaiPrompt: OpenAI.Chat.Completions.ChatCompletionCreateParamsStreaming =
+      {
+        model: apiSettings.model,
+        max_tokens: apiSettings.max_tokens,
+        temperature: apiSettings.temperature,
+        messages,
+        tools: nativeTools,
+        tool_choice: "auto",
+        stream: true,
+      };
 
-  const response = await openaiInstance.chat.completions.create(openaiPrompt, {
-    signal,
-  });
+    logger(
+      "Calling OpenAi " +
+        apiSettings.model +
+        " (streaming)\n\n" +
+        JSON.stringify(openaiPrompt, null, 2),
+      "prompt"
+    );
 
-  const responseMessage = response.choices[0]?.message;
-  const messageContent = responseMessage?.content?.trim() ?? "";
-  const toolCalls = [
-    ...(responseMessage?.tool_calls?.map(convertFromOpenAiToolCall) ?? []),
-    ...decodeToolCalls(messageContent, tools ?? []),
-  ];
+    const response = await openaiInstance.chat.completions.create(
+      openaiPrompt,
+      {
+        signal,
+      }
+    );
 
-  logger("messageContent\n\n" + messageContent, "prompt");
-  logger("toolCalls\n\n" + JSON.stringify(toolCalls, null, 2), "prompt");
+    let assistant = "";
+    const toolCallChunks: {
+      [key: number]: OpenAI.Chat.Completions.ChatCompletionMessageToolCall;
+    } = {};
 
-  return { assistant: messageContent, tools: toolCalls };
+    for await (const chunk of response) {
+      const delta = chunk.choices[0]?.delta;
+      if (delta?.content) {
+        assistant += delta.content;
+        onChunk({ text: delta.content });
+      }
+      if (delta?.tool_calls) {
+        for (const toolCallChunk of delta.tool_calls) {
+          const index = toolCallChunk.index;
+          if (toolCallChunks[index]) {
+            if (toolCallChunk.function?.arguments) {
+              toolCallChunks[index].function.arguments +=
+                toolCallChunk.function.arguments;
+            }
+          } else {
+            if (toolCallChunk.id && toolCallChunk.function?.name) {
+              toolCallChunks[index] = {
+                id: toolCallChunk.id,
+                function: {
+                  name: toolCallChunk.function.name,
+                  arguments: toolCallChunk.function.arguments || "",
+                },
+                type: "function",
+              };
+            }
+          }
+        }
+      }
+    }
+
+    const messageContent = assistant.trim();
+    const finalToolCalls = Object.values(toolCallChunks);
+    const toolCalls: ToolCall[] = [
+      ...(finalToolCalls.map(convertFromOpenAiToolCall) ?? []),
+      ...decodeToolCalls(messageContent, tools ?? []),
+    ];
+
+    logger("messageContent\n\n" + messageContent, "prompt");
+    logger("toolCalls\n\n" + JSON.stringify(toolCalls, null, 2), "prompt");
+
+    return { assistant: messageContent, tools: toolCalls };
+  } else {
+    const openaiPrompt: OpenAI.Chat.Completions.ChatCompletionCreateParamsNonStreaming =
+      {
+        model: apiSettings.model,
+        max_tokens: apiSettings.max_tokens,
+        temperature: apiSettings.temperature,
+        messages,
+        tools: nativeTools,
+        tool_choice: "auto",
+      };
+
+    logger(
+      "Calling OpenAi " +
+        apiSettings.model +
+        "\n\n" +
+        JSON.stringify(openaiPrompt, null, 2),
+      "prompt"
+    );
+
+    const response = await openaiInstance.chat.completions.create(
+      openaiPrompt,
+      {
+        signal,
+      }
+    );
+
+    const responseMessage = response.choices[0]?.message;
+    const messageContent = responseMessage?.content?.trim() ?? "";
+    const toolCalls = [
+      ...(responseMessage?.tool_calls?.map(convertFromOpenAiToolCall) ?? []),
+      ...decodeToolCalls(messageContent, tools ?? []),
+    ];
+
+    logger("messageContent\n\n" + messageContent, "prompt");
+    logger("toolCalls\n\n" + JSON.stringify(toolCalls, null, 2), "prompt");
+
+    return { assistant: messageContent, tools: toolCalls };
+  }
 };
 
 function convertToOpenAiTool(

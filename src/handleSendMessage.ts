@@ -23,7 +23,7 @@ import {
 } from "./replaceToolCallContent";
 import { setCommitMessage } from "./setCommitMessage";
 import { PrivacyPair } from "./settingsObject";
-import { Logger } from "./utils/Logger";
+import { createMessageLogger, Logger, TaskLogger } from "./utils/Logger";
 
 interface ActiveRequest {
   abortController: AbortController;
@@ -59,9 +59,10 @@ export async function handleSendMessage(
     privacySettings?: PrivacyPair[];
   },
   tabId: string,
-  log: Logger,
+  taskLogger: TaskLogger,
   signal?: AbortSignal
 ) {
+  const log = createMessageLogger(taskLogger);
   const providerSetting = message.providerSetting;
   const messageId = message.messageId;
 
@@ -74,13 +75,28 @@ export async function handleSendMessage(
   }
 
   try {
-    const response = await performAiRequest(message, log, signal);
+    let response: { assistant: string; tools: ToolCall[] };
+
+    await taskLogger(
+      { summary: "Receiving AI response...", type: "stream" },
+      async (setLog) => {
+        let streamedText = "";
+        const onChunk = (chunk: { text?: string }) => {
+          if (chunk.text) {
+            streamedText += chunk.text;
+            setLog({ detail: streamedText });
+          }
+        };
+
+        response = await performAiRequest(message, log, signal, onChunk);
+      }
+    );
 
     if (providerSetting.vendor !== "manual") {
       postMessage({
         command: "updateMessage",
         messageId,
-        text: response.assistant,
+        text: response!.assistant,
         sender: "assistant",
         messageType: "assistant",
       });
@@ -91,7 +107,7 @@ export async function handleSendMessage(
       message.toolNames
     );
     const toolCallResults = await executeToolCalls(
-      response.tools,
+      response!.tools,
       enabledToolDefinitions,
       log
     );
@@ -110,7 +126,7 @@ export async function handleSendMessage(
     }
 
     if (message.autoGenerateCommit) {
-      const commitMessages = parseCommitMessages(response.assistant);
+      const commitMessages = parseCommitMessages(response!.assistant);
       for (const { repoPath, message: commitMessage } of commitMessages) {
         await setCommitMessage(repoPath, commitMessage);
       }
@@ -120,13 +136,13 @@ export async function handleSendMessage(
       postMessage({
         command: "updateMessage",
         messageId,
-        text: response.assistant,
+        text: response!.assistant,
         sender: "assistant",
         messageType: "assistant",
       });
     }
 
-    context.workspaceState.update(`responseText-${tabId}`, response);
+    context.workspaceState.update(`responseText-${tabId}`, response!);
   } catch (error: any) {
     if (error.name === "AbortError") {
       log("Request was aborted by user.", "info");
@@ -172,7 +188,8 @@ export async function performAiRequest(
     privacySettings?: PrivacyPair[];
   },
   log: Logger,
-  signal?: AbortSignal
+  signal?: AbortSignal,
+  onChunk?: (chunk: { text?: string }) => void
 ): Promise<{ assistant: string; tools: ToolCall[] }> {
   log("enabledToolNames\n\n" + message.toolNames, "info");
   const rawFilesContent: ToolCall[] = await readFiles(message.fileNames);
@@ -201,7 +218,7 @@ export async function performAiRequest(
       tools: filesContent,
     },
     enabledToolDefinitions,
-    { logger: log, signal }
+    { logger: log, signal, onChunk }
   );
 
   const responseTools = response.tools.map(
@@ -267,7 +284,8 @@ export async function callAI(
       privacySettings,
     },
     log,
-    new AbortController().signal
+    new AbortController().signal,
+    undefined
   );
 
   const enabledToolDefinitions = filterToolsByName(

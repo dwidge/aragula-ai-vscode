@@ -386,7 +386,7 @@ async function handleWebviewMessage(
             privacySettings: settings.privacySettings,
           },
           tabId,
-          log
+          logTask
         );
       } catch (e) {
         console.error("handleSendMessage error:", e);
