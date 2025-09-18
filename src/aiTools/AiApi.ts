@@ -538,17 +538,23 @@ const callGemini = async (
   },
   prompt: { user: string; system?: string; tools?: ToolCall[] },
   tools?: ToolDefinition[],
-  options?: { signal?: AbortSignal; logger?: Logger }
+  options?: {
+    signal?: AbortSignal;
+    logger?: Logger;
+    onChunk?: (chunk: { text?: string }) => void;
+  }
 ): Promise<{ assistant: string; tools: ToolCall[] }> => {
-  const { signal, logger = () => {} } = options || {};
+  const { signal, logger = () => {}, onChunk } = options || {};
 
   if (signal?.aborted) {
     throw new Error("AbortError: Request aborted by user.");
   }
 
   const toolcallMessages = buildToolCallMessagesGemini(prompt);
-
-  const promptMessages = buildPromptMessagesGemini({ user: prompt.user });
+  const promptMessages = buildPromptMessagesGemini({
+    user: prompt.user,
+    system: prompt.system,
+  });
   const tooldefMessages = buildToolDefMessagesGemini(tools);
   const toolsNative = tools
     ?.filter((t) => t.type === "native")
@@ -558,7 +564,6 @@ const callGemini = async (
     model: apiSettings.model,
     contents: [...toolcallMessages, ...promptMessages, ...tooldefMessages],
     config: {
-      systemInstruction: prompt.system,
       maxOutputTokens: apiSettings.max_tokens,
       temperature: apiSettings.temperature,
       tools: toolsNative?.length
@@ -579,34 +584,62 @@ const callGemini = async (
     "prompt"
   );
 
-  const response = await genAI.models.generateContent(geminiPrompt);
+  if (onChunk) {
+    const responseStream = await genAI.models.generateContentStream(
+      geminiPrompt
+    );
 
-  logger(JSON.stringify(response, null, 2), "prompt");
-  logger(
-    "functionCalls\n" + JSON.stringify(response.functionCalls, null, 2),
-    "prompt"
-  );
+    let assistant = "";
+    let functionCalls: FunctionCall[] = [];
 
-  let messageContent = "";
-  let geminiToolCalls: FunctionCall[] = [];
-
-  if (response.candidates && response.candidates[0]?.content) {
-    for (const part of response.candidates[0].content.parts || []) {
-      if ("text" in part) {
-        messageContent += part.text;
-      } else if ("functionCall" in part) {
-        geminiToolCalls.push(part.functionCall!);
+    for await (const response of responseStream) {
+      const text = response.text;
+      if (text) {
+        assistant += text;
+        onChunk({ text });
+      }
+      const fcs = response.functionCalls;
+      if (fcs) {
+        functionCalls.push(...fcs);
       }
     }
+
+    const messageContent = assistant.trim();
+    const toolCalls: ToolCall[] = [
+      ...convertFromGeminiToolCalls(functionCalls),
+      ...decodeToolCalls(messageContent, tools ?? []),
+    ];
+
+    logger("messageContent\n\n" + messageContent, "prompt");
+    logger("toolCalls\n\n" + JSON.stringify(toolCalls, null, 2), "prompt");
+
+    return { assistant: messageContent, tools: toolCalls };
+  } else {
+    const response = await genAI.models.generateContent(geminiPrompt);
+
+    logger(JSON.stringify(response, null, 2), "prompt");
+
+    let messageContent = "";
+    let geminiToolCalls: FunctionCall[] = [];
+
+    if (response.candidates && response.candidates[0]?.content) {
+      for (const part of response.candidates[0].content.parts || []) {
+        if ("text" in part) {
+          messageContent += part.text;
+        } else if ("functionCall" in part) {
+          geminiToolCalls.push(part.functionCall!);
+        }
+      }
+    }
+    messageContent = messageContent.trim();
+
+    const toolCalls: ToolCall[] = [
+      ...convertFromGeminiToolCalls(geminiToolCalls),
+      ...decodeToolCalls(messageContent, tools ?? []),
+    ];
+
+    return { assistant: messageContent, tools: toolCalls };
   }
-  messageContent = messageContent.trim();
-
-  const toolCalls: ToolCall[] = [
-    ...convertFromGeminiToolCalls(geminiToolCalls),
-    ...decodeToolCalls(messageContent, tools ?? []),
-  ];
-
-  return { assistant: messageContent, tools: toolCalls };
 };
 
 function convertToGeminiTool(tool: ToolDefinition): FunctionDeclaration {
