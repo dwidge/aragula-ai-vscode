@@ -84,6 +84,7 @@ export interface AiApiSettings {
   apiKey: string;
   baseURL?: string;
   model: string;
+  provider?: string;
   max_tokens?: number;
   temperature?: number;
   vendor:
@@ -146,12 +147,13 @@ export function validateJsonAgainstSchema(
 interface OpenAiSpecificSettings extends AiApiSettings {}
 
 export function newOpenAiApi(settings: OpenAiSpecificSettings): AiApiCaller {
-  const { apiKey, baseURL, model, max_tokens, temperature } = settings;
+  const { apiKey, baseURL, model, max_tokens, temperature, provider } =
+    settings;
 
   return async (prompt, tools, options) =>
     callOpenAi(
       new OpenAI({ apiKey, baseURL }),
-      { model, max_tokens, temperature },
+      { model, max_tokens, temperature, provider },
       prompt,
       tools,
       options
@@ -278,6 +280,7 @@ const callOpenAi = async (
     model: string;
     max_tokens?: number;
     temperature?: number;
+    provider?: string;
   },
   prompt: { user: string; system?: string; tools?: ToolCall[] },
   tools?: ToolDefinition[],
@@ -312,6 +315,9 @@ const callOpenAi = async (
         tools: nativeTools,
         tool_choice: "auto",
         stream: true,
+        ...(apiSettings.provider && {
+          query: { provider: apiSettings.provider },
+        }),
       };
 
     logger(
@@ -384,6 +390,9 @@ const callOpenAi = async (
         messages,
         tools: nativeTools,
         tool_choice: "auto",
+        ...(apiSettings.provider && {
+          query: { provider: apiSettings.provider },
+        }),
       };
 
     logger(

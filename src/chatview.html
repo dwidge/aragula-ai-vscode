@@ -837,6 +837,15 @@
           />
           <div class="error-message-inline" id="provider-model-error"></div>
 
+          <label for="provider-provider">Provider (optional):</label>
+          <input
+            type="text"
+            id="provider-provider"
+            class="form-input"
+            placeholder="Provider (e.g., cerebras, samba)"
+          />
+          <div class="error-message-inline" id="provider-provider-error"></div>
+
           <label for="provider-maxTokens">Max Tokens (optional):</label>
           <input
             type="number"
@@ -1242,6 +1251,11 @@
       const providerTemperatureError = document.getElementById(
         "provider-temperature-error"
       );
+      const providerProviderInput =
+        document.getElementById("provider-provider");
+      const providerProviderError = document.getElementById(
+        "provider-provider-error"
+      );
       const removeCommentsButton = document.getElementById(
         "removeCommentsButton"
       );
@@ -1298,6 +1312,7 @@
        * @property {string} apiKey
        * @property {string} [baseURL]
        * @property {string} model
+       * @property {string} [provider]
        * @property {number} [max_tokens]
        * @property {number} [temperature]
        */
@@ -2642,13 +2657,10 @@
           providerBaseURLInput.value = providerSetting.baseURL || "";
           providerModelInput.value = providerSetting.model;
           providerMaxTokensInput.value =
-            providerSetting.max_tokens !== undefined
-              ? String(providerSetting.max_tokens)
-              : "";
+            providerSetting.max_tokens?.toString() || "";
           providerTemperatureInput.value =
-            providerSetting.temperature !== undefined
-              ? String(providerSetting.temperature)
-              : "";
+            providerSetting.temperature?.toString() || "";
+          providerProviderInput.value = providerSetting.provider || "";
           clearProviderFormErrors();
         }
       }
@@ -2684,6 +2696,7 @@
         providerModelInput.value = "";
         providerMaxTokensInput.value = "";
         providerTemperatureInput.value = "";
+        providerProviderInput.value = "";
         clearProviderFormErrors();
       }
 
@@ -2708,6 +2721,7 @@
           temperature: providerTemperatureInput.value.trim()
             ? parseFloat(providerTemperatureInput.value.trim())
             : undefined,
+          provider: providerProviderInput.value.trim(),
         };
 
         clearProviderFormErrors();
