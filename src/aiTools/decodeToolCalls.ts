@@ -1,4 +1,7 @@
-import { extractFilesFromAIResponse } from "@dwidge/llm-file-diff";
+import {
+  defaultFileTypeMap,
+  extractFilesFromAIResponse,
+} from "@dwidge/llm-file-diff";
 import { parseXmlSchema } from "@dwidge/xml-parser";
 import { ToolCall, ToolDefinition } from "./AiApi.js";
 
@@ -89,7 +92,11 @@ export function decodeBacktickToolCalls(
 ): ToolCall[] {
   const toolCalls: ToolCall[] = [];
 
-  const extractedFiles = extractFilesFromAIResponse(response, {});
+  const extractedFiles = extractFilesFromAIResponse(
+    response,
+    {},
+    { ...defaultFileTypeMap, commit: null }
+  );
 
   const name = tools[0]?.name;
   if (!name) {

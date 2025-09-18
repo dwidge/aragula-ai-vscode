@@ -15,8 +15,8 @@ importers:
         specifier: ^1.26.0
         version: 1.26.0
       '@dwidge/llm-file-diff':
-        specifier: ^0.0.7
-        version: 0.0.7
+        specifier: ^0.0.9
+        version: 0.0.9
       '@dwidge/xml-parser':
         specifier: ^0.0.3
         version: 0.0.3
@@ -138,8 +138,8 @@ packages:
   '@cerebras/cerebras_cloud_sdk@1.26.0':
     resolution: {integrity: sha512-etzQDJZMaFTtrDtcnYofSIaXuywF1lKi2Ut0u7z6Z2Z9DihUZC6OvXjzHqWa3nZbWbPoxg9GELYIp7sJZ1DPvA==}
 
-  '@dwidge/llm-file-diff@0.0.7':
-    resolution: {integrity: sha512-JuJcKUnZY2cLzm0qoMNSnaWzKvpHn6xCwcJBZngbPfdQuVvyHdfqiGU9Xievk4SFmS66qnLLTDb3tCRSQMOZqg==}
+  '@dwidge/llm-file-diff@0.0.9':
+    resolution: {integrity: sha512-EEv6VSdGN6VKkxJ7dsuFzkcw4NFu9SgG9+YZ2lZyTdNX32SRiIqIXey9ZByOcedqMZqrIN3GxaUVE9cFYLXlRg==}
 
   '@dwidge/xml-parser@0.0.3':
     resolution: {integrity: sha512-p6mvVRlcQu7iArp1e1hagj0363COtz20+B3zhkX77jOZ589hVkCBvVFWe63+sxoc9iizYJTyYQMD1huc6sZmnQ==}
@@ -2344,7 +2344,7 @@ snapshots:
     transitivePeerDependencies:
       - encoding
 
-  '@dwidge/llm-file-diff@0.0.7':
+  '@dwidge/llm-file-diff@0.0.9':
     dependencies:
       zod: 3.23.8
 
