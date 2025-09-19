@@ -916,6 +916,7 @@
             class="form-input"
             placeholder="Enter command to run..."
           />
+          <select id="shellSelector" class="form-input"></select>
           <button id="runCommandButton" onclick="handleRunCommand()">
             <span id="runCommandButtonText">Run</span>
             <span
@@ -1088,6 +1089,8 @@
       let userPrompts = [];
       /** @type {string[]} */
       let availableTools = [];
+      /** @type {{ name: string, path: string }[]} */
+      let availableShells = [];
       /** @type {string[]} */
       let enabledTools = [];
       /** @type {Array<AiProviderSettings>} */
@@ -1111,6 +1114,8 @@
       let currentUserPrompt = "";
       /** @type {string} */
       let currentRunCommand = "";
+      /** @type {string} */
+      let currentSelectedShell = "";
       /** @type {boolean} */
       let autoRemoveComments = true;
       /** @type {boolean} */
@@ -1181,6 +1186,7 @@
       const userInputEl = document.getElementById("userInput");
       const systemPromptEl = document.getElementById("systemPromptInput");
       const runCommandInputEl = document.getElementById("runCommandInput");
+      const shellSelectorEl = document.getElementById("shellSelector");
       const sendButton = document.getElementById("sendButton");
       const buttonText = document.getElementById("buttonText");
       const loader = document.getElementById("loader");
@@ -2296,9 +2302,12 @@
         runCommandButtonText.textContent = "";
         runCommandLoader.title = "Running...";
 
+        const shell = shellSelectorEl.value;
+
         vscode.postMessage({
           command: "runCommand",
           runCommand: command,
+          shell: shell,
         });
       }
 
@@ -2450,6 +2459,20 @@
           listItem.appendChild(deleteButton);
           userPromptsPopupListEl.appendChild(listItem);
         });
+      }
+
+      function renderAvailableShells() {
+        const selectedValue = shellSelectorEl.value;
+        shellSelectorEl.innerHTML = "";
+        availableShells.forEach((shell) => {
+          const option = document.createElement("option");
+          option.value = shell.path;
+          option.textContent = shell.name;
+          shellSelectorEl.appendChild(option);
+        });
+        if (availableShells.some((s) => s.path === selectedValue)) {
+          shellSelectorEl.value = selectedValue;
+        }
       }
 
       function renderToolPopupList() {
@@ -3035,6 +3058,10 @@
         updateRunCommand(e.target.value);
       });
 
+      shellSelectorEl.addEventListener("change", (e) => {
+        currentSelectedShell = e.target.value;
+      });
+
       autoRemoveCommentsCheckbox.addEventListener("change", () => {
         sendSettingsUpdate({
           autoRemoveComments: autoRemoveCommentsCheckbox.checked,
@@ -3287,6 +3314,7 @@
             currentProviderSetting = message.currentProviderSetting;
             availableVendors = message.availableVendors || [];
             availableTools = message.availableTools || [];
+            availableShells = message.availableShells || [];
 
             autoRemoveCommentsCheckbox.checked = autoRemoveComments;
             autoFormatCheckbox.checked = autoFormat;
@@ -3307,6 +3335,7 @@
             renderProviderSettingsPopupList();
             renderVendorDropdown();
             renderToolPopupList();
+            renderAvailableShells();
             renderPrivacySettings();
             renderSelectedFiles();
 

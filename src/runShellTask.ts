@@ -1,8 +1,12 @@
 import { spawn } from "child_process";
-import { getWorkspaceRoot } from "./getWorkspaceAbsolutePath";
+import * as vscode from "vscode";
 import { TaskLogger } from "./utils/Logger";
 
-export const handleRunCommand = (command: string, logTask: TaskLogger) =>
+export const runShellTask = (
+  command: string,
+  shell: string | undefined,
+  logTask: TaskLogger
+) =>
   logTask(
     {
       summary: `Running command: ${command}`,
@@ -10,7 +14,7 @@ export const handleRunCommand = (command: string, logTask: TaskLogger) =>
       progress: 0,
     },
     async (progress, log, signal) => {
-      const workspaceRoot = getWorkspaceRoot();
+      const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
 
       let output = "";
       let interval: NodeJS.Timeout | null = null;
@@ -18,8 +22,8 @@ export const handleRunCommand = (command: string, logTask: TaskLogger) =>
 
       return new Promise<string>((resolve, reject) => {
         const process = spawn(command, [], {
-          cwd: workspaceRoot.fsPath,
-          shell: true,
+          cwd: workspaceRoot,
+          shell: shell || true,
         });
 
         signal.onabort = () => {

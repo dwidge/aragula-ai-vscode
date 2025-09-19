@@ -9,11 +9,11 @@ import { getWorkspaceRoot } from "./getWorkspaceAbsolutePath";
 import { handleFormatFilesInFiles } from "./handleFormatFilesInFiles";
 import { handleRemoveCommentsInFiles } from "./handleRemoveCommentsInFiles";
 import { addFiles, openFilesDialog, removeFiles } from "./handleRemoveFile";
-import { handleRunCommand } from "./handleRunCommand";
 import { handleSendMessage } from "./handleSendMessage";
 import { handlePlanAndExecute } from "./planTool";
 import { newPostMessage, PostMessage } from "./PostMessage";
 import { processPath } from "./processPath";
+import { runShellTask } from "./runShellTask";
 import { runTestFormTask } from "./runTestFormTask";
 import { runTestMultiTask } from "./runTestMultiTask";
 import { runTestSerialTask } from "./runTestSerialTask";
@@ -27,6 +27,7 @@ import {
   useProviderByName,
   useSettingsObject,
 } from "./settingsObject";
+import { getAvailableShells, ShellProfile } from "./utils/getShells";
 import { commitStaged, stageFiles } from "./utils/git";
 import {
   ActiveTasks,
@@ -289,13 +290,15 @@ async function openChatWindow(
     settings,
     settings.providerName
   );
+  const availableShells = getAvailableShells();
 
   await sendSettingsToWebview(
     postMessage,
     settings,
     currentProviderSetting,
     availableVendors,
-    availableToolNames
+    availableToolNames,
+    availableShells
   );
 }
 
@@ -306,13 +309,15 @@ async function openChatWindow(
  * @param currentProviderSetting The currently selected provider settings.
  * @param availableVendors List of available AI vendors.
  * @param availableTools List of available AI tools.
+ * @param availableShells
  */
 async function sendSettingsToWebview(
   postMessage: PostMessage,
   settings: SettingsObject,
   currentProviderSetting: AiApiSettings | undefined,
   availableVendors: string[],
-  availableTools: string[]
+  availableTools: string[],
+  availableShells: ShellProfile[]
 ) {
   postMessage({
     command: "settingsUpdated",
@@ -320,6 +325,7 @@ async function sendSettingsToWebview(
     currentProviderSetting,
     availableVendors,
     availableTools,
+    availableShells,
   });
 }
 
@@ -393,7 +399,7 @@ async function handleWebviewMessage(
       }
       break;
     case "runCommand":
-      handleRunCommand(message.runCommand, logTask)
+      runShellTask(message.runCommand, message.shell, logTask)
         .catch((e) => console.log("runCommandE1", e))
         .finally(() => {
           postMessage({ command: "resetRunCommandButton" });
@@ -436,12 +442,14 @@ async function handleWebviewMessage(
           updatedSettings,
           updatedSettings.providerName
         );
+        const availableShells = getAvailableShells();
         await sendSettingsToWebview(
           postMessage,
           updatedSettings,
           currentProviderSetting,
           availableVendors,
-          availableToolNames
+          availableToolNames,
+          availableShells
         );
       }
       break;
