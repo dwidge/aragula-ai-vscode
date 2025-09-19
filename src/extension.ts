@@ -13,6 +13,7 @@ import { handleRunCommand } from "./handleRunCommand";
 import { handleSendMessage } from "./handleSendMessage";
 import { handlePlanAndExecute } from "./planTool";
 import { newPostMessage, PostMessage } from "./PostMessage";
+import { processPath } from "./processPath";
 import { runTestFormTask } from "./runTestFormTask";
 import { runTestMultiTask } from "./runTestMultiTask";
 import { runTestSerialTask } from "./runTestSerialTask";
@@ -216,15 +217,11 @@ async function readOpenFilePaths(uris: vscode.Uri[]): Promise<string[]> {
 
   for (const uri of uris) {
     if (uri.fsPath) {
-      try {
-        await fs.access(uri.fsPath, fs.constants.R_OK);
-        const relativePath = vscode.workspace.asRelativePath(uri);
-        openFilePaths.push(relativePath);
-      } catch (error) {
-        throw new Error(`Could not access file: ${uri.fsPath}: ${error}`);
-      }
+      const files = await processPath(uri.fsPath);
+      openFilePaths.push(...files);
     }
   }
+
   return openFilePaths;
 }
 
