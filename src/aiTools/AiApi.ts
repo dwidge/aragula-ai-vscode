@@ -300,7 +300,26 @@ const callOpenAi = async (
   const promptMessages = buildPromptMessagesOpenAi(prompt);
   const tooldefMessages = buildToolDefMessagesOpenAi(tools);
 
-  const messages = [...toolcallMessages, ...promptMessages, ...tooldefMessages];
+  const allNonToolCallMessages = [...promptMessages, ...tooldefMessages];
+  const systemMessages = allNonToolCallMessages.filter(
+    (msg) => msg.role === "system"
+  );
+  const otherMessages = allNonToolCallMessages.filter(
+    (msg) => msg.role !== "system"
+  );
+  const systemContents = systemMessages
+    .map((msg) => msg.content)
+    .filter(Boolean);
+
+  const messages: ChatCompletionMessageParam[] = [...toolcallMessages];
+  if (systemContents.length > 0) {
+    messages.push({
+      role: "system",
+      content: systemContents.join("\n\n"),
+    });
+  }
+  messages.push(...otherMessages);
+
   const nativeTools = tools
     ?.filter((t) => t.type === "native")
     ?.map(convertToOpenAiTool);
@@ -465,15 +484,36 @@ export function newGeminiApi(settings: GeminiSpecificSettings): AiApiCaller {
 /**
  * Helper function to build prompt messages (user and system) for Gemini.
  */
-function buildPromptMessagesGemini(prompt: {
-  user: string;
-  system?: string;
-}): PartUnion[] {
+function buildPromptMessagesGemini(
+  prompt: {
+    user: string;
+    system?: string;
+  },
+  tools?: ToolDefinition[]
+): PartUnion[] {
   const messages: PartUnion[] = [];
 
+  const systemParts: string[] = [];
   if (prompt.system) {
-    messages.push({ text: prompt.system });
+    systemParts.push(prompt.system);
   }
+
+  for (const tool of tools ?? []) {
+    if (tool.type === "xml") {
+      systemParts.push(encodeToolToXml(tool));
+    }
+    if (tool.type === "json") {
+      systemParts.push(encodeToolToJson(tool));
+    }
+    if (tool.type === "backtick") {
+      systemParts.push(encodeToolToBacktick(tool));
+    }
+  }
+
+  if (systemParts.length > 0) {
+    messages.push({ text: systemParts.join("\n\n") });
+  }
+
   if (prompt.user) {
     messages.push({ text: prompt.user });
   }
@@ -519,25 +559,6 @@ const buildToolCallMessagesGemini = (prompt: {
   return messages;
 };
 
-/**
- * Helper function to build tool def messages for Gemini.
- */
-const buildToolDefMessagesGemini = (tools?: ToolDefinition[]): PartUnion[] => {
-  const messages: PartUnion[] = [];
-  for (const tool of tools ?? []) {
-    if (tool.type === "xml") {
-      messages.push({ text: encodeToolToXml(tool) });
-    }
-    if (tool.type === "json") {
-      messages.push({ text: encodeToolToJson(tool) });
-    }
-    if (tool.type === "backtick") {
-      messages.push({ text: encodeToolToBacktick(tool) });
-    }
-  }
-  return messages;
-};
-
 const callGemini = async (
   genAI: GoogleGenAI,
   apiSettings: {
@@ -560,18 +581,20 @@ const callGemini = async (
   }
 
   const toolcallMessages = buildToolCallMessagesGemini(prompt);
-  const promptMessages = buildPromptMessagesGemini({
-    user: prompt.user,
-    system: prompt.system,
-  });
-  const tooldefMessages = buildToolDefMessagesGemini(tools);
+  const promptMessages = buildPromptMessagesGemini(
+    {
+      user: prompt.user,
+      system: prompt.system,
+    },
+    tools
+  );
   const toolsNative = tools
     ?.filter((t) => t.type === "native")
     ?.map(convertToGeminiTool);
 
   const geminiPrompt: GenerateContentParameters = {
     model: apiSettings.model,
-    contents: [...toolcallMessages, ...promptMessages, ...tooldefMessages],
+    contents: [...toolcallMessages, ...promptMessages],
     config: {
       maxOutputTokens: apiSettings.max_tokens,
       temperature: apiSettings.temperature,
@@ -739,7 +762,29 @@ const callGroq = async (
     throw new Error("AbortError: Request aborted by user.");
   }
 
-  const promptMessages = buildPromptMessagesGroq(prompt);
+  const isNative =
+    tools && tools.length > 0 && (tools[0].type || "native") === "native";
+
+  const systemParts: string[] = [];
+  if (prompt.system) {
+    systemParts.push(prompt.system);
+  }
+  if (!isNative) {
+    for (const tool of tools ?? []) {
+      if (tool.type === "xml") {
+        systemParts.push(encodeToolToXml(tool));
+      } else if (tool.type === "json") {
+        systemParts.push(encodeToolToJson(tool));
+      } else if (tool.type === "backtick") {
+        systemParts.push(encodeToolToBacktick(tool));
+      }
+    }
+  }
+
+  const promptMessages = buildPromptMessagesGroq({
+    user: prompt.user,
+    system: systemParts.join("\n\n"),
+  });
 
   const toolMessages = buildToolMessagesGroq(prompt);
 
@@ -753,10 +798,7 @@ const callGroq = async (
     max_tokens: apiSettings.max_tokens,
     temperature: apiSettings.temperature,
     messages,
-    tools:
-      tools && (tools[0].type || "native") === "native"
-        ? tools.map(convertToGroqTool)
-        : undefined,
+    tools: isNative && tools ? tools.map(convertToGroqTool) : undefined,
   };
 
   logger(
@@ -771,10 +813,9 @@ const callGroq = async (
     signal: signal,
   });
   const messageContent = response.choices[0]?.message?.content?.trim() ?? "";
-  const toolCalls =
-    tools && (tools[0].type || "native") === "native"
-      ? convertFromGroqToolCalls(response.choices[0]?.message?.tool_calls)
-      : decodeToolCalls(messageContent, tools ?? []);
+  const toolCalls = isNative
+    ? convertFromGroqToolCalls(response.choices[0]?.message?.tool_calls)
+    : decodeToolCalls(messageContent, tools ?? []);
   return { assistant: messageContent, tools: toolCalls };
 };
 
@@ -876,7 +917,29 @@ const callCerebras = async (
     throw new Error("AbortError: Request aborted by user.");
   }
 
-  const promptMessages = buildPromptMessagesCerebras(prompt);
+  const isNative =
+    tools && tools.length > 0 && (tools[0].type || "native") === "native";
+
+  const systemParts: string[] = [];
+  if (prompt.system) {
+    systemParts.push(prompt.system);
+  }
+  if (!isNative) {
+    for (const tool of tools ?? []) {
+      if (tool.type === "xml") {
+        systemParts.push(encodeToolToXml(tool));
+      } else if (tool.type === "json") {
+        systemParts.push(encodeToolToJson(tool));
+      } else if (tool.type === "backtick") {
+        systemParts.push(encodeToolToBacktick(tool));
+      }
+    }
+  }
+
+  const promptMessages = buildPromptMessagesCerebras({
+    user: prompt.user,
+    system: systemParts.join("\n\n"),
+  });
 
   const toolMessages = buildToolMessagesCerebras(prompt);
 
@@ -889,12 +952,8 @@ const callCerebras = async (
       max_tokens: apiSettings.max_tokens,
       temperature: apiSettings.temperature,
       messages,
-      tool_choice:
-        tools && (tools[0].type || "native") === "native" ? "auto" : "none",
-      tools:
-        tools && (tools[0].type || "native") === "native"
-          ? tools.map(convertToCerebrasTool)
-          : undefined,
+      tool_choice: isNative ? "auto" : "none",
+      tools: isNative && tools ? tools.map(convertToCerebrasTool) : undefined,
     };
 
   logger(
@@ -910,10 +969,9 @@ const callCerebras = async (
       signal: signal,
     })) as any;
   const messageContent = response.choices?.[0]?.message?.content?.trim() ?? "";
-  const toolCalls =
-    tools && (tools[0].type || "native") === "native"
-      ? convertFromCerebrasToolCalls(response.choices?.[0]?.message?.tool_calls)
-      : decodeToolCalls(messageContent, tools ?? []);
+  const toolCalls = isNative
+    ? convertFromCerebrasToolCalls(response.choices?.[0]?.message?.tool_calls)
+    : decodeToolCalls(messageContent, tools ?? []);
   return { assistant: messageContent, tools: toolCalls };
 };
 
@@ -956,17 +1014,12 @@ export function newClaudeApi(settings: ClaudeSpecificSettings): AiApiCaller {
 }
 
 /**
- * Helper function to build prompt messages (user and system) for Claude.
+ * Helper function to build prompt messages (user) for Claude.
+ * The system prompt is handled separately.
  */
-function buildPromptMessagesClaude(prompt: {
-  user: string;
-  system?: string;
-}): MessageParam[] {
+function buildPromptMessagesClaude(prompt: { user: string }): MessageParam[] {
   const messages: MessageParam[] = [];
 
-  if (prompt.system) {
-    messages.push({ role: "user" as const, content: prompt.system });
-  }
   if (prompt.user) {
     messages.push({ role: "user" as const, content: prompt.user });
   }
@@ -1008,8 +1061,27 @@ const callClaude = async (
     throw new Error("AbortError: Request aborted by user.");
   }
 
-  const promptMessages = buildPromptMessagesClaude(prompt);
+  const isNative =
+    tools && tools.length > 0 && (tools[0].type || "native") === "native";
 
+  const systemParts: string[] = [];
+  if (prompt.system) {
+    systemParts.push(prompt.system);
+  }
+  if (!isNative) {
+    for (const tool of tools ?? []) {
+      if (tool.type === "xml") {
+        systemParts.push(encodeToolToXml(tool));
+      } else if (tool.type === "json") {
+        systemParts.push(encodeToolToJson(tool));
+      } else if (tool.type === "backtick") {
+        systemParts.push(encodeToolToBacktick(tool));
+      }
+    }
+  }
+  const mergedSystemPrompt = systemParts.join("\n\n");
+
+  const promptMessages = buildPromptMessagesClaude({ user: prompt.user });
   const toolMessages = buildToolMessagesClaude(prompt);
 
   const claudePromptMessages: MessageParam[] = [
@@ -1021,11 +1093,9 @@ const callClaude = async (
     model: apiSettings.model,
     max_tokens: apiSettings.max_tokens ?? 8192,
     temperature: apiSettings.temperature,
+    system: mergedSystemPrompt || undefined,
     messages: claudePromptMessages,
-    tools:
-      tools && (tools[0].type || "native") === "native"
-        ? tools.map(convertToClaudeTool)
-        : undefined,
+    tools: isNative && tools ? tools.map(convertToClaudeTool) : undefined,
   };
 
   logger(
@@ -1056,10 +1126,9 @@ const callClaude = async (
   }
   messageContent = messageContent.trim();
 
-  const toolCalls =
-    tools && (tools[0].type || "native") === "native"
-      ? convertFromClaudeToolCalls(claudeToolCalls)
-      : decodeToolCalls(messageContent, tools ?? []);
+  const toolCalls = isNative
+    ? convertFromClaudeToolCalls(claudeToolCalls)
+    : decodeToolCalls(messageContent, tools ?? []);
   return { assistant: messageContent, tools: toolCalls };
 };
 
