@@ -1,4 +1,4 @@
-import { JsonSchema } from "../../aiTools/JsonSchema";
+import { JsonSchema } from "@/json/JsonSchema";
 
 /**
  * Vendor-agnostic tool definition.

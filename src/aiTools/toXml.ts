@@ -1,4 +1,4 @@
-import { Json } from "./JsonSchema";
+import { Json } from "@/json/Json";
 
 /**
  * Escapes XML special characters in a string.

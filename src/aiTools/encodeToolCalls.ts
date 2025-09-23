@@ -1,7 +1,7 @@
 import { ToolCall } from "@/ai-api/types/ToolCall";
 import { ToolDefinition } from "@/ai-api/types/ToolDefinition";
+import { JsonSchema } from "@/json/JsonSchema";
 import assert from "assert";
-import { JsonSchema } from "./JsonSchema";
 import { toXml } from "./toXml";
 
 /**

@@ -1,4 +1,4 @@
-import { Json } from "./aiTools/JsonSchema";
+import { Json } from "@/json/Json";
 
 /**
  * A function that takes a string and returns a processed string.

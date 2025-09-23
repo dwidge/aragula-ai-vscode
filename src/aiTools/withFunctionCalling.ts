@@ -1,8 +1,8 @@
 import { AiApiCaller } from "@/ai-api/types/AiApiCaller";
 import { ToolCall } from "@/ai-api/types/ToolCall";
 import { ToolDefinition } from "@/ai-api/types/ToolDefinition";
+import { validateJsonAgainstSchema } from "@/json/validateJsonAgainstSchema";
 import { Logger } from "../utils/Logger";
-import { validateJsonAgainstSchema } from "./AiApi";
 
 /**
  * Enhances an AiApiCaller to handle function calls in a loop.
