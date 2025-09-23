@@ -1,5 +1,7 @@
 import { AiApiSettings } from "@/ai-api/types/AiApiSettings";
 import { getWorkspaceRoot } from "@/vscode/getWorkspaceAbsolutePath";
+import { commitStaged } from "@/vscode/git/commitStaged";
+import { stageFiles } from "@/vscode/git/stageFiles";
 import * as fs from "fs/promises";
 import path from "path";
 import * as vscode from "vscode";
@@ -28,7 +30,6 @@ import {
   useSettingsObject,
 } from "./settingsObject";
 import { getAvailableShells, ShellProfile } from "./utils/getShells";
-import { commitStaged, stageFiles } from "./utils/git";
 import {
   ActiveTasks,
   cancelAllTasks,

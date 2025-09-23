@@ -1,7 +1,8 @@
 import { AiApiSettings } from "@/ai-api/types/AiApiSettings";
 import * as vscode from "vscode";
 import { newAiApi } from "./aiTools/AiApi";
-import { getCommitMessages, getDiffs } from "./diff";
+import { getCommitMessages } from "./vscode/git/getCommitMessages";
+import { getDiffs } from "./vscode/git/getDiffs";
 
 /**
  * Options for generating a commit message.

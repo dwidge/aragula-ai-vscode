@@ -18,8 +18,8 @@ import { replaceToolCallContent } from "./privacy/replaceToolCallContent";
 import { restoreToolCallContent } from "./privacy/restoreToolCallContent";
 import { reversePrivacyReplacements } from "./privacy/reversePrivacyReplacements";
 import { readFiles } from "./readFiles";
-import { setCommitMessage } from "./setCommitMessage";
 import { createMessageLogger, Logger, TaskLogger } from "./utils/Logger";
+import { setCommitMessage } from "./vscode/git/setCommitMessage";
 
 interface ActiveRequest {
   abortController: AbortController;

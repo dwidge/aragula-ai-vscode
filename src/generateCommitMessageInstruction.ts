@@ -1,8 +1,8 @@
 import * as vscode from "vscode";
-import { getCommitMessages } from "./diff";
 import { getRepoRoots } from "./git/getRepoRoots";
 import { isDirContainingSomeFile } from "./git/isDirContainingSomeFile";
 import { toRelativePath } from "./git/toRelativePath";
+import { getCommitMessages } from "./vscode/git/getCommitMessages";
 
 export async function getCommitMessageInstruction({
   useConventionalCommits,

@@ -1,6 +1,6 @@
-import { getGitAPI } from "./diff";
-import { toRelativePath } from "./git/toRelativePath";
-import { toUnixPath } from "./git/toUnixPath";
+import { toRelativePath } from "../../git/toRelativePath";
+import { toUnixPath } from "../../git/toUnixPath";
+import { getGitAPI } from "./getGitAPI";
 
 export async function setCommitMessage(
   repoPath: string,
