@@ -12,15 +12,13 @@ import { handleFormatFilesInFiles } from "./handleFormatFilesInFiles";
 import { handleRemoveCommentsInFiles } from "./handleRemoveCommentsInFiles";
 import { parseCommitMessages } from "./parseCommitMessages";
 import { PostMessage } from "./PostMessage";
+import { applyPrivacyReplacements } from "./privacy/applyPrivacyReplacements";
+import { PrivacyPair } from "./privacy/PrivacyPair";
+import { replaceToolCallContent } from "./privacy/replaceToolCallContent";
+import { restoreToolCallContent } from "./privacy/restoreToolCallContent";
+import { reversePrivacyReplacements } from "./privacy/reversePrivacyReplacements";
 import { readFiles } from "./readFiles";
-import {
-  applyPrivacyReplacements,
-  replaceToolCallContent,
-  restoreToolCallContent,
-  reversePrivacyReplacements,
-} from "./replaceToolCallContent";
 import { setCommitMessage } from "./setCommitMessage";
-import { PrivacyPair } from "./settingsObject";
 import { createMessageLogger, Logger, TaskLogger } from "./utils/Logger";
 
 interface ActiveRequest {

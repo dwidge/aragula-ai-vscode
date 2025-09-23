@@ -1,4 +1,5 @@
 import { AiApiSettings } from "@/ai-api/types/AiApiSettings";
+import { PrivacyPair } from "./privacy/PrivacyPair";
 
 export const SETTINGS_STORAGE_KEY = "settings";
 
@@ -27,11 +28,6 @@ export interface SettingsObject {
   autoGenerateCommit: boolean;
   useConventionalCommits: boolean;
   privacySettings?: PrivacyPair[];
-}
-
-export interface PrivacyPair {
-  search: string;
-  replace: string;
 }
 
 const defaultSettings: SettingsObject = {
