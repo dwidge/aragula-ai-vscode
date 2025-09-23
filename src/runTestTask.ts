@@ -1,4 +1,4 @@
-import { cancellableTimeout } from "./cancellableTimeout";
+import { cancellableTimeout } from "./utils/cancellableTimeout";
 import { TaskLogger } from "./utils/Logger";
 
 export async function runTestTask(logTask: TaskLogger) {
