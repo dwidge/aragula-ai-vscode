@@ -1,8 +1,8 @@
+import { runAndGetShellOutput } from "@/shell/runAndGetShellOutput";
 import * as fs from "fs/promises";
 import * as Path from "path";
 import * as vscode from "vscode";
 import { z } from "zod";
-import { runAndGetShellOutput } from "../runAndGetShellOutput";
 import { workspaceRelativePathToAbsolutePath } from "../workspaceRelativePathToAbsolutePath";
 import { ToolContext } from "./ToolTypes";
 
