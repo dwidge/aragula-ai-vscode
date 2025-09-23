@@ -1,6 +1,5 @@
-import { AiApiSettings } from "@/ai-api/types/AiApiSettings";
 import * as vscode from "vscode";
-import { newAiApi } from "./aiTools/AiApi";
+import { TextAi } from "./ai-api/types/TextAi";
 import { getCommitMessages } from "./vscode/git/getCommitMessages";
 import { getDiffs } from "./vscode/git/getDiffs";
 
@@ -18,14 +17,14 @@ interface TaskOptions {
  * Generates a git commit message based on staged changes using an AI model.
  *
  * @param rootUri The file system path of the git repository root.
- * @param aiProviderSettings The settings for the AI provider to use.
+ * @param textAi The function to call the AI API with user and system prompts.
  * @param options Optional options for the generation process.
  * @returns A promise that resolves with the generated commit message string.
- * @throws An error if generation fails (e.g., no staged changes, API key missing, API call error).
+ * @throws An error if generation fails (e.g., no staged changes, API call error).
  */
 export const generateCommitMessage = async (
   rootUri: string,
-  aiProviderSettings: AiApiSettings,
+  textAi: TextAi,
   options: TaskOptions = {}
 ): Promise<string> => {
   const { progress, signal } = options;
@@ -35,15 +34,6 @@ export const generateCommitMessage = async (
   }
 
   progress?.("Initializing AI API...");
-
-  const callAiApi = newAiApi(
-    aiProviderSettings.vendor === "gemini"
-      ? {
-          ...aiProviderSettings,
-          model: "gemini-2.0-flash-lite",
-        }
-      : aiProviderSettings
-  );
 
   const rootUriObject = vscode.Uri.file(rootUri);
 
@@ -82,23 +72,18 @@ export const generateCommitMessage = async (
 
   progress?.("Calling AI model...");
   try {
-    const response = await callAiApi(
-      {
-        user: userPrompt,
-        system: systemPrompt,
-        tools: [],
-      },
-      [],
-      { logger: progress, signal }
-    );
+    const assistantMessage = await textAi(userPrompt, systemPrompt, {
+      signal,
+      logger: progress,
+    });
     progress?.("Parsing response...");
-    return parseCommitMessage(response.assistant.trim());
+    return parseCommitMessage(assistantMessage);
   } catch (error: unknown) {
     throw new Error(`Commit message API call failed: ${error}`);
   }
 };
 
-export const parseCommitMessage = (rawMessage: string): string => {
+const parseCommitMessage = (rawMessage: string): string => {
   const trimmedMessage = rawMessage.trim();
   if (trimmedMessage.startsWith("```") && trimmedMessage.endsWith("```")) {
     const messageContent = trimmedMessage.slice(3, -3).trim();

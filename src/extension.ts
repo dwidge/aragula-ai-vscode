@@ -5,6 +5,8 @@ import { stageFiles } from "@/vscode/git/stageFiles";
 import * as fs from "fs/promises";
 import path from "path";
 import * as vscode from "vscode";
+import { TextAi } from "./ai-api/types/TextAi";
+import { useTextAi } from "./ai-api/useTextAi";
 import { availableToolNames, availableVendors } from "./availableToolNames";
 import { checkAndFixErrors } from "./checkAndFixErrors";
 import { generateCommitMessage } from "./generateCommitMessage";
@@ -159,15 +161,7 @@ export function activate(context: vscode.ExtensionContext) {
           return;
         }
 
-        const [settings, setSettings] = useSettingsObject(globalSettings);
-
-        const currentProviderSetting = useProviderByName(
-          settings,
-          settings.providerName
-        );
-        if (!currentProviderSetting) {
-          throw new Error("No provider selected");
-        }
+        const textAi = useTextAi(globalSettings);
 
         const abortController = new AbortController();
 
@@ -185,7 +179,7 @@ export function activate(context: vscode.ExtensionContext) {
             try {
               const commitMessage = await generateCommitMessage(
                 sourceControl.rootUri!.fsPath,
-                currentProviderSetting,
+                textAi,
                 {
                   signal: abortController.signal,
                   progress: (message) => progress.report({ message }),
@@ -461,7 +455,7 @@ async function handleWebviewMessage(
       handleFormatFilesInFiles(message.filePaths, log);
       break;
     case "commitFiles":
-      handleCommitFiles(settings, message.fileNames, logTask);
+      handleCommitFiles(useTextAi(globalSettings), message.fileNames, logTask);
       break;
     case "planAndExecute":
       handlePlanAndExecute(message, logTask)
@@ -494,7 +488,7 @@ async function handleWebviewMessage(
 }
 
 const handleCommitFiles = (
-  settings: SettingsObject,
+  textAi: TextAi,
   fileNames: string[],
   log: TaskLogger
 ) =>
@@ -510,20 +504,13 @@ const handleCommitFiles = (
       }
 
       const workspaceRoot = getWorkspaceRoot();
-      const currentProviderSetting = useProviderByName(
-        settings,
-        settings.providerName
-      );
-      if (!currentProviderSetting) {
-        throw new Error("No provider selected");
-      }
 
       log({ summary: "Stage files" });
       await stageFiles(fileNames);
 
       log({ summary: "Generate commit message" });
       const commitMessage = await log({}, (progress, log, signal) =>
-        generateCommitMessage(workspaceRoot.fsPath, currentProviderSetting, {
+        generateCommitMessage(workspaceRoot.fsPath, textAi, {
           signal,
           progress: (message) =>
             log({
