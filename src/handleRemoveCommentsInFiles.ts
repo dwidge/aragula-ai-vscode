@@ -1,5 +1,6 @@
-import { readFileSafe, writeFileSafe } from "./aiTools/file";
-import { formatCodeWithVscode } from "./aiTools/formatCodeWithVscode";
+import { readFileSafe } from "@/file/readFileSafe";
+import { writeFileSafe } from "@/file/writeFileSafe";
+import { formatCodeWithVscode } from "@/vscode/formatCodeWithVscode";
 import {
   keepOnlyJsDocAndRemoveEmptyLinesReplacer,
   removeJsJsxComments,

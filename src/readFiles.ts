@@ -1,5 +1,5 @@
 import { ToolCall } from "@/ai-api/types/ToolCall";
-import { readFileSafe } from "./aiTools/file";
+import { readFileSafe } from "@/file/readFileSafe";
 import { getWorkspaceAbsolutePath } from "./getWorkspaceAbsolutePath";
 
 export const readFiles = async (relativePaths: string[]): Promise<ToolCall[]> =>

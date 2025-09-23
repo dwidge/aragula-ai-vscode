@@ -1,4 +1,4 @@
-import { formatCodeWithVscode } from "./aiTools/formatCodeWithVscode";
+import { formatCodeWithVscode } from "@/vscode/formatCodeWithVscode";
 import { getWorkspaceAbsolutePath } from "./getWorkspaceAbsolutePath";
 import { Logger } from "./utils/Logger";
 

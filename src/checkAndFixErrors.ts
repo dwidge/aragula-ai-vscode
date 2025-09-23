@@ -1,8 +1,8 @@
 import { AiApiSettings } from "@/ai-api/types/AiApiSettings";
 import { ToolCall } from "@/ai-api/types/ToolCall";
 import { ToolDefinition } from "@/ai-api/types/ToolDefinition";
+import { getCodeErrorsWithVscode } from "@/vscode/getCodeErrorsWithVscode";
 import { newAiApi } from "./aiTools/AiApi";
-import { getCodeErrorsWithVscode } from "./aiTools/formatCodeWithVscode";
 import { writeFileTool } from "./aiTools/tools";
 import { executeToolCalls } from "./executeToolCalls";
 import { getWorkspaceAbsolutePath } from "./getWorkspaceAbsolutePath";
