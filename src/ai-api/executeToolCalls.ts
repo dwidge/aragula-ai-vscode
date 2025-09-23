@@ -1,14 +1,7 @@
 import { ToolCall } from "@/ai-api/types/ToolCall";
 import { ToolDefinition } from "@/ai-api/types/ToolDefinition";
-import { Json } from "@dwidge/xml-parser";
-import { Logger } from "./utils/Logger";
-
-export type ToolCallResult = {
-  name: string;
-  parameters?: Json;
-  response?: Json;
-  error?: string;
-};
+import { Logger } from "../utils/Logger";
+import { ToolCallResult } from "./types/ToolCallResult";
 
 export const executeToolCalls = async (
   toolCalls: ToolCall[],
