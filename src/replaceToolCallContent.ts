@@ -1,5 +1,5 @@
 import { ToolCall } from "@/ai-api/types/ToolCall";
-import { StringProcessor, processJsonValue } from "./processJsonValue";
+import { StringProcessor, processJsonValue } from "@/json/processJsonValue";
 import { PrivacyPair } from "./settingsObject";
 
 type ContentProcessor = (content: string, settings: PrivacyPair[]) => string;
