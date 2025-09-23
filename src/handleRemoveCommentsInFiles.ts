@@ -1,11 +1,4 @@
-import { readFileSafe } from "@/file/readFileSafe";
-import { writeFileSafe } from "@/file/writeFileSafe";
-import { formatCodeWithVscode } from "@/vscode/formatCodeWithVscode";
-import { getWorkspaceAbsolutePath } from "@/vscode/getWorkspaceAbsolutePath";
-import {
-  keepOnlyJsDocAndRemoveEmptyLinesReplacer,
-  removeJsJsxComments,
-} from "./aiTools/removeJsJsxComments";
+import { removeComments } from "./removeComments";
 import { Logger } from "./utils/Logger";
 
 export async function handleRemoveCommentsInFiles(
@@ -14,25 +7,10 @@ export async function handleRemoveCommentsInFiles(
 ) {
   log(`Removing comments...\n\n${filePaths}`, "info");
   for (const filePath of filePaths) {
-    const fullPath = getWorkspaceAbsolutePath(filePath);
     try {
-      const originalContent = await readFileSafe(fullPath);
-
-      const cleanedContent = removeJsJsxComments(
-        originalContent,
-        keepOnlyJsDocAndRemoveEmptyLinesReplacer
-      );
-      if (originalContent !== cleanedContent) {
-        await writeFileSafe(fullPath, cleanedContent);
-        try {
-          await formatCodeWithVscode(fullPath);
-          log(`Removed comments and formatted ${filePath}`, "info");
-        } catch (error: any) {
-          await writeFileSafe(fullPath, originalContent);
-          throw new Error(
-            `Failed to format ${filePath} after removing comments: ${error.message}`
-          );
-        }
+      const changed = await removeComments(filePath);
+      if (changed) {
+        log(`Removed comments and formatted ${filePath}`, "info");
       } else {
         log(`No comments to remove in ${filePath}`, "info");
       }

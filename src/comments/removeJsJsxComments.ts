@@ -1,12 +1,12 @@
 /**
  * Defines the types of comments that can be identified.
  */
-export type CommentType = "single-line" | "multi-line" | "jsx" | "jsdoc";
+type CommentType = "single-line" | "multi-line" | "jsx" | "jsdoc";
 
 /**
  * Contains information about a detected comment.
  */
-export interface CommentInfo {
+interface CommentInfo {
   /** The type of the comment ('single-line', 'multi-line', 'jsx', 'jsdoc'). */
   type: CommentType;
   /** The full text content of the comment, including delimiters (e.g., '// text'). */
@@ -36,9 +36,7 @@ export type CommentReplacer = (commentInfo: CommentInfo) => string | null;
  * @param commentInfo - Information about the detected comment.
  * @returns The original comment content if it's JSDoc, otherwise an empty string "".
  */
-export const defaultReplacer: CommentReplacer = (
-  commentInfo: CommentInfo
-): string => {
+const defaultReplacer: CommentReplacer = (commentInfo: CommentInfo): string => {
   return commentInfo.type === "jsdoc" ? commentInfo.content : "";
 };
 
