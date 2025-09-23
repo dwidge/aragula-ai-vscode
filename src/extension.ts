@@ -1,7 +1,7 @@
+import { AiApiSettings } from "@/ai-api/types/AiApiSettings";
 import * as fs from "fs/promises";
 import path from "path";
 import * as vscode from "vscode";
-import { AiApiSettings } from "./aiTools/AiApi";
 import { availableToolNames, availableVendors } from "./availableToolNames";
 import { checkAndFixErrors } from "./checkAndFixErrors";
 import { generateCommitMessage } from "./generateCommitMessage";

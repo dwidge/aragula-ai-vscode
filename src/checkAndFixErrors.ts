@@ -1,9 +1,7 @@
-import {
-  AiApiSettings,
-  ToolCall,
-  ToolDefinition,
-  newAiApi,
-} from "./aiTools/AiApi";
+import { AiApiSettings } from "@/ai-api/types/AiApiSettings";
+import { ToolCall } from "@/ai-api/types/ToolCall";
+import { ToolDefinition } from "@/ai-api/types/ToolDefinition";
+import { newAiApi } from "./aiTools/AiApi";
 import { getCodeErrorsWithVscode } from "./aiTools/formatCodeWithVscode";
 import { writeFileTool } from "./aiTools/tools";
 import { executeToolCalls } from "./executeToolCalls";

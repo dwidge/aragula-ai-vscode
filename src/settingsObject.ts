@@ -1,4 +1,4 @@
-import { AiApiSettings } from "./aiTools/AiApi";
+import { AiApiSettings } from "@/ai-api/types/AiApiSettings";
 
 export const SETTINGS_STORAGE_KEY = "settings";
 

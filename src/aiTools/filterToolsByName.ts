@@ -1,5 +1,4 @@
-import { ToolDefinition } from "./AiApi";
-import { ToolDef } from "./ToolTypes";
+import { ToolDefinition } from "@/ai-api/types/ToolDefinition";
 
 export const filterToolsByName = (
   tools: ToolDefinition[],

@@ -1,4 +1,4 @@
-import { AiApiSettings } from "./aiTools/AiApi";
+import { AiApiSettings } from "@/ai-api/types/AiApiSettings";
 import { getDiffContext } from "./diff";
 import { AIPlan, PlanStep } from "./extension";
 import { callAI, CallAiProps } from "./handleSendMessage";

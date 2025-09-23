@@ -1,4 +1,4 @@
-import { ToolCall } from "./aiTools/AiApi";
+import { ToolCall } from "@/ai-api/types/ToolCall";
 import { StringProcessor, processJsonValue } from "./processJsonValue";
 import { PrivacyPair } from "./settingsObject";
 

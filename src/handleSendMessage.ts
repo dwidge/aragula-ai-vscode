@@ -1,10 +1,8 @@
+import { AiApiSettings } from "@/ai-api/types/AiApiSettings";
+import { ToolCall } from "@/ai-api/types/ToolCall";
+import { ToolDefinition } from "@/ai-api/types/ToolDefinition";
 import * as vscode from "vscode";
-import {
-  AiApiSettings,
-  newAiApi,
-  ToolCall,
-  ToolDefinition,
-} from "./aiTools/AiApi";
+import { newAiApi } from "./aiTools/AiApi";
 import { filterToolsByName } from "./aiTools/filterToolsByName";
 import { availableToolsDefinitions } from "./availableToolNames";
 import { checkAndFixErrors } from "./checkAndFixErrors";

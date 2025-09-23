@@ -1,3 +1,7 @@
+import { AiApiCaller } from "@/ai-api/types/AiApiCaller";
+import { AiApiSettings } from "@/ai-api/types/AiApiSettings";
+import { ToolCall } from "@/ai-api/types/ToolCall";
+import { ToolDefinition } from "@/ai-api/types/ToolDefinition";
 import Anthropic from "@anthropic-ai/sdk";
 import { MessageParam } from "@anthropic-ai/sdk/resources/index.mjs";
 import CerebrasServiceClient from "@cerebras/cerebras_cloud_sdk";
@@ -24,78 +28,6 @@ import {
   encodeToolToXml,
 } from "./encodeToolCalls";
 import { Json, JsonSchema } from "./JsonSchema";
-
-/**
- * Vendor-agnostic tool definition.
- * The `type` property indicates the tool call format:
- * - "native" (default) uses the vendor’s built-in tool calling,
- * - "xml", "json", or "backtick" uses manual encoding/decoding.
- */
-export interface ToolDefinition {
-  type?: "xml" | "json" | "native" | "backtick";
-  name: string;
-  description?: string;
-  parameters: JsonSchema;
-  response?: JsonSchema;
-  function?: Function;
-}
-
-/**
- * Vendor-agnostic tool call.
- */
-export interface ToolCall {
-  type?: "xml" | "json" | "native" | "backtick";
-  name: string;
-  parameters?: Json;
-  response?: Json;
-}
-
-type AiMessage = {
-  user?: string;
-  system?: string;
-  assistant?: string;
-  tools?: ToolCall[];
-};
-
-/**
- * Vendor-agnostic AI API caller interface.
- */
-export interface AiApiCaller {
-  (
-    prompt: {
-      user: string;
-      system?: string;
-      tools?: ToolCall[];
-    },
-    tools?: ToolDefinition[],
-    options?: {
-      logger?: Logger;
-      signal?: AbortSignal;
-      onChunk?: (chunk: { text?: string }) => void;
-    }
-  ): Promise<{ assistant: string; tools: ToolCall[] }>;
-}
-
-/**
- * Settings for the AI API caller.
- */
-export interface AiApiSettings {
-  name: string;
-  apiKey: string;
-  baseURL?: string;
-  model: string;
-  provider?: string;
-  max_tokens?: number;
-  temperature?: number;
-  vendor:
-    | "openai"
-    | "gemini"
-    | "groq"
-    | "cerebras"
-    | "claude"
-    | "manual"
-    | string;
-}
 
 /**
  * Validates a JSON object against a JSON schema.

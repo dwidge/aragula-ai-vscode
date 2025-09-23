@@ -1,5 +1,6 @@
+import { AiApiSettings } from "@/ai-api/types/AiApiSettings";
 import * as vscode from "vscode";
-import { AiApiSettings, newAiApi } from "./aiTools/AiApi";
+import { newAiApi } from "./aiTools/AiApi";
 import { getCommitMessages, getDiffs } from "./diff";
 
 /**

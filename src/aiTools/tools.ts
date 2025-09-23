@@ -1,4 +1,4 @@
-import { ToolDefinition } from "./AiApi";
+import { ToolDefinition } from "@/ai-api/types/ToolDefinition";
 import {
   askUser,
   readDir,

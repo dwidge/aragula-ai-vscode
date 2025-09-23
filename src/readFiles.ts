@@ -1,4 +1,4 @@
-import { ToolCall } from "./aiTools/AiApi";
+import { ToolCall } from "@/ai-api/types/ToolCall";
 import { readFileSafe } from "./aiTools/file";
 import { getWorkspaceAbsolutePath } from "./getWorkspaceAbsolutePath";
 

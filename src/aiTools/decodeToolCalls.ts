@@ -1,9 +1,10 @@
+import { ToolCall } from "@/ai-api/types/ToolCall.js";
+import { ToolDefinition } from "@/ai-api/types/ToolDefinition.js";
 import {
   defaultFileTypeMap,
   extractFilesFromAIResponse,
 } from "@dwidge/llm-file-diff";
 import { parseXmlSchema } from "@dwidge/xml-parser";
-import { ToolCall, ToolDefinition } from "./AiApi.js";
 
 /**
  * Decodes tool calls from a response string, auto-detecting format (XML or JSON).
