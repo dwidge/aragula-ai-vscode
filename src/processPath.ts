@@ -1,7 +1,7 @@
 import * as fs from "fs/promises";
 import * as path from "path";
 import * as vscode from "vscode";
-import { getIg } from "./gitignore";
+import { getIg } from "./vscode/git/gitignore";
 
 export async function processPath(filePath: string): Promise<string[]> {
   const openFilePaths: string[] = [];
