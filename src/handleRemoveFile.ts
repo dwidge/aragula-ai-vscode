@@ -1,6 +1,6 @@
+import { getWorkspaceAbsolutePath } from "@/vscode/getWorkspaceAbsolutePath";
 import * as fs from "fs/promises";
 import * as vscode from "vscode";
-import { getWorkspaceAbsolutePath } from "./getWorkspaceAbsolutePath";
 import { PostMessage } from "./PostMessage";
 
 export async function openFilesDialog(postMessage: PostMessage) {

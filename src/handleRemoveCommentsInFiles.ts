@@ -1,11 +1,11 @@
 import { readFileSafe } from "@/file/readFileSafe";
 import { writeFileSafe } from "@/file/writeFileSafe";
 import { formatCodeWithVscode } from "@/vscode/formatCodeWithVscode";
+import { getWorkspaceAbsolutePath } from "@/vscode/getWorkspaceAbsolutePath";
 import {
   keepOnlyJsDocAndRemoveEmptyLinesReplacer,
   removeJsJsxComments,
 } from "./aiTools/removeJsJsxComments";
-import { getWorkspaceAbsolutePath } from "./getWorkspaceAbsolutePath";
 import { Logger } from "./utils/Logger";
 
 export async function handleRemoveCommentsInFiles(

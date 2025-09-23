@@ -1,5 +1,5 @@
 import { formatCodeWithVscode } from "@/vscode/formatCodeWithVscode";
-import { getWorkspaceAbsolutePath } from "./getWorkspaceAbsolutePath";
+import { getWorkspaceAbsolutePath } from "@/vscode/getWorkspaceAbsolutePath";
 import { Logger } from "./utils/Logger";
 
 export async function handleFormatFilesInFiles(

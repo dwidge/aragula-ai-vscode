@@ -1,6 +1,6 @@
+import { getWorkspaceRoot } from "@/vscode/getWorkspaceAbsolutePath";
 import * as fs from "fs/promises";
 import ignore from "ignore";
-import { getWorkspaceRoot } from "./getWorkspaceAbsolutePath";
 
 export async function getIg(root = getWorkspaceRoot()?.fsPath) {
   const gitignorePath = root + "/.gitignore";

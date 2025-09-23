@@ -1,11 +1,11 @@
 import { AiApiSettings } from "@/ai-api/types/AiApiSettings";
+import { getWorkspaceRoot } from "@/vscode/getWorkspaceAbsolutePath";
 import * as fs from "fs/promises";
 import path from "path";
 import * as vscode from "vscode";
 import { availableToolNames, availableVendors } from "./availableToolNames";
 import { checkAndFixErrors } from "./checkAndFixErrors";
 import { generateCommitMessage } from "./generateCommitMessage";
-import { getWorkspaceRoot } from "./getWorkspaceAbsolutePath";
 import { handleFormatFilesInFiles } from "./handleFormatFilesInFiles";
 import { handleRemoveCommentsInFiles } from "./handleRemoveCommentsInFiles";
 import { addFiles, openFilesDialog, removeFiles } from "./handleRemoveFile";

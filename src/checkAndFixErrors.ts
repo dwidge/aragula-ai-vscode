@@ -2,10 +2,10 @@ import { AiApiSettings } from "@/ai-api/types/AiApiSettings";
 import { ToolCall } from "@/ai-api/types/ToolCall";
 import { ToolDefinition } from "@/ai-api/types/ToolDefinition";
 import { getCodeErrorsWithVscode } from "@/vscode/getCodeErrorsWithVscode";
+import { getWorkspaceAbsolutePath } from "@/vscode/getWorkspaceAbsolutePath";
 import { newAiApi } from "./aiTools/AiApi";
 import { writeFileTool } from "./aiTools/tools";
 import { executeToolCalls } from "./executeToolCalls";
-import { getWorkspaceAbsolutePath } from "./getWorkspaceAbsolutePath";
 import { readFiles } from "./readFiles";
 import { Logger } from "./utils/Logger";
 

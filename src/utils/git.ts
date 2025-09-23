@@ -1,8 +1,8 @@
-import { getGitAPI } from "../diff";
 import {
   getWorkspaceAbsolutePath,
   getWorkspaceRoot,
-} from "../getWorkspaceAbsolutePath";
+} from "@/vscode/getWorkspaceAbsolutePath";
+import { getGitAPI } from "../diff";
 
 /**
  * Stages the specified files in the Git repository.
