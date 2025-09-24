@@ -3,7 +3,6 @@ import {
   availableToolNames,
   availableVendors,
 } from "../aiTools/availableToolNames";
-import { getTextAsset } from "../getTextAsset";
 import { handleWebviewMessage } from "../handleWebviewMessage";
 import { newPostMessage } from "../PostMessage";
 import { sendSettingsToWebview } from "../sendSettingsToWebview";
@@ -30,7 +29,11 @@ export async function openChatWindow(
     "askAIChat",
     `Ask AI - ${tabId}`,
     vscode.ViewColumn.One,
-    { enableScripts: true, retainContextWhenHidden: true }
+    {
+      enableScripts: true,
+      retainContextWhenHidden: true,
+      localResourceRoots: [vscode.Uri.joinPath(context.extensionUri, "dist")],
+    }
   );
   const activeTasks: ActiveTasks = new Map<
     string,
@@ -52,11 +55,39 @@ export async function openChatWindow(
     chatPanels.delete(tabId);
   });
 
-  const htmlContent = await getTextAsset(
-    context.extensionPath,
-    "chatview.html"
+  const htmlPath = vscode.Uri.joinPath(
+    context.extensionUri,
+    "dist",
+    "chatview",
+    "index.html"
   );
-  panel.webview.html = htmlContent.replace("${tabId}", tabId);
+  const htmlContent = await vscode.workspace.fs
+    .readFile(htmlPath)
+    .then((buffer) => new TextDecoder().decode(buffer));
+
+  const scriptUri = panel.webview.asWebviewUri(
+    vscode.Uri.joinPath(
+      context.extensionUri,
+      "dist",
+      "chatview",
+      "assets",
+      "main.js"
+    )
+  );
+  const styleUri = panel.webview.asWebviewUri(
+    vscode.Uri.joinPath(
+      context.extensionUri,
+      "dist",
+      "chatview",
+      "assets",
+      "style.css"
+    )
+  );
+
+  panel.webview.html = htmlContent
+    .replace(/\/assets\/main\.js/, scriptUri.toString())
+    .replace(/\/assets\/style\.css/, styleUri.toString())
+    .replace(/\$\{tabId\}/g, tabId);
 
   const postMessage = newPostMessage(panel);
 

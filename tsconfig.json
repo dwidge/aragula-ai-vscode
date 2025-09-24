@@ -9,7 +9,8 @@
     "paths": {
       "@/*": ["src/*"]
     },
-    "strict": true
+    "strict": true,
+    "jsx": "react-jsx"
   },
   "include": ["src/**/*"]
 }
