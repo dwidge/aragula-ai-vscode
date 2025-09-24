@@ -1,11 +1,12 @@
 import react from "@vitejs/plugin-react";
+import path from "path";
 import { defineConfig } from "vite";
 
-// https://vitejs.dev/config/
 export default defineConfig({
+  root: "src/chatview-react",
   plugins: [react()],
   build: {
-    outDir: "dist/chatview",
+    outDir: path.resolve(__dirname, "dist/chatview"),
     rollupOptions: {
       output: {
         entryFileNames: `assets/main.js`,
