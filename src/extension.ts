@@ -8,11 +8,11 @@ import * as vscode from "vscode";
 import { TextAi } from "./ai-api/types/TextAi";
 import { useTextAi } from "./ai-api/useTextAi";
 import { availableToolNames, availableVendors } from "./availableToolNames";
+import { readOpenFilePaths } from "./file/readOpenFilePaths";
 import { generateCommitMessage } from "./generateCommitMessage";
 import { addFiles, openFilesDialog, removeFiles } from "./handleRemoveFile";
 import { handleSendMessage } from "./handleSendMessage";
 import { newPostMessage, PostMessage } from "./PostMessage";
-import { processPath } from "./processPath";
 import {
   GetterSetter,
   newVsCodeState,
@@ -107,7 +107,9 @@ export function activate(context: vscode.ExtensionContext) {
   );
 
   const addFiles = async (multi: vscode.Uri[]) => {
-    const openFilePaths = await readOpenFilePaths(multi);
+    const openFilePaths = await readOpenFilePaths(
+      multi.map((uri) => uri.fsPath)
+    );
     let tabId = Date.now().toString();
     let existingPanelInfo: ChatPanelInfo | undefined = undefined;
 
@@ -204,22 +206,6 @@ export function activate(context: vscode.ExtensionContext) {
       }
     )
   );
-}
-
-async function readOpenFilePaths(uris: vscode.Uri[]): Promise<string[]> {
-  const openFilePaths: string[] = [];
-  if (!uris) {
-    return openFilePaths;
-  }
-
-  for (const uri of uris) {
-    if (uri.fsPath) {
-      const files = await processPath(uri.fsPath);
-      openFilePaths.push(...files);
-    }
-  }
-
-  return openFilePaths;
 }
 
 async function openChatWindow(
