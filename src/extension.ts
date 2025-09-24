@@ -32,22 +32,19 @@ const askAIEditorCommand = async (
   options: any
 ) => openFiles([single]).catch(logError);
 
-const generateCommitMessageCommand = async (
-  globalSettings: GetterSetter,
-  sourceControl: vscode.SourceControl
+const withProgress = async <R>(
+  location: vscode.ProgressLocation,
+  callback: (
+    signal: AbortSignal,
+    progress: (message: string) => void
+  ) => Promise<R>
 ) => {
-  if (!sourceControl.rootUri) {
-    log("No rootUri found for the source control.", "error");
-    return;
-  }
-
-  const textAi = useTextAi(globalSettings);
-
+  let result: R;
   const abortController = new AbortController();
 
-  vscode.window.withProgress(
+  await vscode.window.withProgress(
     {
-      location: vscode.ProgressLocation.SourceControl,
+      location,
       title: "Generating Commit Message...",
       cancellable: true,
     },
@@ -57,29 +54,46 @@ const generateCommitMessageCommand = async (
       });
 
       try {
-        const commitMessage = await generateCommitMessage(
-          sourceControl.rootUri!.fsPath,
-          textAi,
-          {
-            signal: abortController.signal,
-            progress: (message) => progress.report({ message }),
-          }
+        result = await callback(abortController.signal, (message) =>
+          progress.report({ message })
         );
-
-        if (commitMessage) {
-          sourceControl.inputBox.value = commitMessage;
-        } else {
-          log("Generated commit message was empty.", "error");
-        }
       } catch (error: unknown) {
         if (!abortController.signal.aborted) {
-          log(`Failed to generate commit message: ${error}`, "error");
+          throw error;
         }
       } finally {
         progress.report({ increment: 100 });
       }
     }
   );
+
+  return result!;
+};
+
+const generateCommitMessageCommand = async (
+  globalSettings: GetterSetter,
+  sourceControl: vscode.SourceControl
+) => {
+  const repoPath = sourceControl.rootUri?.fsPath;
+  if (!repoPath) {
+    throw new Error("No rootUri found for the source control");
+  }
+
+  const textAi = useTextAi(globalSettings);
+
+  const commitMessage = await withProgress(
+    vscode.ProgressLocation.SourceControl,
+    (signal, progress) =>
+      generateCommitMessage(repoPath, textAi, {
+        signal,
+        progress,
+      })
+  );
+  if (!commitMessage) {
+    throw new Error("Generated commit message was empty");
+  }
+
+  sourceControl.inputBox.value = commitMessage;
 };
 
 export function activate(context: vscode.ExtensionContext) {
@@ -114,7 +128,9 @@ export function activate(context: vscode.ExtensionContext) {
     vscode.commands.registerCommand(
       "aragula-ai.generateCommitMessage",
       (sourceControl: vscode.SourceControl) =>
-        generateCommitMessageCommand(globalSettings, sourceControl)
+        generateCommitMessageCommand(globalSettings, sourceControl).catch(
+          logError
+        )
     )
   );
 }
