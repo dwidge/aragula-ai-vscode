@@ -7,7 +7,10 @@ import path from "path";
 import * as vscode from "vscode";
 import { TextAi } from "./ai-api/types/TextAi";
 import { useTextAi } from "./ai-api/useTextAi";
-import { availableToolNames, availableVendors } from "./availableToolNames";
+import {
+  availableToolNames,
+  availableVendors,
+} from "./aiTools/availableToolNames";
 import { readOpenFilePaths } from "./file/readOpenFilePaths";
 import { generateCommitMessage } from "./generateCommitMessage";
 import { addFiles, openFilesDialog, removeFiles } from "./handleRemoveFile";

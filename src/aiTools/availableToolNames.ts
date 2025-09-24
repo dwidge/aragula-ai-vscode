@@ -1,5 +1,5 @@
 import { ToolDefinition } from "@/ai-api/types/ToolDefinition";
-import { readDirTool, readFileTool, writeFileTool } from "./aiTools/tools";
+import { readDirTool, readFileTool, writeFileTool } from "./tools";
 
 export const availableToolsDefinitions: ToolDefinition[] = [
   readDirTool,
