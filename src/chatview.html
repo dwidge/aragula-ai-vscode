@@ -1494,7 +1494,7 @@
 
         const messageDetailTextDiv = document.createElement("div");
         messageDetailTextDiv.classList.add("message-detail-text");
-        messageDetailTextDiv.textContent = detail || "";
+        messageDetailTextDiv.innerHTML = (detail || "").replace(/\n/g, "<br>");
         messageBodyContentDiv.appendChild(messageDetailTextDiv);
 
         if (formSchema) {
@@ -1577,11 +1577,11 @@
           : "log";
 
         if (summary !== undefined && previewSpan) {
-          previewSpan.textContent = summary;
+          previewSpan.innerHTML = summary.replace(/\n/g, "<br>");
         }
 
         if (detail !== undefined && messageDetailTextDiv) {
-          messageDetailTextDiv.textContent = detail;
+          messageDetailTextDiv.innerHTML = detail.replace(/\n/g, "<br>");
         }
         if (type !== undefined && badge) {
           badge.textContent = type;
