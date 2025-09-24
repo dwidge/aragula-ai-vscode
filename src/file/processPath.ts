@@ -1,4 +1,4 @@
-import { toRelativePath } from "@/git/toRelativePath";
+import { toShortRelativePath } from "@/git/toRelativePath";
 import { getIg } from "@/vscode/git/gitignore";
 import * as fs from "fs/promises";
 import * as path from "path";
@@ -9,7 +9,7 @@ export async function processPath(filePath: string): Promise<string[]> {
   const isIgnored = await getIg();
 
   async function process(filePath: string) {
-    const relativePath = toRelativePath(filePath);
+    const relativePath = toShortRelativePath(filePath);
     if (isIgnored(relativePath)) {
       return;
     }

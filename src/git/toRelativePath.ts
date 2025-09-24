@@ -3,11 +3,12 @@ import { getWorkspaceRoot } from "./getWorkspaceRoot";
 import { toUnixPath } from "./toUnixPath";
 
 export const toRelativePath = (pathOrUri: string | vscode.Uri) =>
-  prependDotSlash(
-    toUnixPath(vscode.workspace.asRelativePath(pathOrUri)).replaceAll(
-      getWorkspaceRoot(),
-      ""
-    )
+  prependDotSlash(toShortRelativePath(pathOrUri));
+
+export const toShortRelativePath = (pathOrUri: string | vscode.Uri) =>
+  toUnixPath(vscode.workspace.asRelativePath(pathOrUri)).replaceAll(
+    getWorkspaceRoot(),
+    ""
   );
 
 const prependDotSlash = (path: string) =>
