@@ -23,8 +23,8 @@ import {
 export async function openChatWindow(
   context: vscode.ExtensionContext,
   openedFilePaths: string[],
-  tabId: string,
-  globalSettings: GetterSetter
+  globalSettings: GetterSetter,
+  tabId = Date.now().toString()
 ) {
   const panel = vscode.window.createWebviewPanel(
     "askAIChat",

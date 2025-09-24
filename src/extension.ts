@@ -31,33 +31,45 @@ interface ChatPanelInfo {
 
 export const chatPanels = new Map<string, ChatPanelInfo>();
 
+const findExistingPanelInfo = (): ChatPanelInfo | undefined => {
+  for (const panelInfo of chatPanels.values()) {
+    if (panelInfo?.panel) {
+      return panelInfo;
+    }
+  }
+};
+
+const openExistingPanelWithFiles = (
+  panelInfo: ChatPanelInfo,
+  filePaths: string[]
+) => {
+  panelInfo.panel.reveal(vscode.ViewColumn.One);
+  const postMessage = newPostMessage(panelInfo.panel);
+  postMessage({
+    command: "addFiles",
+    filePaths,
+  });
+};
+
+const openNewPanelWithFiles = async (
+  context: vscode.ExtensionContext,
+  filePaths: string[],
+  globalSettings: GetterSetter
+) => openChatWindow(context, filePaths, globalSettings);
+
 const addFiles =
   (context: vscode.ExtensionContext, globalSettings: GetterSetter) =>
   async (multi: vscode.Uri[]) => {
     const openFilePaths = await readOpenFilePaths(
       multi.map((uri) => uri.fsPath)
     );
-    let tabId = Date.now().toString();
-    let existingPanelInfo: ChatPanelInfo | undefined = undefined;
 
-    for (const panelInfo of chatPanels.values()) {
-      if (!panelInfo || !panelInfo.panel) {
-        continue;
-      }
-      existingPanelInfo = panelInfo;
-      tabId = panelInfo.panel.title.split(" - ")[1];
-      break;
-    }
+    const existingPanelInfo = findExistingPanelInfo();
 
     if (existingPanelInfo) {
-      existingPanelInfo.panel.reveal(vscode.ViewColumn.One);
-      const postMessage = newPostMessage(existingPanelInfo.panel);
-      postMessage({
-        command: "addFiles",
-        filePaths: openFilePaths,
-      });
+      openExistingPanelWithFiles(existingPanelInfo, openFilePaths);
     } else {
-      await openChatWindow(context, openFilePaths, tabId, globalSettings);
+      await openNewPanelWithFiles(context, openFilePaths, globalSettings);
     }
   };
 
