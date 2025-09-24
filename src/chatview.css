@@ -1,0 +1,765 @@
+:root {
+  --background-color: #f4f4f4;
+  --text-color: #000;
+  --textarea-background: #fff;
+  --textarea-border: #ccc;
+  --button-background: #007acc;
+  --button-hover: #005fa3;
+  --pre-background: #e0e0e0;
+  --pre-border: #ccc;
+  --user-message-background: #e0f7fa;
+  --assistant-message-background: #f0f0f0;
+  --system-message-background: #f8e6ff;
+  --prompt-message-background: #f8e6ff;
+  --log-message-background: #e0e0e0;
+  --error-message-background: #ffe0b2;
+  --warning-message-background: #fff9c4;
+  --info-message-background: #bbdefb;
+  --loading-message-background: #e8f5e9;
+  --file-button-background: #ddd;
+  --file-button-hover: #ccc;
+  --file-button-remove-hover: #f44336;
+  --file-button-text-color: #000;
+  --prompts-header-background: #ddd;
+  --prompts-header-hover: #ccc;
+  --prompt-item-background: #eee;
+  --prompt-item-hover: #ddd;
+  --prompt-delete-button-hover: #f44336;
+  --popup-background: var(--background-color);
+  --popup-border: var(--pre-border);
+  --popup-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  --tool-button-background: var(--file-button-background);
+  --tool-button-hover: var(--tool-button-hover);
+  --tool-button-remove-hover: var(--tool-button-remove-hover);
+  --tool-button-text-color: var(--tool-button-text-color);
+  --provider-button-background: var(--file-button-background);
+  --provider-button-hover: var(--provider-button-hover);
+  --provider-button-remove-hover: var(--provider-button-remove-hover);
+  --provider-button-text-color: var(--provider-button-text-color);
+  --form-input-background: var(--textarea-background);
+  --form-input-border: var(--textarea-border);
+  --form-input-text-color: var(--text-color);
+  --progress-bar-background: #ccc;
+  --progress-bar-fill: #4caf50;
+  --cancel-button-color: #f44336;
+  --cancel-button-hover-color: #d32f2f;
+  --task-message-background: #d1c4e9;
+  --plan-step-message-border: #b39ddb;
+  --form-prompt-message-background: #e6ee9c;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background-color: #1e1e1e;
+    --text-color: #ccc;
+    --textarea-background: #252526;
+    --textarea-border: #555;
+    --button-background: #007acc;
+    --button-hover: #005fa3;
+    --pre-background: #252526;
+    --pre-border: #555;
+    --user-message-background: #2a3c42;
+    --assistant-message-background: #333333;
+    --system-message-background: #4a2d57;
+    --prompt-message-background: #4a2d57;
+    --log-message-background: #333333;
+    --error-message-background: #572c0f;
+    --warning-message-background: #554d00;
+    --info-message-background: #2a3c42;
+    --loading-message-background: #1e3628;
+    --file-button-background: #555;
+    --file-button-hover: #666;
+    --file-button-remove-hover: #e57373;
+    --file-button-text-color: #eee;
+    --prompts-header-background: #555;
+    --prompts-header-hover: #666;
+    --prompt-item-background: #444;
+    --prompt-item-hover: #555;
+    --prompt-delete-button-hover: #e57373;
+    --popup-background: var(--background-color);
+    --popup-border: var(--pre-border);
+    --popup-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    --tool-button-background: var(--file-button-background);
+    --tool-button-hover: var(--tool-button-hover);
+    --tool-button-remove-hover: var(--tool-button-remove-hover);
+    --tool-button-text-color: var(--tool-button-text-color);
+    --provider-button-background: var(--file-button-background);
+    --provider-button-hover: var(--provider-button-hover);
+    --provider-button-remove-hover: var(--provider-button-remove-hover);
+    --provider-button-text-color: var(--provider-button-text-color);
+    --form-input-background: var(--textarea-background);
+    --form-input-border: var(--form-input-border);
+    --form-input-text-color: var(--form-input-text-color);
+    --progress-bar-background: #555;
+    --progress-bar-fill: #4caf50;
+    --cancel-button-color: #e57373;
+    --cancel-button-hover-color: #ef9a9a;
+    --task-message-background: #4527a0;
+    --plan-step-message-border: #673ab7;
+    --form-prompt-message-background: #5c6bc0;
+  }
+}
+body {
+  font-family: Arial, sans-serif;
+  margin: 0;
+  padding: 20px;
+  background-color: var(--background-color);
+  color: var(--text-color);
+}
+#selected-files-container,
+#enabled-tools-container,
+#selected-provider-container {
+  display: flex;
+  gap: 5px;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+}
+.file-button,
+.tool-button,
+.provider-button {
+  background-color: var(--provider-button-background);
+  color: var(--provider-button-text-color);
+  border: none;
+  padding: 5px 10px;
+  border-radius: 5px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.9em;
+}
+.file-button:hover,
+.tool-button:hover,
+.provider-button:hover {
+  background-color: var(--provider-button-hover);
+}
+.file-button .remove-file-button,
+.tool-button .remove-tool-button,
+.provider-button .remove-provider-button {
+  background: none;
+  border: none;
+  color: var(--provider-button-text-color);
+  cursor: pointer;
+  padding: 0 5px;
+  border-radius: 3px;
+  font-size: 1em;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+}
+
+.file-button .remove-file-button:hover,
+.tool-button .remove-tool-button:hover,
+.provider-button .remove-provider-button:hover {
+  color: white;
+  background-color: var(--provider-button-remove-hover);
+}
+.input-area {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.input-row {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  position: relative;
+}
+textarea,
+.form-input,
+select {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 10px;
+  border-radius: 5px;
+  border: 1px solid var(--form-input-border);
+  background-color: var(--form-input-background);
+  color: var(--form-input-text-color);
+  resize: vertical;
+}
+.prompt-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  align-self: stretch;
+}
+.prompt-buttons button {
+  flex-grow: 1;
+  padding: 8px 10px;
+  font-size: 0.9em;
+}
+.button-row {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+button {
+  padding: 10px 15px;
+  border: none;
+  background-color: var(--button-background);
+  color: white;
+  border-radius: 5px;
+  cursor: pointer;
+}
+button:hover:not(:disabled) {
+  background-color: var(--button-hover);
+}
+pre {
+  background-color: var(--pre-background);
+  border-radius: 5px;
+  border: 1px solid var(--pre-border);
+  white-space: pre-wrap;
+  color: var(--text-color);
+  overflow-x: auto;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+.message-content-wrapper {
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+  gap: 8px;
+}
+
+.message-header {
+  display: grid;
+  grid-template-columns: 1fr auto auto auto;
+  align-items: start;
+  cursor: pointer;
+  position: relative;
+}
+.message-header.non-collapsible {
+  cursor: default;
+}
+.message-preview {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin-right: 10px;
+}
+.message-type-badge {
+  padding: 2px 5px;
+  border-radius: 3px;
+  font-size: 0.7em;
+  background-color: rgba(0, 0, 0, 0.2);
+  color: white;
+  margin-left: auto;
+}
+.collapse-button,
+.cancel-button {
+  background: none;
+  border: none;
+  color: var(--text-color);
+  cursor: pointer;
+  font-size: 0.8em;
+  opacity: 0.5;
+  padding: 0 5px;
+  margin-left: 5px;
+}
+.cancel-button {
+  color: var(--cancel-button-color);
+}
+.collapse-button:hover,
+.cancel-button:hover {
+  opacity: 1;
+}
+.cancel-button:hover {
+  color: var(--cancel-button-hover-color);
+}
+
+.message {
+  word-wrap: break-word;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.message-body-content {
+  padding-top: 8px;
+  border-top: 1px dashed var(--pre-border);
+}
+
+.collapsible-content {
+  overflow: hidden;
+  transition: max-height 0.3s ease-out;
+}
+.collapsible-content.collapsed {
+  max-height: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+  margin-bottom: 0;
+  overflow: hidden;
+}
+
+#messages-container {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.user-message {
+  background-color: var(--user-message-background);
+}
+.assistant-message {
+  background-color: var(--assistant-message-background);
+}
+.system-message {
+  background-color: var(--system-message-background);
+}
+.prompt-message {
+  background-color: var(--prompt-message-background);
+}
+.tool-message {
+  background-color: var(--prompt-message-background);
+}
+.log-message {
+  background-color: var(--log-message-background);
+}
+.error-message {
+  background-color: var(--error-message-background);
+}
+.warning-message {
+  background-color: var(--warning-message-background);
+}
+.info-message {
+  background-color: var(--info-message-background);
+}
+.loading-message {
+  background-color: var(--loading-message-background);
+}
+.task-message {
+  background-color: var(--task-message-background);
+}
+.form-prompt-message {
+  background-color: var(--form-prompt-message-background);
+}
+
+.loader {
+  width: 20px;
+  height: 20px;
+  border: 3px solid white;
+  border-top: 3px solid transparent;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  display: inline-block;
+}
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.prompts-section {
+  margin-bottom: 15px;
+}
+.prompts-header {
+  background-color: var(--prompts-header-background);
+  padding: 10px;
+  border-radius: 5px 5px 0 0;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.prompts-header:hover {
+  background-color: var(--prompts-header-hover);
+}
+.prompts-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  border: 1px solid var(--pre-border);
+  border-top: none;
+  border-radius: 0 0 5px 5px;
+  overflow: hidden;
+}
+.prompt-item {
+  background-color: var(--prompt-item-background);
+  padding: 10px;
+  border-bottom: 1px solid var(--pre-border);
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  cursor: pointer;
+  word-wrap: break-word;
+  white-space: normal;
+}
+.prompt-item:last-child {
+  border-bottom: none;
+}
+.prompt-item:hover {
+  background-color: var(--prompt-item-hover);
+}
+.prompt-delete-button {
+  background: none;
+  border: none;
+  color: var(--file-button-text-color);
+  cursor: pointer;
+  padding: 0 5px;
+  border-radius: 3px;
+  font-size: 0.8em;
+  line-height: 1;
+  width: 20px;
+  height: 20px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.prompt-delete-button:hover {
+  color: white;
+  background-color: var(--prompt-delete-button-hover);
+}
+.prompt-text {
+  flex-grow: 1;
+  margin-right: 10px;
+  word-wrap: break-word;
+}
+
+.prompt-popup,
+.tool-popup,
+.provider-popup,
+.privacy-popup {
+  position: fixed;
+  z-index: 10;
+  background-color: var(--popup-background);
+  border: 1px solid var(--popup-border);
+  border-radius: 5px;
+  box-shadow: var(--popup-shadow);
+  padding: 10px;
+  display: none;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  max-height: 90vh;
+  overflow-y: auto;
+  max-width: 90vw;
+  min-width: 300px;
+}
+.prompt-popup .prompts-list,
+.tool-popup .tool-list,
+.provider-popup .provider-list,
+.privacy-popup .privacy-list {
+  border: none;
+  overflow-y: auto;
+  max-height: unset;
+}
+.tool-popup .tool-list .tool-item {
+  background-color: var(--prompt-item-background);
+  padding: 10px;
+  border-bottom: 1px solid var(--pre-border);
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  cursor: pointer;
+  word-wrap: break-word;
+  white-space: normal;
+}
+.tool-popup .tool-list .tool-item:last-child {
+  border-bottom: none;
+}
+.tool-popup .tool-list .tool-item:hover {
+  background-color: var(--prompt-item-hover);
+}
+.provider-popup .provider-list .provider-item {
+  background-color: var(--prompt-item-background);
+  padding: 10px;
+  border-bottom: 1px solid var(--pre-border);
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  cursor: pointer;
+  word-wrap: break-word;
+  white-space: normal;
+}
+.provider-popup .provider-list .provider-item:last-child {
+  border-bottom: none;
+}
+.provider-popup .provider-list .provider-item:hover {
+  background-color: var(--prompt-item-hover);
+}
+
+.privacy-popup .privacy-list .privacy-item {
+  background-color: var(--prompt-item-background);
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--pre-border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  word-wrap: break-word;
+  white-space: normal;
+  font-size: 0.9em;
+}
+.privacy-popup .privacy-list .privacy-item:last-child {
+  border-bottom: none;
+}
+.privacy-popup .privacy-list .privacy-item:hover {
+  background-color: var(--prompt-item-hover);
+}
+.privacy-item .edit-button,
+.privacy-item .delete-button,
+.add-privacy-pair-button {
+  background: none;
+  border: none;
+  color: var(--file-button-text-color);
+  cursor: pointer;
+  padding: 0 5px;
+  border-radius: 3px;
+  font-size: 1em;
+  line-height: 1;
+  width: 24px;
+  height: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: 5px;
+}
+.privacy-item .edit-button:hover,
+.privacy-item .delete-button:hover,
+.add-privacy-pair-button:hover {
+  color: white;
+  background-color: var(--button-background);
+}
+.privacy-item .delete-button:hover {
+  background-color: var(--prompt-delete-button-hover);
+}
+
+.provider-popup-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+.privacy-popup-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+.provider-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 10px;
+}
+.privacy-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 15px;
+  border-top: 1px solid var(--pre-border);
+  padding-top: 15px;
+}
+.provider-form label {
+  margin-bottom: 5px;
+  font-weight: bold;
+}
+.privacy-form label {
+  margin-bottom: 5px;
+  font-weight: bold;
+}
+.provider-form input {
+  margin-bottom: 0;
+  padding: 8px;
+  border-radius: 5px;
+  border: 1px solid var(--form-input-border);
+  background-color: var(--form-input-background);
+  color: var(--form-input-text-color);
+}
+.privacy-form input {
+  margin-bottom: 0;
+  padding: 8px;
+  border-radius: 5px;
+  border: 1px solid var(--form-input-border);
+  background-color: var(--form-input-background);
+  color: var(--form-input-text-color);
+}
+.provider-form select {
+  margin-bottom: 0;
+  padding: 8px;
+  border-radius: 5px;
+  border: 1px solid var(--form-input-border);
+  background-color: var(--form-input-background);
+  color: var(--form-input-text-color);
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url('data:image/svg+xml;utf8,<svg fill="black" height="24" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg"><path d="M7 10l5 5 5-5z"/><path d="0 0h24v24H0z" fill="none"/></svg>');
+  background-repeat: no-repeat;
+  background-position-x: 100%;
+  background-position-y: 5px;
+  padding-right: 30px;
+}
+@media (prefers-color-scheme: dark) {
+  .provider-form select {
+    background-image: url('data:image/svg+xml;utf8,<svg fill="white" height="24" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg"><path d="M7 10l5 5 5-5z"/><path d="0 0h24v24H0z" fill="none"/></svg>');
+  }
+}
+
+.provider-form-buttons {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  margin-top: 10px;
+}
+.privacy-form-buttons {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  margin-top: 10px;
+}
+.error-message-inline {
+  color: red;
+  font-size: 0.8em;
+  margin-top: 2px;
+  display: none;
+}
+.select-provider-button,
+.duplicate-provider-button,
+.add-provider-button {
+  background: none;
+  border: none;
+  color: var(--file-button-text-color);
+  cursor: pointer;
+  padding: 0 5px;
+  border-radius: 3px;
+  font-size: 0.8em;
+  line-height: 1;
+  width: 20px;
+  height: 20px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.select-provider-button:hover,
+.duplicate-provider-button:hover,
+.add-provider-button:hover {
+  color: white;
+  background-color: var(--button-background);
+}
+
+.auto-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.9em;
+}
+.auto-checkbox input[type="checkbox"] {
+  margin: 0;
+}
+
+.child-messages-container {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.child-messages-container .message {
+  border: 1px solid var(--plan-step-message-border);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.child-messages-container .message .message-content-wrapper {
+  padding: 8px;
+}
+
+.progress-bar-container {
+  width: 100%;
+  height: 5px;
+  background-color: var(--progress-bar-background);
+
+  overflow: hidden;
+  margin-top: 0;
+  margin-bottom: 0;
+  border-top-left-radius: 5px;
+  border-top-right-radius: 5px;
+}
+
+.progress-bar-fill {
+  height: 100%;
+  background-color: var(--progress-bar-fill);
+  width: 0%;
+  transition: width 0.3s ease-in-out;
+}
+
+.progress-bar-container.failed .progress-bar-fill {
+  background-color: #f44336;
+}
+.progress-bar-container.completed .progress-bar-fill {
+  background-color: #4caf50;
+}
+.progress-bar-container.busy .progress-bar-fill {
+  background-color: #ffeb3b;
+}
+
+#runCommandInput {
+  flex-grow: 1;
+}
+
+.form-container {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 10px;
+  border: 1px solid var(--pre-border);
+  border-radius: 5px;
+  background-color: var(--textarea-background);
+}
+.form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.form-field label {
+  font-weight: bold;
+  font-size: 0.9em;
+}
+.form-field input[type="text"],
+.form-field input[type="number"],
+.form-field input[type="email"],
+.form-field textarea {
+  width: 100%;
+  padding: 8px;
+  border-radius: 4px;
+  border: 1px solid var(--form-input-border);
+  background-color: var(--form-input-background);
+  color: var(--form-input-text-color);
+  box-sizing: border-box;
+}
+.form-buttons-row {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  margin-top: 10px;
+}
+.form-buttons-row button {
+  padding: 8px 12px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 0.9em;
+}
+.form-buttons-row .submit-button {
+  background-color: var(--button-background);
+  color: white;
+}
+.form-buttons-row .submit-button:hover {
+  background-color: var(--button-hover);
+}
+.form-buttons-row .cancel-button {
+  background-color: var(--cancel-button-color);
+  color: white;
+}
+.form-buttons-row .cancel-button:hover {
+  background-color: var(--cancel-button-hover-color);
+}
+.form-error-message {
+  color: red;
+  font-size: 0.8em;
+  margin-top: 2px;
+}

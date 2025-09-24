@@ -69,7 +69,7 @@ function createBuildPlugin(assetsToCopy) {
 }
 
 async function main() {
-  const assetsToCopy = ["chatview.html"];
+  const assetsToCopy = ["chatview.html", "chatview.css", "chatview.js"];
 
   const ctx = await esbuild.context({
     entryPoints: ["src/extension.ts"],
