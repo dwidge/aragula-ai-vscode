@@ -50,6 +50,9 @@ async function main() {
     outfile: "dist/extension.js",
     external: ["vscode"],
     logLevel: "silent",
+    define: {
+      IS_PROD: "" + !!production,
+    },
     plugins: [createBuildPlugin()],
   });
 

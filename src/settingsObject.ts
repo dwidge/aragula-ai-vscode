@@ -1,7 +1,9 @@
+declare const IS_PROD: boolean;
+
 import { AiApiSettings } from "@/ai-api/types/AiApiSettings";
 import { PrivacyPair } from "./privacy/PrivacyPair";
 
-export const SETTINGS_STORAGE_KEY = "settings";
+export const SETTINGS_STORAGE_KEY = IS_PROD ? "settings" : "settings-dev";
 
 export type GetState = <T>(defaultValue: T) => T;
 export type SetState = <T>(value: T) => Promise<T>;
