@@ -1,9 +1,6 @@
 import { getCodebaseSummary } from "@/codebase/getCodebaseSummary";
-import { toRelativePath } from "@/git/toRelativePath";
 import { TaskLogger } from "@/utils/Logger";
 import { getWorkspaceRoot } from "@/vscode/getWorkspaceAbsolutePath";
-import * as fsSync from "fs";
-import path from "path";
 
 export const handleShowCodebaseSummary = (log: TaskLogger, targetDir = "src") =>
   log(
@@ -17,16 +14,11 @@ export const handleShowCodebaseSummary = (log: TaskLogger, targetDir = "src") =>
         throw new Error("No workspace root found");
       }
 
-      const absDir = path.join(workspaceRoot.fsPath, targetDir);
-      if (!fsSync.existsSync(absDir)) {
-        throw new Error("Directory not found: " + absDir);
-      }
-
       log({
         summary: `Compiling "${targetDir}" directory...`,
       });
 
-      const codebaseSummary = getCodebaseSummary(absDir);
+      const codebaseSummary = getCodebaseSummary(targetDir);
 
       log({
         summary: `Generated ${
@@ -36,7 +28,7 @@ export const handleShowCodebaseSummary = (log: TaskLogger, targetDir = "src") =>
 
       for (const [filePath, content] of Object.entries(codebaseSummary)) {
         log({
-          summary: toRelativePath(path.join(targetDir, filePath)),
+          summary: filePath,
           detail: content,
           type: "info",
         });

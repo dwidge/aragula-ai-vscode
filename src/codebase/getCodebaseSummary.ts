@@ -1,8 +1,16 @@
+import { toShortRelativePath } from "@/git/toRelativePath";
+import { getWorkspaceAbsolutePath } from "@/vscode/getWorkspaceAbsolutePath";
 import { createProjectSync, ts } from "@ts-morph/bootstrap";
 import * as fs from "fs";
+import * as fsSync from "fs";
 import * as path from "path";
 
-export function getCodebaseSummary(dirPath: string): Record<string, string> {
+export function getCodebaseSummary(relDir: string): Record<string, string> {
+  const dirPath = getWorkspaceAbsolutePath(relDir);
+  if (!fsSync.existsSync(dirPath)) {
+    throw new Error("Directory not found: " + dirPath);
+  }
+
   const filesOnDisk: Record<string, string> = {};
   const codebaseSummary: Record<string, string> = {};
 
@@ -61,7 +69,7 @@ export function getCodebaseSummary(dirPath: string): Record<string, string> {
   ): void => {
     if (fileName.endsWith(".d.ts")) {
       // Normalize path to be consistent (e.g., replace backslashes on Windows)
-      codebaseSummary[fileName.replace(/\\/g, "/")] = data;
+      codebaseSummary[toShortRelativePath(path.join(relDir, fileName))] = data;
     }
   };
   const emitResult = program.emit(undefined, writeFileCallback);

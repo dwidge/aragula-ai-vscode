@@ -8,6 +8,7 @@ import { newAiApi } from "./aiTools/AiApi";
 import { availableToolsDefinitions } from "./aiTools/availableToolNames";
 import { filterToolsByName } from "./aiTools/filterToolsByName";
 import { readFiles } from "./aiTools/readFiles";
+import { getCodebaseSummary } from "./codebase/getCodebaseSummary";
 import { getCommitMessageInstruction } from "./generateCommitMessageInstruction";
 import { parseCommitMessages } from "./parseCommitMessages";
 import { PostMessage } from "./PostMessage";
@@ -16,6 +17,7 @@ import { PrivacyPair } from "./privacy/PrivacyPair";
 import { replaceToolCallContent } from "./privacy/replaceToolCallContent";
 import { restoreToolCallContent } from "./privacy/restoreToolCallContent";
 import { reversePrivacyReplacements } from "./privacy/reversePrivacyReplacements";
+import { readFileMap } from "./readFileMap";
 import { checkAndFixErrors } from "./task/checkAndFixErrors";
 import { handleFormatFilesInFiles } from "./task/handleFormatFilesInFiles";
 import { handleRemoveCommentsInFiles } from "./task/handleRemoveCommentsInFiles";
@@ -52,6 +54,7 @@ export async function handleSendMessage(
     autoFixErrors: boolean;
     autoGenerateCommit: boolean;
     useConventionalCommits: boolean;
+    includeCodebaseSummary: boolean;
     messageId: string;
     privacySettings?: PrivacyPair[];
   },
@@ -182,6 +185,7 @@ export async function performAiRequest(
     providerSetting: AiApiSettings;
     autoGenerateCommit?: boolean;
     useConventionalCommits?: boolean;
+    includeCodebaseSummary?: boolean;
     privacySettings?: PrivacyPair[];
   },
   log: Logger,
@@ -191,6 +195,17 @@ export async function performAiRequest(
   log("enabledToolNames\n\n" + message.toolNames, "info");
   const rawFilesContent: ToolCall[] = await readFiles(message.fileNames);
   log(`Read ${rawFilesContent.length} files\n\n${message.fileNames}`, "info");
+
+  if (message.includeCodebaseSummary) {
+    const targetDir = "src";
+    const codebaseSummaryFiles = await getCodebaseSummary(targetDir);
+    const codebaseSummaryContent = readFileMap(codebaseSummaryFiles);
+    rawFilesContent.push(...codebaseSummaryContent);
+    log(
+      `Included ${codebaseSummaryContent.length} codebase summary files.`,
+      "info"
+    );
+  }
 
   const privacySettings = message.privacySettings || [];
 

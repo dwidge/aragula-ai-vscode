@@ -1013,6 +1013,12 @@
           >
             Show Codebase Summary
           </button>
+          <div class="auto-checkbox">
+            <input type="checkbox" id="includeCodebaseSummaryCheckbox" />
+            <label for="includeCodebaseSummaryCheckbox"
+              >Include Codebase Summary</label
+            >
+          </div>
           <button
             id="privacySettingsButton"
             onclick="togglePrivacySettingsPopup()"
@@ -1132,6 +1138,8 @@
       let autoGenerateCommit = false;
       /** @type {boolean} */
       let useConventionalCommits = false;
+      /** @type {boolean} */
+      let includeCodebaseSummary = false;
 
       /**
        * @typedef {Object} PrivacyPair
@@ -1318,6 +1326,9 @@
       );
       const isPrivacyMaskingEnabledCheckbox = document.getElementById(
         "isPrivacyMaskingEnabledCheckbox"
+      );
+      const includeCodebaseSummaryCheckbox = document.getElementById(
+        "includeCodebaseSummaryCheckbox"
       );
 
       /**
@@ -2234,6 +2245,7 @@
         const autoFixErrors = autoFixErrorsCheckbox.checked;
         const autoGenerateCommit = autoGenerateCommitCheckbox.checked;
         const useConventionalCommits = useConventionalCommitsCheckbox.checked;
+        const includeCodebaseSummary = includeCodebaseSummaryCheckbox.checked;
 
         const messageId = Date.now().toString();
 
@@ -2252,6 +2264,7 @@
           useConventionalCommits: useConventionalCommits,
           privacySettings: privacySettings,
           isPrivacyMaskingEnabled: isPrivacyMaskingEnabled,
+          includeCodebaseSummary,
         });
       }
 
@@ -3108,9 +3121,11 @@
       });
       isPrivacyMaskingEnabledCheckbox.addEventListener("change", () => {
         isPrivacyMaskingEnabled = isPrivacyMaskingEnabledCheckbox.checked;
-        sendSettingsUpdate({
-          isPrivacyMaskingEnabled: isPrivacyMaskingEnabled,
-        });
+        sendSettingsUpdate({ isPrivacyMaskingEnabled });
+      });
+      includeCodebaseSummaryCheckbox.addEventListener("change", () => {
+        includeCodebaseSummary = includeCodebaseSummaryCheckbox.checked;
+        sendSettingsUpdate({ includeCodebaseSummary });
       });
 
       window.addEventListener("message", (event) => {
@@ -3341,6 +3356,8 @@
 
             useConventionalCommits = settings.useConventionalCommits ?? false;
             useConventionalCommitsCheckbox.checked = useConventionalCommits;
+            includeCodebaseSummary = settings.includeCodebaseSummary ?? false;
+            includeCodebaseSummaryCheckbox.checked = includeCodebaseSummary;
             isPrivacyMaskingEnabledCheckbox.checked = isPrivacyMaskingEnabled;
 
             renderSystemPromptsList();
