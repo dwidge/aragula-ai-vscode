@@ -6,37 +6,12 @@ const production = process.argv.includes("--production");
 const watch = process.argv.includes("--watch");
 
 /**
- * Copies a specified asset file from src to dist.
- * @param {string} assetFileName - The name of the asset file to copy.
- */
-function copyAsset(assetFileName) {
-  const sourcePath = path.join(__dirname, "src", assetFileName);
-  const destDir = path.join(__dirname, "dist");
-  const destPath = path.join(destDir, assetFileName);
-
-  if (!fs.existsSync(destDir)) {
-    fs.mkdirSync(destDir, { recursive: true });
-  }
-
-  try {
-    fs.copyFileSync(sourcePath, destPath);
-    console.log(`[asset-copier] Copied asset: ${assetFileName} to ${destPath}`);
-  } catch (error) {
-    console.error(
-      `[asset-copier] Error copying asset ${assetFileName}:`,
-      error
-    );
-  }
-}
-
-/**
- * Esbuild plugin to report build status and copy assets on build completion.
- * @param {string[]} assetsToCopy - List of asset filenames to copy after a successful build.
+ * Esbuild plugin to report build status.
  * @returns {import('esbuild').Plugin}
  */
-function createBuildPlugin(assetsToCopy) {
+function createBuildPlugin() {
   return {
-    name: "build-reporter-and-asset-copier",
+    name: "build-reporter",
 
     setup(build) {
       build.onStart(() => {
@@ -55,13 +30,8 @@ function createBuildPlugin(assetsToCopy) {
 
         if (result.errors.length === 0) {
           console.log("[build] build finished successfully.");
-          console.log("[build] Starting asset copy...");
-          assetsToCopy.forEach(copyAsset);
-          console.log("[build] Asset copy finished.");
         } else {
-          console.log(
-            "[build] build finished with errors, skipping asset copy."
-          );
+          console.log("[build] build finished with errors.");
         }
       });
     },
@@ -69,8 +39,6 @@ function createBuildPlugin(assetsToCopy) {
 }
 
 async function main() {
-  const assetsToCopy = ["chatview.html", "chatview.css", "chatview.js"];
-
   const ctx = await esbuild.context({
     entryPoints: ["src/extension.ts"],
     bundle: true,
@@ -82,7 +50,7 @@ async function main() {
     outfile: "dist/extension.js",
     external: ["vscode"],
     logLevel: "silent",
-    plugins: [createBuildPlugin(assetsToCopy)],
+    plugins: [createBuildPlugin()],
   });
 
   if (watch) {
