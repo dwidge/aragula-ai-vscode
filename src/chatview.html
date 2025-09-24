@@ -1008,6 +1008,12 @@
             Test Set Commit Message
           </button>
           <button
+            id="showCodebaseSummaryButton"
+            onclick="handleShowCodebaseSummary()"
+          >
+            Show Codebase Summary
+          </button>
+          <button
             id="privacySettingsButton"
             onclick="togglePrivacySettingsPopup()"
           >
@@ -1291,6 +1297,9 @@
       const testFormTaskButton = document.getElementById("testFormTaskButton");
       const testSetCommitMessageButton = document.getElementById(
         "testSetCommitMessageButton"
+      );
+      const showCodebaseSummaryButton = document.getElementById(
+        "showCodebaseSummaryButton"
       );
       const privacySettingsPopupEl = document.getElementById("privacy-popup");
       const privacySettingsPopupListEl =
@@ -2411,6 +2420,12 @@
         });
       }
 
+      function handleShowCodebaseSummary() {
+        vscode.postMessage({
+          command: "runShowCodebaseSummary",
+        });
+      }
+
       function renderSystemPromptsList() {
         systemPromptsPopupListEl.innerHTML = "";
         systemPrompts.forEach((prompt) => {
@@ -3416,6 +3431,7 @@
       window.handleSavePrivacyPair = handleSavePrivacyPair;
       window.handleCancelPrivacyPair = handleCancelPrivacyPair;
       window.handleAddPrivacyPairButton = handleAddPrivacyPairButton;
+      window.handleShowCodebaseSummary = handleShowCodebaseSummary;
     </script>
   </body>
 </html>

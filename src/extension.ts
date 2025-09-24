@@ -14,6 +14,7 @@ import { handleFormatFilesInFiles } from "./handleFormatFilesInFiles";
 import { handleRemoveCommentsInFiles } from "./handleRemoveCommentsInFiles";
 import { addFiles, openFilesDialog, removeFiles } from "./handleRemoveFile";
 import { handleSendMessage } from "./handleSendMessage";
+import { handleShowCodebaseSummary } from "./handleShowCodebaseSummary";
 import { handlePlanAndExecute } from "./planTool";
 import { newPostMessage, PostMessage } from "./PostMessage";
 import { processPath } from "./processPath";
@@ -481,6 +482,9 @@ async function handleWebviewMessage(
       break;
     case "runTestSetCommitMessage":
       runTestSetCommitMessage(logTask);
+      break;
+    case "runShowCodebaseSummary":
+      handleShowCodebaseSummary(logTask);
       break;
     default:
       console.warn("Unknown command from webview:", message.command);
