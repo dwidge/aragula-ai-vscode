@@ -1,15 +1,15 @@
 import { AiApiSettings } from "@/ai-api/types/AiApiSettings";
-import { AIPlan, PlanStep } from "./extension";
-import { callAI, CallAiProps } from "./handleSendMessage";
+import { AIPlan, PlanStep } from "@/extension";
+import { callAI, CallAiProps } from "@/handleSendMessage";
 import {
   createDependentTasks,
   createMessageLogger,
   TaskLog,
   TaskLogger,
-} from "./utils/Logger";
-import { commitStaged } from "./vscode/git/commitStaged";
-import { getDiffContext } from "./vscode/git/getDiffContext";
-import { stageFiles } from "./vscode/git/stageFiles";
+} from "@/utils/Logger";
+import { commitStaged } from "@/vscode/git/commitStaged";
+import { getDiffContext } from "@/vscode/git/getDiffContext";
+import { stageFiles } from "@/vscode/git/stageFiles";
 
 /**
  * Initiates the plan generation and execution process.

@@ -1,11 +1,11 @@
 import {
   keepOnlyJsDocAndRemoveEmptyLinesReplacer,
   removeJsJsxComments,
-} from "./comments/removeJsJsxComments";
-import { readFileSafe } from "./file/readFileSafe";
-import { writeFileSafe } from "./file/writeFileSafe";
-import { formatCodeWithVscode } from "./vscode/formatCodeWithVscode";
-import { getWorkspaceAbsolutePath } from "./vscode/getWorkspaceAbsolutePath";
+} from "@/comments/removeJsJsxComments";
+import { readFileSafe } from "@/file/readFileSafe";
+import { writeFileSafe } from "@/file/writeFileSafe";
+import { formatCodeWithVscode } from "@/vscode/formatCodeWithVscode";
+import { getWorkspaceAbsolutePath } from "@/vscode/getWorkspaceAbsolutePath";
 
 export async function removeComments(filePath: string): Promise<boolean> {
   const fullPath = getWorkspaceAbsolutePath(filePath);

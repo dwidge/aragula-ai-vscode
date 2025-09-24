@@ -8,22 +8,11 @@ import * as vscode from "vscode";
 import { TextAi } from "./ai-api/types/TextAi";
 import { useTextAi } from "./ai-api/useTextAi";
 import { availableToolNames, availableVendors } from "./availableToolNames";
-import { checkAndFixErrors } from "./checkAndFixErrors";
 import { generateCommitMessage } from "./generateCommitMessage";
-import { handleFormatFilesInFiles } from "./handleFormatFilesInFiles";
-import { handleRemoveCommentsInFiles } from "./handleRemoveCommentsInFiles";
 import { addFiles, openFilesDialog, removeFiles } from "./handleRemoveFile";
 import { handleSendMessage } from "./handleSendMessage";
-import { handleShowCodebaseSummary } from "./handleShowCodebaseSummary";
-import { handlePlanAndExecute } from "./planTool";
 import { newPostMessage, PostMessage } from "./PostMessage";
 import { processPath } from "./processPath";
-import { runShellTask } from "./runShellTask";
-import { runTestFormTask } from "./runTestFormTask";
-import { runTestMultiTask } from "./runTestMultiTask";
-import { runTestSerialTask } from "./runTestSerialTask";
-import { runTestSetCommitMessage } from "./runTestSetCommitMessage";
-import { runTestTask } from "./runTestTask";
 import {
   GetterSetter,
   newVsCodeState,
@@ -32,6 +21,17 @@ import {
   useProviderByName,
   useSettingsObject,
 } from "./settingsObject";
+import { checkAndFixErrors } from "./task/checkAndFixErrors";
+import { handleFormatFilesInFiles } from "./task/handleFormatFilesInFiles";
+import { handleRemoveCommentsInFiles } from "./task/handleRemoveCommentsInFiles";
+import { handleShowCodebaseSummary } from "./task/handleShowCodebaseSummary";
+import { handlePlanAndExecute } from "./task/planTool";
+import { runShellTask } from "./task/runShellTask";
+import { runTestFormTask } from "./task/runTestFormTask";
+import { runTestMultiTask } from "./task/runTestMultiTask";
+import { runTestSerialTask } from "./task/runTestSerialTask";
+import { runTestSetCommitMessage } from "./task/runTestSetCommitMessage";
+import { runTestTask } from "./task/runTestTask";
 import { getAvailableShells, ShellProfile } from "./utils/getShells";
 import {
   ActiveTasks,

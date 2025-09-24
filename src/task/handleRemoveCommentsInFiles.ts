@@ -1,5 +1,5 @@
-import { removeComments } from "./removeComments";
-import { Logger } from "./utils/Logger";
+import { removeComments } from "@/task/removeComments";
+import { Logger } from "@/utils/Logger";
 
 export async function handleRemoveCommentsInFiles(
   filePaths: string[],

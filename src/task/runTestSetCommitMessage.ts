@@ -1,6 +1,6 @@
-import { TaskLogger } from "./utils/Logger";
-import { getGitAPI } from "./vscode/git/getGitAPI";
-import { setCommitMessage } from "./vscode/git/setCommitMessage";
+import { TaskLogger } from "@/utils/Logger";
+import { getGitAPI } from "@/vscode/git/getGitAPI";
+import { setCommitMessage } from "@/vscode/git/setCommitMessage";
 
 export async function runTestSetCommitMessage(logTask: TaskLogger) {
   await logTask(

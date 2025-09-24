@@ -1,6 +1,6 @@
+import { TaskLogger } from "@/utils/Logger";
 import { spawn } from "child_process";
 import * as vscode from "vscode";
-import { TaskLogger } from "./utils/Logger";
 
 export const runShellTask = (
   command: string,

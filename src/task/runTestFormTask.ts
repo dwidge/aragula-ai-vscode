@@ -1,4 +1,4 @@
-import { TaskLogger } from "./utils/Logger";
+import { TaskLogger } from "@/utils/Logger";
 
 export async function runTestFormTask(logTask: TaskLogger) {
   await logTask(

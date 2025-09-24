@@ -1,13 +1,13 @@
+import { executeToolCalls } from "@/ai-api/executeToolCalls";
 import { AiApiSettings } from "@/ai-api/types/AiApiSettings";
 import { ToolCall } from "@/ai-api/types/ToolCall";
 import { ToolDefinition } from "@/ai-api/types/ToolDefinition";
+import { newAiApi } from "@/aiTools/AiApi";
+import { writeFileTool } from "@/aiTools/tools";
+import { readFiles } from "@/readFiles";
+import { Logger } from "@/utils/Logger";
 import { getCodeErrorsWithVscode } from "@/vscode/getCodeErrorsWithVscode";
 import { getWorkspaceAbsolutePath } from "@/vscode/getWorkspaceAbsolutePath";
-import { executeToolCalls } from "./ai-api/executeToolCalls";
-import { newAiApi } from "./aiTools/AiApi";
-import { writeFileTool } from "./aiTools/tools";
-import { readFiles } from "./readFiles";
-import { Logger } from "./utils/Logger";
 
 /**
  * Checks for errors in files, constructs a prompt with errors and file content,
