@@ -21,6 +21,7 @@ import { handleRemoveCommentsInFiles } from "./task/handleRemoveCommentsInFiles"
 import { handleShowCodebaseSummary } from "./task/handleShowCodebaseSummary";
 import { handlePlanAndExecute } from "./task/plan/planTool";
 import { runShellTask } from "./task/runShellTask";
+import { runTaskWithCatch } from "./task/runTaskWithCatch";
 import { runTestFormTask } from "./task/runTestFormTask";
 import { runTestMultiTask } from "./task/runTestMultiTask";
 import { runTestSerialTask } from "./task/runTestSerialTask";
@@ -191,7 +192,11 @@ export async function handleWebviewMessage(
       runTestFormTask(logTask);
       break;
     case "runTestSetCommitMessage":
-      runTestSetCommitMessage(logTask);
+      runTaskWithCatch(
+        logTask,
+        "Simulating Set Commit Message",
+        runTestSetCommitMessage
+      );
       break;
     case "runShowCodebaseSummary":
       handleShowCodebaseSummary(logTask);

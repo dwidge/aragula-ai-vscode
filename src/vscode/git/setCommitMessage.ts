@@ -19,9 +19,9 @@ export async function setCommitMessage(
     targetRepo.inputBox.value = message;
   } else {
     throw new Error(
-      `setCommitMessageE2: Repository not found for path: ${repoPath}. Available repositories: ${git.repositories
-        .map((r) => r.rootUri.path)
-        .join(", ")}`
+      `setCommitMessageE1: Repository not found\nPath:\n  ${repoPath}\nAvailable repositories:\n${git.repositories
+        .map((r) => "  " + r.rootUri.path)
+        .join("\n")}`
     );
   }
 }
