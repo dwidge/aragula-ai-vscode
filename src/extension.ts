@@ -1,17 +1,15 @@
-import { withProgress } from "@/vscode/withProgress";
 import * as vscode from "vscode";
-import { useTextAi } from "./ai-api/useTextAi";
 import { closeAllPanels } from "./chat/closeAllPanels";
 import {
   getOpenPanelWithFiles,
   OpenPanelFiles,
 } from "./chat/openPanelWithFiles";
-import { generateCommitMessage } from "./generateCommitMessage";
 import {
   GetterSetter,
   newVsCodeState,
   SETTINGS_STORAGE_KEY,
 } from "./settingsObject";
+import { generateCommitMessageCommand } from "./task/generateCommitMessageCommand";
 import { Logger } from "./utils/Logger";
 
 const log: Logger = (msg: string) => {
@@ -32,32 +30,6 @@ const askAIEditorCommand = async (
   single: vscode.Uri,
   options: any
 ) => openFiles([single]).catch(logError);
-
-const generateCommitMessageCommand = async (
-  globalSettings: GetterSetter,
-  sourceControl: vscode.SourceControl
-) => {
-  const repoPath = sourceControl.rootUri?.fsPath;
-  if (!repoPath) {
-    throw new Error("No rootUri found for the source control");
-  }
-
-  const textAi = useTextAi(globalSettings);
-
-  const commitMessage = await withProgress(
-    vscode.ProgressLocation.SourceControl,
-    (signal, progress) =>
-      generateCommitMessage(repoPath, textAi, {
-        signal,
-        progress,
-      })
-  );
-  if (!commitMessage) {
-    throw new Error("Generated commit message was empty");
-  }
-
-  sourceControl.inputBox.value = commitMessage;
-};
 
 export function activate(context: vscode.ExtensionContext) {
   const globalSettings: GetterSetter = newVsCodeState(
