@@ -2,23 +2,23 @@ import * as vscode from "vscode";
 import {
   availableToolNames,
   availableVendors,
-} from "./aiTools/availableToolNames";
-import { chatPanels } from "./extension";
-import { getTextAsset } from "./getTextAsset";
-import { handleWebviewMessage } from "./handleWebviewMessage";
-import { newPostMessage } from "./PostMessage";
-import { sendSettingsToWebview } from "./sendSettingsToWebview";
+} from "../aiTools/availableToolNames";
+import { getTextAsset } from "../getTextAsset";
+import { handleWebviewMessage } from "../handleWebviewMessage";
+import { newPostMessage } from "../PostMessage";
+import { sendSettingsToWebview } from "../sendSettingsToWebview";
 import {
   GetterSetter,
   useProviderByName,
   useSettingsObject,
-} from "./settingsObject";
-import { getAvailableShells } from "./utils/getShells";
+} from "../settingsObject";
+import { getAvailableShells } from "../utils/getShells";
 import {
   ActiveTasks,
   PendingFormRequests,
   cancelAllTasks,
-} from "./utils/Logger";
+} from "../utils/Logger";
+import { chatPanels } from "./chatPanels";
 
 export async function openChatWindow(
   context: vscode.ExtensionContext,

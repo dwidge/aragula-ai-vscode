@@ -4,7 +4,7 @@ import {
   availableToolNames,
   availableVendors,
 } from "./aiTools/availableToolNames";
-import { chatPanels } from "./extension";
+import { chatPanels } from "./chat/chatPanels";
 import { addFiles, openFilesDialog, removeFiles } from "./handleRemoveFile";
 import { handleSendMessage } from "./handleSendMessage";
 import { PostMessage } from "./PostMessage";

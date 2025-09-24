@@ -1,20 +1,17 @@
 import * as vscode from "vscode";
 import { useTextAi } from "./ai-api/useTextAi";
-import { readOpenFilePaths } from "./file/readOpenFilePaths";
+import { closeAllPanels } from "./chat/closeAllPanels";
+import {
+  getOpenPanelWithFiles,
+  OpenPanelFiles,
+} from "./chat/openPanelWithFiles";
 import { generateCommitMessage } from "./generateCommitMessage";
-import { openChatWindow } from "./openChatWindow";
-import { newPostMessage } from "./PostMessage";
 import {
   GetterSetter,
   newVsCodeState,
   SETTINGS_STORAGE_KEY,
 } from "./settingsObject";
-import {
-  ActiveTasks,
-  cancelAllTasks,
-  Logger,
-  PendingFormRequests,
-} from "./utils/Logger";
+import { Logger } from "./utils/Logger";
 
 const log: Logger = (msg: string) => {
   vscode.window.showInformationMessage(msg);
@@ -23,67 +20,17 @@ const logError: Logger = (e: unknown) => {
   vscode.window.showErrorMessage(`${e}`);
 };
 
-interface ChatPanelInfo {
-  panel: vscode.WebviewPanel;
-  activeTasks: ActiveTasks;
-  pendingFormRequests: PendingFormRequests;
-}
-
-export const chatPanels = new Map<string, ChatPanelInfo>();
-
-const findExistingPanelInfo = (): ChatPanelInfo | undefined => {
-  for (const panelInfo of chatPanels.values()) {
-    if (panelInfo?.panel) {
-      return panelInfo;
-    }
-  }
-};
-
-const openExistingPanelWithFiles = (
-  panelInfo: ChatPanelInfo,
-  filePaths: string[]
-) => {
-  panelInfo.panel.reveal(vscode.ViewColumn.One);
-  const postMessage = newPostMessage(panelInfo.panel);
-  postMessage({
-    command: "addFiles",
-    filePaths,
-  });
-};
-
-const openNewPanelWithFiles = async (
-  context: vscode.ExtensionContext,
-  filePaths: string[],
-  globalSettings: GetterSetter
-) => openChatWindow(context, filePaths, globalSettings);
-
-const addFiles =
-  (context: vscode.ExtensionContext, globalSettings: GetterSetter) =>
-  async (multi: vscode.Uri[]) => {
-    const openFilePaths = await readOpenFilePaths(
-      multi.map((uri) => uri.fsPath)
-    );
-
-    const existingPanelInfo = findExistingPanelInfo();
-
-    if (existingPanelInfo) {
-      openExistingPanelWithFiles(existingPanelInfo, openFilePaths);
-    } else {
-      await openNewPanelWithFiles(context, openFilePaths, globalSettings);
-    }
-  };
-
 const askAICommand = async (
-  boundAddFiles: ReturnType<typeof addFiles>,
+  openFiles: OpenPanelFiles,
   single: vscode.Uri,
   multi: vscode.Uri[]
-) => boundAddFiles(multi).catch(logError);
+) => openFiles(multi).catch(logError);
 
 const askAIEditorCommand = async (
-  boundAddFiles: ReturnType<typeof addFiles>,
+  openFiles: OpenPanelFiles,
   single: vscode.Uri,
   options: any
-) => boundAddFiles([single]).catch(logError);
+) => openFiles([single]).catch(logError);
 
 const generateCommitMessageCommand = async (
   globalSettings: GetterSetter,
@@ -145,13 +92,13 @@ export function activate(context: vscode.ExtensionContext) {
     SETTINGS_STORAGE_KEY
   );
 
-  const boundAddFiles = addFiles(context, globalSettings);
+  const openPanelWithFiles = getOpenPanelWithFiles(context, globalSettings);
 
   context.subscriptions.push(
     vscode.commands.registerCommand(
       "aragula-ai.askAI",
       (single: vscode.Uri, multi: vscode.Uri[]) =>
-        askAICommand(boundAddFiles, single, multi)
+        askAICommand(openPanelWithFiles, single, multi)
     )
   );
 
@@ -159,7 +106,7 @@ export function activate(context: vscode.ExtensionContext) {
     vscode.commands.registerCommand(
       "aragula-ai.askAIEditor",
       (single: vscode.Uri, options: any) =>
-        askAIEditorCommand(boundAddFiles, single, options)
+        askAIEditorCommand(openPanelWithFiles, single, options)
     )
   );
 
@@ -173,15 +120,5 @@ export function activate(context: vscode.ExtensionContext) {
 }
 
 export function deactivate() {
-  chatPanels.forEach((panelInfo) => {
-    cancelAllTasks(panelInfo.activeTasks);
-    panelInfo.pendingFormRequests.forEach(({ reject }) =>
-      reject(
-        new Error(
-          "Form request cancelled: Webview panel closed during deactivation."
-        )
-      )
-    );
-    panelInfo.pendingFormRequests.clear();
-  });
+  closeAllPanels();
 }
