@@ -3,9 +3,9 @@ import * as vscode from "vscode";
 /**
  * Gets the Git API.
  *
- * @returns {API} The Git API, or throws if not found.
+ * @returns {GitAPI} The Git API, or throws if not found.
  */
-export async function getGitAPI(): Promise<API> {
+export async function getGitAPI(): Promise<GitAPI> {
   const gitExtension =
     vscode.extensions.getExtension<GitExtension>("vscode.git");
   if (!gitExtension) {
@@ -20,10 +20,10 @@ export async function getGitAPI(): Promise<API> {
 }
 
 interface GitExtension {
-  getAPI(version: 1): API;
+  getAPI(version: 1): GitAPI;
 }
 
-interface API {
+export interface GitAPI {
   repositories: Repository[];
   getRepository(uri: vscode.Uri): Repository | null;
 }
