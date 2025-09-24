@@ -1,6 +1,6 @@
 import { AiApiSettings } from "@/ai-api/types/AiApiSettings";
-import { AIPlan, PlanStep } from "@/extension";
 import { callAI, CallAiProps } from "@/handleSendMessage";
+import { AIPlan, PlanStep } from "@/task/plan/PlanStep";
 import {
   createDependentTasks,
   createMessageLogger,
