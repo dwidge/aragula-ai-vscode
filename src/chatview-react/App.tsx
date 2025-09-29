@@ -763,15 +763,17 @@ const App: React.FC = () => {
     []
   );
 
+  const closeToolPopup = useCallback(() => setToolPopupVisible(false), []);
+
   const enableTool = useCallback(
     (tool: string) => {
       if (!enabledTools.includes(tool)) {
         setEnabledTools((prev) => [...prev, tool]);
         sendSettingsUpdate({ enabledTools: [...enabledTools, tool] });
       }
-      setToolPopupVisible(false);
+      closeToolPopup();
     },
-    [enabledTools, sendSettingsUpdate]
+    [enabledTools, sendSettingsUpdate, closeToolPopup]
   );
 
   const removeTool = useCallback(
@@ -786,6 +788,11 @@ const App: React.FC = () => {
 
   const toggleProviderSettingsPopup = useCallback(
     () => setProviderSettingsPopupVisible((prev) => !prev),
+    []
+  );
+
+  const closeProviderSettingsPopup = useCallback(
+    () => setProviderSettingsPopupVisible(false),
     []
   );
 
@@ -857,7 +864,7 @@ const App: React.FC = () => {
     }
 
     handleAddProvider();
-    setProviderSettingsPopupVisible(false);
+    closeProviderSettingsPopup();
   }, [
     providerForm,
     editingProviderName,
@@ -865,6 +872,7 @@ const App: React.FC = () => {
     currentProviderSetting,
     sendSettingsUpdate,
     handleAddProvider,
+    closeProviderSettingsPopup,
   ]);
 
   const duplicateProvider = useCallback(
@@ -917,6 +925,11 @@ const App: React.FC = () => {
     []
   );
 
+  const closePrivacySettingsPopup = useCallback(
+    () => setPrivacySettingsPopupVisible(false),
+    []
+  );
+
   const handleAddPrivacyPair = useCallback(() => {
     setEditingPrivacyPairSearch(null);
     setPrivacyForm({ search: "", replace: "" });
@@ -948,13 +961,14 @@ const App: React.FC = () => {
     setPrivacySettings(newSettings);
     sendSettingsUpdate({ privacySettings: newSettings });
     handleAddPrivacyPair();
-    setPrivacySettingsPopupVisible(false);
+    closePrivacySettingsPopup();
   }, [
     privacyForm,
     editingPrivacyPairSearch,
     privacySettings,
     sendSettingsUpdate,
     handleAddPrivacyPair,
+    closePrivacySettingsPopup,
   ]);
 
   const deletePrivacyPair = useCallback(
@@ -1035,7 +1049,25 @@ const App: React.FC = () => {
     },
     [sendSettingsUpdate]
   );
-  console.log("tool1", toolPopupVisible, availableTools, enabledTools);
+
+  const renderOverlay = useCallback(
+    (closeFn: () => void) => (
+      <div
+        className="overlay"
+        onClick={closeFn}
+        style={{
+          position: "fixed",
+          top: 0,
+          left: 0,
+          width: "100%",
+          height: "100%",
+          backgroundColor: "rgba(0, 0, 0, 0.5)",
+          zIndex: 9,
+        }}
+      />
+    ),
+    []
+  );
 
   return (
     <main onDragOver={allowDrop} onDrop={dropHandler}>
@@ -1054,21 +1086,34 @@ const App: React.FC = () => {
       </div>
 
       {toolPopupVisible && (
-        <div id="tool-popup" className="tool-popup">
-          <ul id="tool-popup-list" className="tool-list">
-            {availableTools
-              .filter((t) => !enabledTools.includes(t))
-              .map((tool) => (
-                <li
-                  key={tool}
-                  className="tool-item"
-                  onClick={() => enableTool(tool)}
-                >
-                  {tool}
-                </li>
-              ))}
-          </ul>
-        </div>
+        <>
+          {renderOverlay(closeToolPopup)}
+          <div
+            id="tool-popup"
+            className="tool-popup"
+            style={{ display: "block", zIndex: 10 }}
+          >
+            <div className="popup-header">
+              <span>Available Tools</span>
+              <button className="close-button" onClick={closeToolPopup}>
+                ✕
+              </button>
+            </div>
+            <ul id="tool-popup-list" className="tool-list">
+              {availableTools
+                .filter((t) => !enabledTools.includes(t))
+                .map((tool) => (
+                  <li
+                    key={tool}
+                    className="tool-item"
+                    onClick={() => enableTool(tool)}
+                  >
+                    {tool}
+                  </li>
+                ))}
+            </ul>
+          </div>
+        </>
       )}
 
       <div id="selected-provider-container">
@@ -1095,7 +1140,11 @@ const App: React.FC = () => {
         </div>
 
         {systemPromptsPopupVisible && (
-          <div id="system-prompts-popup" className="prompt-popup">
+          <div
+            id="system-prompts-popup"
+            className="prompt-popup"
+            style={{ display: "block" }}
+          >
             <ul id="system-prompts-popup-list" className="prompts-list">
               {systemPrompts.map((prompt) => (
                 <li
@@ -1134,7 +1183,11 @@ const App: React.FC = () => {
         </div>
 
         {userPromptsPopupVisible && (
-          <div id="user-prompts-popup" className="prompt-popup">
+          <div
+            id="user-prompts-popup"
+            className="prompt-popup"
+            style={{ display: "block" }}
+          >
             <ul id="user-prompts-popup-list" className="prompts-list">
               {userPrompts.map((prompt) => (
                 <li
@@ -1274,221 +1327,280 @@ const App: React.FC = () => {
       </div>
 
       {providerSettingsPopupVisible && (
-        <div id="provider-popup" className="provider-popup">
-          <div className="provider-popup-header">
-            <span>Providers</span>
-            <button className="add-provider-button" onClick={handleAddProvider}>
-              +
-            </button>
-          </div>
-          <ul id="provider-popup-list" className="provider-list">
-            {providerSettingsList.map((setting) => (
-              <li
-                key={setting.name}
-                className="provider-item"
-                onClick={() => selectProvider(setting.name)}
+        <>
+          {renderOverlay(closeProviderSettingsPopup)}
+          <div
+            id="provider-popup"
+            className="provider-popup"
+            style={{ display: "block", zIndex: 10 }}
+            onClick={(e) => {
+              if (e.target === e.currentTarget) {
+                closeProviderSettingsPopup();
+              }
+            }}
+          >
+            <div className="popup-header">
+              <span>Providers</span>
+              <button
+                className="close-button"
+                onClick={closeProviderSettingsPopup}
               >
-                <span className="prompt-text">{setting.name}</span>
-                <button
-                  className="duplicate-provider-button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    duplicateProvider(setting);
-                  }}
+                ✕
+              </button>
+            </div>
+            <div className="provider-popup-header">
+              <button
+                className="add-provider-button"
+                onClick={handleAddProvider}
+              >
+                +
+              </button>
+            </div>
+            <ul id="provider-popup-list" className="provider-list">
+              {providerSettingsList.map((setting) => (
+                <li
+                  key={setting.name}
+                  className="provider-item"
+                  onClick={() => selectProvider(setting.name)}
                 >
-                  📄
-                </button>
-                <button
-                  className="select-provider-button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    loadProviderToForm(setting);
-                  }}
-                >
-                  ✏️
-                </button>
-                <button
-                  className="prompt-delete-button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    deleteProvider(setting.name);
-                  }}
-                >
-                  🗑️
-                </button>
-              </li>
-            ))}
-          </ul>
-          <div id="provider-form" className="provider-form">
-            <h3>{editingProviderName ? "Edit" : "Add"} Provider</h3>
-            <label>Name:</label>
-            <input
-              type="text"
-              value={providerForm.name}
-              onChange={(e) => handleProviderFormChange("name", e.target.value)}
-            />
-            <label>Vendor:</label>
-            <select
-              value={providerForm.vendor}
-              onChange={(e) =>
-                handleProviderFormChange("vendor", e.target.value)
-              }
-            >
-              <option value="">Select Vendor</option>
-              {availableVendors.map((vendor) => (
-                <option key={vendor} value={vendor}>
-                  {vendor}
-                </option>
+                  <span className="prompt-text">{setting.name}</span>
+                  <button
+                    className="duplicate-provider-button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      duplicateProvider(setting);
+                    }}
+                  >
+                    📄
+                  </button>
+                  <button
+                    className="select-provider-button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      loadProviderToForm(setting);
+                    }}
+                  >
+                    ✏️
+                  </button>
+                  <button
+                    className="prompt-delete-button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      deleteProvider(setting.name);
+                    }}
+                  >
+                    🗑️
+                  </button>
+                </li>
               ))}
-            </select>
-            <label>API Key:</label>
-            <input
-              type="text"
-              value={providerForm.apiKey}
-              onChange={(e) =>
-                handleProviderFormChange("apiKey", e.target.value)
-              }
-            />
-            <label>Base URL (optional):</label>
-            <input
-              type="text"
-              value={providerForm.baseURL}
-              onChange={(e) =>
-                handleProviderFormChange("baseURL", e.target.value)
-              }
-            />
-            <label>Model:</label>
-            <input
-              type="text"
-              value={providerForm.model}
-              onChange={(e) =>
-                handleProviderFormChange("model", e.target.value)
-              }
-            />
-            <label>Provider (optional):</label>
-            <input
-              type="text"
-              value={providerForm.provider}
-              onChange={(e) =>
-                handleProviderFormChange("provider", e.target.value)
-              }
-            />
-            <label>Max Tokens (optional):</label>
-            <input
-              type="number"
-              value={providerForm.maxTokens}
-              onChange={(e) =>
-                handleProviderFormChange("maxTokens", e.target.value)
-              }
-            />
-            <label>Temperature (optional, 0-2):</label>
-            <input
-              type="number"
-              step="0.1"
-              min="0"
-              max="2"
-              value={providerForm.temperature}
-              onChange={(e) =>
-                handleProviderFormChange("temperature", e.target.value)
-              }
-            />
-            <div className="provider-form-buttons">
-              <button onClick={handleSaveProvider}>Save</button>
-              <button onClick={handleAddProvider}>Cancel</button>
+            </ul>
+            <div id="provider-form" className="provider-form">
+              <h3>{editingProviderName ? "Edit" : "Add"} Provider</h3>
+              <label>Name:</label>
+              <input
+                type="text"
+                value={providerForm.name}
+                onChange={(e) =>
+                  handleProviderFormChange("name", e.target.value)
+                }
+              />
+              <label>Vendor:</label>
+              <select
+                value={providerForm.vendor}
+                onChange={(e) =>
+                  handleProviderFormChange("vendor", e.target.value)
+                }
+              >
+                <option value="">Select Vendor</option>
+                {availableVendors.map((vendor) => (
+                  <option key={vendor} value={vendor}>
+                    {vendor}
+                  </option>
+                ))}
+              </select>
+              <label>API Key:</label>
+              <input
+                type="text"
+                value={providerForm.apiKey}
+                onChange={(e) =>
+                  handleProviderFormChange("apiKey", e.target.value)
+                }
+              />
+              <label>Base URL (optional):</label>
+              <input
+                type="text"
+                value={providerForm.baseURL}
+                onChange={(e) =>
+                  handleProviderFormChange("baseURL", e.target.value)
+                }
+              />
+              <label>Model:</label>
+              <input
+                type="text"
+                value={providerForm.model}
+                onChange={(e) =>
+                  handleProviderFormChange("model", e.target.value)
+                }
+              />
+              <label>Provider (optional):</label>
+              <input
+                type="text"
+                value={providerForm.provider}
+                onChange={(e) =>
+                  handleProviderFormChange("provider", e.target.value)
+                }
+              />
+              <label>Max Tokens (optional):</label>
+              <input
+                type="number"
+                value={providerForm.maxTokens}
+                onChange={(e) =>
+                  handleProviderFormChange("maxTokens", e.target.value)
+                }
+              />
+              <label>Temperature (optional, 0-2):</label>
+              <input
+                type="number"
+                step="0.1"
+                min="0"
+                max="2"
+                value={providerForm.temperature}
+                onChange={(e) =>
+                  handleProviderFormChange("temperature", e.target.value)
+                }
+              />
+              <div className="provider-form-buttons">
+                <button onClick={handleSaveProvider}>Save</button>
+                <button
+                  onClick={() => {
+                    handleAddProvider();
+                    closeProviderSettingsPopup();
+                  }}
+                >
+                  Cancel
+                </button>
+              </div>
             </div>
           </div>
-        </div>
+        </>
       )}
 
       {privacySettingsPopupVisible && (
-        <div id="privacy-popup" className="privacy-popup">
-          <div className="privacy-popup-header">
-            <span>Privacy Settings</span>
-            <button
-              className="add-privacy-pair-button"
-              onClick={handleAddPrivacyPair}
-            >
-              +
-            </button>
-          </div>
-          <div className="auto-checkbox" style={{ marginBottom: "10px" }}>
-            <input
-              type="checkbox"
-              checked={isPrivacyMaskingEnabled}
-              onChange={(e) => handlePrivacyMaskingChange(e.target.checked)}
-            />
-            <label>Enable Data Masking</label>
-          </div>
-          <ul id="privacy-popup-list" className="privacy-list">
-            {privacySettings.length === 0 ? (
-              <li style={{ textAlign: "center", padding: "10px" }}>
-                No masking pairs configured.
-              </li>
-            ) : (
-              privacySettings.map((pair) => (
-                <li key={pair.search} className="privacy-item">
-                  <span className="prompt-text">
-                    {pair.search} → {pair.replace}
-                  </span>
-                  <div>
-                    <button
-                      className="edit-button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        loadPrivacyPairToForm(pair);
-                      }}
-                    >
-                      ✏️
-                    </button>
-                    <button
-                      className="delete-button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        deletePrivacyPair(pair.search);
-                      }}
-                    >
-                      🗑️
-                    </button>
-                  </div>
-                </li>
-              ))
-            )}
-          </ul>
+        <>
+          {renderOverlay(closePrivacySettingsPopup)}
           <div
-            id="privacy-form"
-            className="privacy-form"
-            style={{
-              display:
-                editingPrivacyPairSearch !== null || privacyForm.search
-                  ? "block"
-                  : "none",
+            id="privacy-popup"
+            className="privacy-popup"
+            style={{ display: "block", zIndex: 10 }}
+            onClick={(e) => {
+              if (e.target === e.currentTarget) {
+                closePrivacySettingsPopup();
+              }
             }}
           >
-            <h3>
-              {editingPrivacyPairSearch ? "Edit" : "Add"} Replacement Pair
-            </h3>
-            <label>Sensitive String (Search):</label>
-            <input
-              type="text"
-              value={privacyForm.search}
-              onChange={(e) =>
-                handlePrivacyFormChange("search", e.target.value)
-              }
-            />
-            <label>Dummy Placeholder (Replace):</label>
-            <input
-              type="text"
-              value={privacyForm.replace}
-              onChange={(e) =>
-                handlePrivacyFormChange("replace", e.target.value)
-              }
-            />
-            <div className="privacy-form-buttons">
-              <button onClick={handleSavePrivacyPair}>Save</button>
-              <button onClick={handleAddPrivacyPair}>Cancel</button>
+            <div className="popup-header">
+              <span>Privacy Settings</span>
+              <button
+                className="close-button"
+                onClick={closePrivacySettingsPopup}
+              >
+                ✕
+              </button>
+            </div>
+            <div className="privacy-popup-header">
+              <button
+                className="add-privacy-pair-button"
+                onClick={handleAddPrivacyPair}
+              >
+                +
+              </button>
+            </div>
+            <div className="auto-checkbox" style={{ marginBottom: "10px" }}>
+              <input
+                type="checkbox"
+                checked={isPrivacyMaskingEnabled}
+                onChange={(e) => handlePrivacyMaskingChange(e.target.checked)}
+              />
+              <label>Enable Data Masking</label>
+            </div>
+            <ul id="privacy-popup-list" className="privacy-list">
+              {privacySettings.length === 0 ? (
+                <li style={{ textAlign: "center", padding: "10px" }}>
+                  No masking pairs configured.
+                </li>
+              ) : (
+                privacySettings.map((pair) => (
+                  <li key={pair.search} className="privacy-item">
+                    <span className="prompt-text">
+                      {pair.search} → {pair.replace}
+                    </span>
+                    <div>
+                      <button
+                        className="edit-button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          loadPrivacyPairToForm(pair);
+                        }}
+                      >
+                        ✏️
+                      </button>
+                      <button
+                        className="delete-button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          deletePrivacyPair(pair.search);
+                        }}
+                      >
+                        🗑️
+                      </button>
+                    </div>
+                  </li>
+                ))
+              )}
+            </ul>
+            <div
+              id="privacy-form"
+              className="privacy-form"
+              style={{
+                display:
+                  editingPrivacyPairSearch !== null || privacyForm.search
+                    ? "block"
+                    : "none",
+              }}
+            >
+              <h3>
+                {editingPrivacyPairSearch ? "Edit" : "Add"} Replacement Pair
+              </h3>
+              <label>Sensitive String (Search):</label>
+              <input
+                type="text"
+                value={privacyForm.search}
+                onChange={(e) =>
+                  handlePrivacyFormChange("search", e.target.value)
+                }
+              />
+              <label>Dummy Placeholder (Replace):</label>
+              <input
+                type="text"
+                value={privacyForm.replace}
+                onChange={(e) =>
+                  handlePrivacyFormChange("replace", e.target.value)
+                }
+              />
+              <div className="privacy-form-buttons">
+                <button onClick={handleSavePrivacyPair}>Save</button>
+                <button
+                  onClick={() => {
+                    handleAddPrivacyPair();
+                    closePrivacySettingsPopup();
+                  }}
+                >
+                  Cancel
+                </button>
+              </div>
             </div>
           </div>
-        </div>
+        </>
       )}
 
       {renderMessages()}

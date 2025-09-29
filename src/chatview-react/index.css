@@ -531,6 +531,33 @@ pre {
   background-color: var(--prompt-delete-button-hover);
 }
 
+.popup-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+  padding-bottom: 5px;
+  border-bottom: 1px solid var(--pre-border);
+}
+.close-button {
+  background: none;
+  border: none;
+  color: var(--text-color);
+  cursor: pointer;
+  font-size: 1.2em;
+  padding: 0;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+}
+.close-button:hover {
+  background-color: var(--cancel-button-color);
+  color: white;
+}
+
 .provider-popup-header {
   display: flex;
   justify-content: space-between;
