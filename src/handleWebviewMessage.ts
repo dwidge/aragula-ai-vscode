@@ -5,14 +5,19 @@ import {
   availableVendors,
 } from "./aiTools/availableToolNames";
 import { chatPanels } from "./chat/chatPanels";
-import { addFiles, openFilesDialog, removeFiles } from "./handleRemoveFile";
+import { openFilesDialog } from "./handleRemoveFile";
 import { handleSendMessage } from "./handleSendMessage";
 import { PostMessage } from "./PostMessage";
-import { sendSettingsToWebview } from "./sendSettingsToWebview";
+import {
+  sendSettingsToWebview,
+  sendWorkspaceSettingsToWebview,
+} from "./sendSettingsToWebview";
 import {
   GetterSetter,
   useProviderByName,
   useSettingsObject,
+  useWorkspaceSettings,
+  WorkspaceSettings,
 } from "./settingsObject";
 import { checkAndFixErrors } from "./task/checkAndFixErrors";
 import { handleCommitFiles } from "./task/handleCommitFiles";
@@ -29,22 +34,23 @@ import { runTestSetCommitMessage } from "./task/runTestSetCommitMessage";
 import { runTestTask } from "./task/runTestTask";
 import { getAvailableShells } from "./utils/getShells";
 import {
-  Logger,
-  TaskLogger,
   cancelTask,
   createMessageLogger,
   createTask,
+  Logger,
+  TaskLogger,
 } from "./utils/Logger";
 
 export async function handleWebviewMessage(
   context: vscode.ExtensionContext,
   postMessage: PostMessage,
   message: any,
-  openedFilePaths: string[],
   tabId: string,
-  globalSettings: GetterSetter
+  globalSettings: GetterSetter,
+  workspaceSettingsState: GetterSetter
 ) {
   const [settings, setSettings] = useSettingsObject(globalSettings);
+  const [, setWorkspaceSettings] = useWorkspaceSettings(workspaceSettingsState);
 
   const panelInfo = chatPanels.get(tabId);
   if (!panelInfo) {
@@ -130,14 +136,16 @@ export async function handleWebviewMessage(
     case "clearMessages":
       postMessage({ command: "clearMessages" });
       break;
-    case "removeFile":
-      removeFiles(postMessage, message.filePath, openedFilePaths);
-      break;
-    case "addFiles":
-      await addFiles(postMessage, message.filePaths, openedFilePaths);
+    case "setWorkspaceSettings":
+      const partial = message.data as Partial<WorkspaceSettings>;
+      const updated = await setWorkspaceSettings((prev) => ({
+        ...prev,
+        ...partial,
+      }));
+      await sendWorkspaceSettingsToWebview(postMessage, updated);
       break;
     case "openFilesDialog":
-      openFilesDialog(postMessage);
+      await openFilesDialog(postMessage, workspaceSettingsState);
       break;
     case "updateSettings":
       {

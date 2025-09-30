@@ -1,7 +1,9 @@
+import { sendWorkspaceSettingsToWebview } from "@/sendSettingsToWebview";
 import * as vscode from "vscode";
 import { readOpenFilePaths } from "../file/readOpenFilePaths";
 import { newPostMessage } from "../PostMessage";
 import { GetterSetter } from "../settingsObject";
+import { addChatFiles } from "./addChatFiles";
 import { ChatPanelInfo } from "./ChatPanelInfo";
 import { chatPanels } from "./chatPanels";
 import { openChatWindow } from "./openChatWindow";
@@ -14,30 +16,35 @@ const findExistingPanelInfo = (): ChatPanelInfo | undefined => {
   }
 };
 
-const openExistingPanelWithFiles = (
+const openExistingPanelWithFiles = async (
   panelInfo: ChatPanelInfo,
-  filePaths: string[]
+  filePaths: string[],
+  workspaceSettingsState: GetterSetter
 ) => {
-  panelInfo.panel.reveal(vscode.ViewColumn.One);
+  const workspaceSettings = await addChatFiles(
+    workspaceSettingsState,
+    filePaths
+  );
   const postMessage = newPostMessage(panelInfo.panel);
-  postMessage({
-    command: "addFiles",
-    filePaths,
-  });
+  await sendWorkspaceSettingsToWebview(postMessage, workspaceSettings);
+
+  panelInfo.panel.reveal(vscode.ViewColumn.One);
 };
 
 const openNewPanelWithFiles = async (
   context: vscode.ExtensionContext,
   filePaths: string[],
-  globalSettings: GetterSetter
-) => openChatWindow(context, filePaths, globalSettings);
+  globalSettings: GetterSetter,
+  workspaceSettings: GetterSetter
+) => openChatWindow(context, filePaths, globalSettings, workspaceSettings);
 
 export type OpenPanelFiles = (multi: vscode.Uri[]) => Promise<void>;
 
 export const getOpenPanelWithFiles =
   (
     context: vscode.ExtensionContext,
-    globalSettings: GetterSetter
+    globalSettings: GetterSetter,
+    workspaceSettings: GetterSetter
   ): OpenPanelFiles =>
   async (multi) => {
     const openFilePaths = await readOpenFilePaths(
@@ -47,8 +54,17 @@ export const getOpenPanelWithFiles =
     const existingPanelInfo = findExistingPanelInfo();
 
     if (existingPanelInfo) {
-      openExistingPanelWithFiles(existingPanelInfo, openFilePaths);
+      await openExistingPanelWithFiles(
+        existingPanelInfo,
+        openFilePaths,
+        workspaceSettings
+      );
     } else {
-      await openNewPanelWithFiles(context, openFilePaths, globalSettings);
+      await openNewPanelWithFiles(
+        context,
+        openFilePaths,
+        globalSettings,
+        workspaceSettings
+      );
     }
   };

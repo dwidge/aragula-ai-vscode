@@ -32,6 +32,10 @@ export interface SettingsObject {
   privacySettings?: PrivacyPair[];
 }
 
+export interface WorkspaceSettings {
+  openFiles: string[];
+}
+
 const defaultSettings: SettingsObject = {
   systemPromptList: [],
   userPromptList: [],
@@ -51,12 +55,24 @@ const defaultSettings: SettingsObject = {
   privacySettings: [],
 };
 
+const defaultWorkspaceSettings: WorkspaceSettings = {
+  openFiles: [],
+};
+
 export function getSettingsObject(
   getState: GetState,
   defaultValue: Partial<SettingsObject> = defaultSettings
 ): SettingsObject {
   const storedSettings = getState<Partial<SettingsObject>>(defaultValue);
   return { ...defaultValue, ...storedSettings } as SettingsObject;
+}
+
+export function getWorkspaceSettings(
+  getState: GetState,
+  defaultValue: Partial<WorkspaceSettings> = defaultWorkspaceSettings
+): WorkspaceSettings {
+  const storedSettings = getState<Partial<WorkspaceSettings>>(defaultValue);
+  return { ...defaultValue, ...storedSettings } as WorkspaceSettings;
 }
 
 export const setSettingsObject = async (
@@ -66,6 +82,16 @@ export const setSettingsObject = async (
 ): Promise<SettingsObject> =>
   await setState({
     ...getSettingsObject(getState),
+    ...value,
+  });
+
+export const setWorkspaceSettings = async (
+  getState: GetState,
+  setState: SetState,
+  value: Partial<WorkspaceSettings>
+): Promise<WorkspaceSettings> =>
+  await setState({
+    ...getWorkspaceSettings(getState),
     ...value,
   });
 
@@ -80,6 +106,21 @@ export const useSettingsObject = ({
   const getSettings = () => getSettingsObject(get);
   const setSettings = (setter: (prev: SettingsObject) => SettingsObject) =>
     setSettingsObject(get, set, setter(getSettings()));
+  return [getSettings(), setSettings];
+};
+
+export type SetWorkspaceSettings = (
+  setter: (prev: WorkspaceSettings) => WorkspaceSettings
+) => Promise<WorkspaceSettings>;
+
+export const useWorkspaceSettings = ({
+  get,
+  set,
+}: GetterSetter): [WorkspaceSettings, SetWorkspaceSettings] => {
+  const getSettings = () => getWorkspaceSettings(get);
+  const setSettings = (
+    setter: (prev: WorkspaceSettings) => WorkspaceSettings
+  ) => setWorkspaceSettings(get, set, setter(getSettings()));
   return [getSettings(), setSettings];
 };
 

@@ -5,7 +5,10 @@ import {
 } from "../aiTools/availableToolNames";
 import { handleWebviewMessage } from "../handleWebviewMessage";
 import { newPostMessage } from "../PostMessage";
-import { sendSettingsToWebview } from "../sendSettingsToWebview";
+import {
+  sendSettingsToWebview,
+  sendWorkspaceSettingsToWebview,
+} from "../sendSettingsToWebview";
 import {
   GetterSetter,
   useProviderByName,
@@ -17,12 +20,14 @@ import {
   PendingFormRequests,
   cancelAllTasks,
 } from "../utils/Logger";
+import { addChatFiles } from "./addChatFiles";
 import { chatPanels } from "./chatPanels";
 
 export async function openChatWindow(
   context: vscode.ExtensionContext,
   openedFilePaths: string[],
   globalSettings: GetterSetter,
+  workspaceSettingsState: GetterSetter,
   tabId = Date.now().toString()
 ) {
   const panel = vscode.window.createWebviewPanel(
@@ -54,6 +59,11 @@ export async function openChatWindow(
     }
     chatPanels.delete(tabId);
   });
+
+  const workspaceSettings = await addChatFiles(
+    workspaceSettingsState,
+    openedFilePaths
+  );
 
   const htmlPath = vscode.Uri.joinPath(
     context.extensionUri,
@@ -91,20 +101,15 @@ export async function openChatWindow(
 
   const postMessage = newPostMessage(panel);
 
-  postMessage({
-    command: "addFiles",
-    filePaths: openedFilePaths,
-  });
-
   panel.webview.onDidReceiveMessage(
     (message) =>
       handleWebviewMessage(
         context,
         postMessage,
         message,
-        openedFilePaths,
         tabId,
-        globalSettings
+        globalSettings,
+        workspaceSettingsState
       ),
     undefined,
     context.subscriptions
@@ -125,4 +130,5 @@ export async function openChatWindow(
     availableToolNames,
     availableShells
   );
+  await sendWorkspaceSettingsToWebview(postMessage, workspaceSettings);
 }

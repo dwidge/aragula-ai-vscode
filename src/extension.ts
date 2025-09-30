@@ -41,7 +41,11 @@ export function activate(context: vscode.ExtensionContext) {
     SETTINGS_STORAGE_KEY
   );
 
-  const openPanelWithFiles = getOpenPanelWithFiles(context, globalSettings);
+  const openPanelWithFiles = getOpenPanelWithFiles(
+    context,
+    globalSettings,
+    workspaceSettings
+  );
 
   context.subscriptions.push(
     vscode.commands.registerCommand(

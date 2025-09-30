@@ -14,7 +14,6 @@ const vscode = acquireVsCodeApi();
 
 const STORAGE_KEYS = {
   chatHistory: `chatMessages-${tabId}`,
-  openFiles: `openFiles-${tabId}`,
 };
 
 interface ChatMessage {
@@ -170,7 +169,6 @@ const App: React.FC = () => {
     };
 
     setChatHistory(loadFromLocalStorage(STORAGE_KEYS.chatHistory, []));
-    setOpenFiles(loadFromLocalStorage(STORAGE_KEYS.openFiles, []));
   }, []);
 
   useEffect(() => {
@@ -183,8 +181,7 @@ const App: React.FC = () => {
       ["user", "assistant", "system"].includes(m.messageType || "")
     );
     saveToLocalStorage(STORAGE_KEYS.chatHistory, mainHistory);
-    saveToLocalStorage(STORAGE_KEYS.openFiles, openFiles);
-  }, [chatHistory, openFiles]);
+  }, [chatHistory]);
 
   useEffect(() => {
     sendSettingsUpdate({});
@@ -193,6 +190,7 @@ const App: React.FC = () => {
   useEffect(() => {
     const handler = (event: MessageEvent) => {
       const message = event.data;
+      console.log("message1", message.command, message);
       if (message.command === "log") {
         const { id, parentId, message: taskLog } = message;
         const msgId = String(id);
@@ -273,17 +271,12 @@ const App: React.FC = () => {
         case "clearMessages":
           setChatHistory([]);
           break;
-        case "setOpenFiles":
-          setOpenFiles(message.files);
-          break;
-        case "addFiles":
-          setOpenFiles((prev) => [
-            ...prev,
-            ...message.filePaths.filter((f: string) => !prev.includes(f)),
-          ]);
+        case "setWorkspaceSettings":
+          if (message.data?.openFiles) {
+            setOpenFiles(message.data?.openFiles);
+          }
           break;
         case "settingsUpdated":
-          console.log("settingsUpdated1", message);
           setCurrentSystemPrompt(message.settings.systemPrompt || "");
           setCurrentUserPrompt(message.settings.userPrompt || "");
           systemPromptRef.current!.value = message.settings.systemPrompt || "";
@@ -659,8 +652,12 @@ const App: React.FC = () => {
             <button
               className="remove-file-button"
               onClick={() => {
-                setOpenFiles((prev) => prev.filter((f) => f !== filePath));
-                vscode.postMessage({ command: "removeFile", filePath });
+                const newOpenFiles = openFiles.filter((f) => f !== filePath);
+                setOpenFiles(newOpenFiles);
+                vscode.postMessage({
+                  command: "setWorkspaceSettings",
+                  data: { openFiles: newOpenFiles },
+                });
               }}
             >
               ✕

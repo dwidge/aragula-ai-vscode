@@ -1,6 +1,6 @@
 import { AiApiSettings } from "./ai-api/types/AiApiSettings";
 import { PostMessage } from "./PostMessage";
-import { SettingsObject } from "./settingsObject";
+import { SettingsObject, WorkspaceSettings } from "./settingsObject";
 import { ShellProfile } from "./utils/getShells";
 
 /**
@@ -12,14 +12,14 @@ import { ShellProfile } from "./utils/getShells";
  * @param availableTools List of available AI tools.
  * @param availableShells
  */
-export async function sendSettingsToWebview(
+export const sendSettingsToWebview = (
   postMessage: PostMessage,
   settings: SettingsObject,
   currentProviderSetting: AiApiSettings | undefined,
   availableVendors: string[],
   availableTools: string[],
   availableShells: ShellProfile[]
-) {
+) =>
   postMessage({
     command: "settingsUpdated",
     settings,
@@ -28,4 +28,17 @@ export async function sendSettingsToWebview(
     availableTools,
     availableShells,
   });
-}
+
+/**
+ * Sends the workspace settings to the webview.
+ * @param postMessage Function to post message to webview.
+ * @param workspaceSettings The full workspaceSettings object.
+ */
+export const sendWorkspaceSettingsToWebview = (
+  postMessage: PostMessage,
+  workspaceSettings: WorkspaceSettings
+) =>
+  postMessage({
+    command: "setWorkspaceSettings",
+    data: workspaceSettings,
+  });
