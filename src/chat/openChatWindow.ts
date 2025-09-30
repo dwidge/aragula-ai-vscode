@@ -1,3 +1,4 @@
+import { sleep } from "openai/core.mjs";
 import * as vscode from "vscode";
 import {
   availableToolNames,
@@ -122,6 +123,7 @@ export async function openChatWindow(
   );
   const availableShells = getAvailableShells();
 
+  await sleep(100);
   await sendSettingsToWebview(
     postMessage,
     settings,
