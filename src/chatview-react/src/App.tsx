@@ -6,9 +6,15 @@ import React, {
   useState,
 } from "react";
 import "./App.css";
+import EnabledTools from "./components/EnabledTools";
 import ErrorBoundary from "./components/ErrorBoundary";
 import InputArea from "./components/InputArea";
 import MessageList from "./components/MessageList";
+import PrivacySettingsPopup from "./components/PrivacySettingsPopup";
+import ProviderSettingsPopup from "./components/ProviderSettingsPopup";
+import SelectedFiles from "./components/SelectedFiles";
+import SelectedProvider from "./components/SelectedProvider";
+import ToolPopup from "./components/ToolPopup";
 import { ChatProvider } from "./contexts/ChatContext";
 import { SettingsProvider } from "./contexts/SettingsContext";
 import { useDebounce } from "./hooks/useDebounce";
@@ -36,7 +42,7 @@ const InnerApp: React.FC = () => {
     []
   );
   const messagesContainerRef = useRef<HTMLDivElement>(null);
-  const { tree, buildMessageTree } = useMessageTree(chatHistory);
+  const { tree } = useMessageTree(chatHistory);
   const scrollToBottom = useScrollToBottom(messagesContainerRef);
 
   const toggleCollapse = useCallback(
@@ -454,6 +460,14 @@ const InnerApp: React.FC = () => {
     []
   );
 
+  const allowDrop = useCallback((event: React.DragEvent) => {
+    event.preventDefault();
+  }, []);
+
+  const dropHandler = useCallback(async (event: React.DragEvent) => {
+    event.preventDefault();
+  }, []);
+
   const chatContextValue = {
     chatHistory,
     setChatHistory,
@@ -553,13 +567,19 @@ const InnerApp: React.FC = () => {
   };
 
   return (
-    <main>
+    <main onDragOver={allowDrop} onDrop={dropHandler}>
       <Suspense fallback={<div>Loading...</div>}>
         <ErrorBoundary>
           <ChatProvider value={chatContextValue}>
             <SettingsProvider value={settingsContextValue}>
+              <SelectedProvider provider={currentProviderSetting} />
+              <EnabledTools tools={enabledTools} onRemoveTool={removeTool} />
+              <SelectedFiles files={openFiles} onRemoveFile={removeFile} />
               <MessageList />
               <InputArea />
+              <ToolPopup />
+              <ProviderSettingsPopup />
+              <PrivacySettingsPopup />
             </SettingsProvider>
           </ChatProvider>
         </ErrorBoundary>

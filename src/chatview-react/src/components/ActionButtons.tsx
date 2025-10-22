@@ -3,15 +3,11 @@ import { useChat } from "../contexts/ChatContext";
 import { useSettings } from "../contexts/SettingsContext";
 import { ChatMessage } from "../types";
 import "./ActionButtons.css";
-import EnabledTools from "./EnabledTools";
-import SelectedFiles from "./SelectedFiles";
-import SelectedProvider from "./SelectedProvider";
 
 const ActionButtons: React.FC = () => {
   const {
     openFiles,
     enabledTools,
-    removeTool,
     currentProviderSetting,
     autoRemoveComments,
     setAutoRemoveComments,
@@ -30,7 +26,6 @@ const ActionButtons: React.FC = () => {
     systemPromptRef,
     privacySettings,
     isPrivacyMaskingEnabled,
-    setIsPrivacyMaskingEnabled,
     vscode,
     updateUserPrompt,
     toggleToolPopup,
@@ -238,19 +233,8 @@ const ActionButtons: React.FC = () => {
     [setIncludeCodebaseSummary, sendSettingsUpdate]
   );
 
-  const handlePrivacyMaskingChange = React.useCallback(
-    (checked: boolean) => {
-      setIsPrivacyMaskingEnabled(checked);
-      sendSettingsUpdate({ isPrivacyMaskingEnabled: checked });
-    },
-    [setIsPrivacyMaskingEnabled, sendSettingsUpdate]
-  );
-
   return (
     <div className="button-row">
-      <SelectedProvider provider={currentProviderSetting} />
-      <EnabledTools tools={enabledTools} onRemoveTool={removeTool} />
-      <SelectedFiles files={openFiles} onRemoveFile={removeTool} />{" "}
       <button onClick={handleSendMessage}>Send</button>
       <button onClick={handlePlanAndExecute}>Plan & Execute</button>
       <button onClick={clearChatHistory}>Clear</button>
