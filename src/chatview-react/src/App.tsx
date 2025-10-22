@@ -104,18 +104,6 @@ const InnerApp: React.FC = () => {
     [toggleCollapse]
   );
 
-  useEffect(() => {
-    return;
-    const saveToLocalStorage = (key: string, data: any) => {
-      localStorage.setItem(key, JSON.stringify(data));
-    };
-
-    const mainHistory = chatHistory.filter((m) =>
-      ["user", "assistant", "system"].includes(m.messageType || "")
-    );
-    saveToLocalStorage(STORAGE_KEYS.chatHistory, mainHistory);
-  }, [chatHistory]);
-
   const [openFiles, setOpenFiles] = useState<string[]>([]);
   const [systemPrompts, setSystemPrompts] = useState<string[]>([]);
   const [userPrompts, setUserPrompts] = useState<string[]>([]);
@@ -335,7 +323,6 @@ const InnerApp: React.FC = () => {
 
   const clearChatHistory = useCallback(() => {
     setChatHistory([]);
-    localStorage.removeItem(STORAGE_KEYS.chatHistory);
   }, [setChatHistory]);
 
   const updateSystemPrompt = useCallback(

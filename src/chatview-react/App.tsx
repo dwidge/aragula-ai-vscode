@@ -171,18 +171,6 @@ const App: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    return;
-    const saveToLocalStorage = (key: string, data: any) => {
-      localStorage.setItem(key, JSON.stringify(data));
-    };
-
-    const mainHistory = chatHistory.filter((m) =>
-      ["user", "assistant", "system"].includes(m.messageType || "")
-    );
-    saveToLocalStorage(STORAGE_KEYS.chatHistory, mainHistory);
-  }, [chatHistory]);
-
-  useEffect(() => {
     sendSettingsUpdate({});
   }, []);
 
