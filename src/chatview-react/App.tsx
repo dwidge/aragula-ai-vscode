@@ -1,4 +1,3 @@
-/* eslint-disable curly */
 import React, {
   useCallback,
   useEffect,

@@ -1,0 +1,43 @@
+#selected-files-container {
+  display: flex;
+  gap: 5px;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+}
+
+.file-button {
+  background-color: var(--file-button-background);
+  color: var(--file-button-text-color);
+  border: none;
+  padding: 5px 10px;
+  border-radius: 5px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.9em;
+}
+
+.file-button:hover {
+  background-color: var(--file-button-hover);
+}
+
+.file-button .remove-file-button {
+  background: none;
+  border: none;
+  color: var(--file-button-text-color);
+  cursor: pointer;
+  padding: 0 5px;
+  border-radius: 3px;
+  font-size: 1em;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+}
+
+.file-button .remove-file-button:hover {
+  color: white;
+  background-color: var(--file-button-remove-hover);
+}

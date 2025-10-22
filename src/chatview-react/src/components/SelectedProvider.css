@@ -1,0 +1,22 @@
+#selected-provider-container {
+  display: flex;
+  gap: 5px;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+}
+
+.provider-button {
+  background-color: var(--provider-button-background);
+  color: var(--provider-button-text-color);
+  border: none;
+  padding: 5px 10px;
+  border-radius: 5px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.9em;
+}
+
+.provider-button:hover {
+  background-color: var(--provider-button-hover);
+}

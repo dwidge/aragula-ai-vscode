@@ -1,0 +1,28 @@
+.button-row {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+button {
+  padding: 10px 15px;
+  border: none;
+  background-color: var(--button-background);
+  color: white;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+button:hover:not(:disabled) {
+  background-color: var(--button-hover);
+}
+
+.auto-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.9em;
+}
+.auto-checkbox input[type="checkbox"] {
+  margin: 0;
+}
