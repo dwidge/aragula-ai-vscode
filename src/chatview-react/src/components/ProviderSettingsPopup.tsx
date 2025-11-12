@@ -92,15 +92,23 @@ const ProviderSettingsPopup: React.FC = () => {
     }
 
     setProviderSettingsList(newList);
-    sendSettingsUpdate({ providerList: newList });
+
+    const settingsToUpdate: {
+      providerList: AIProviderSettings[];
+      providerName?: string;
+    } = {
+      providerList: newList,
+    };
 
     if (
       !currentProviderSetting ||
       editingProviderName === currentProviderSetting.name
     ) {
       setCurrentProviderSetting(setting);
-      sendSettingsUpdate({ providerName: setting.name });
+      settingsToUpdate.providerName = setting.name;
     }
+
+    sendSettingsUpdate(settingsToUpdate);
 
     handleAddProvider();
     closeProviderSettingsPopup();

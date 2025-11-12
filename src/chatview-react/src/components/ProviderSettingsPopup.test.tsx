@@ -283,33 +283,31 @@ describe("ProviderSettingsPopup", () => {
     await user.click(saveButton);
 
     await waitFor(() => {
-      expect(mockSettings.setProviderSettingsList).toHaveBeenCalledWith([
+      const expectedNewProvider = {
+        name: "New Provider",
+        vendor: "Google",
+        apiKey: "new-key",
+        baseURL: "https://example.com",
+        model: "gemini-pro",
+        provider: "google-ai",
+        max_tokens: 2000,
+        temperature: 0.5,
+      };
+      const expectedList = [
         ...mockSettings.providerSettingsList,
-        {
-          name: "New Provider",
-          vendor: "Google",
-          apiKey: "new-key",
-          baseURL: "https://example.com",
-          model: "gemini-pro",
-          provider: "google-ai",
-          max_tokens: 2000,
-          temperature: 0.5,
-        },
-      ]);
+        expectedNewProvider,
+      ];
+
+      expect(mockSettings.setProviderSettingsList).toHaveBeenCalledWith(
+        expectedList
+      );
+      expect(mockSettings.setCurrentProviderSetting).toHaveBeenCalledWith(
+        expectedNewProvider
+      );
+      expect(mockSettings.sendSettingsUpdate).toHaveBeenCalledTimes(1);
       expect(mockSettings.sendSettingsUpdate).toHaveBeenCalledWith({
-        providerList: [
-          ...mockSettings.providerSettingsList,
-          {
-            name: "New Provider",
-            vendor: "Google",
-            apiKey: "new-key",
-            baseURL: "https://example.com",
-            model: "gemini-pro",
-            provider: "google-ai",
-            max_tokens: 2000,
-            temperature: 0.5,
-          },
-        ],
+        providerList: expectedList,
+        providerName: "New Provider",
       });
       expect(mockSettings.setProviderSettingsPopupVisible).toHaveBeenCalledWith(
         false
@@ -348,29 +346,29 @@ describe("ProviderSettingsPopup", () => {
     await user.click(saveButton);
 
     await waitFor(() => {
+      const expectedProvider = {
+        name: "Provider A",
+        vendor: "OpenAI",
+        apiKey: "updated-key-a",
+        baseURL: "https://updated.com",
+        model: "gpt-4",
+        provider: "openai-updated",
+        max_tokens: 3000,
+        temperature: 0.8,
+      };
       const expectedList = [
-        {
-          name: "Provider A",
-          vendor: "OpenAI",
-          apiKey: "updated-key-a",
-          baseURL: "https://updated.com",
-          model: "gpt-4",
-          provider: "openai-updated",
-          max_tokens: 3000,
-          temperature: 0.8,
-        },
+        expectedProvider,
         mockSettings.providerSettingsList[1],
       ];
       expect(mockSettings.setProviderSettingsList).toHaveBeenCalledWith(
         expectedList
       );
+      expect(mockSettings.setCurrentProviderSetting).toHaveBeenCalledWith(
+        expectedProvider
+      );
+      expect(mockSettings.sendSettingsUpdate).toHaveBeenCalledTimes(1);
       expect(mockSettings.sendSettingsUpdate).toHaveBeenCalledWith({
         providerList: expectedList,
-      });
-      expect(mockSettings.setCurrentProviderSetting).toHaveBeenCalledWith(
-        expectedList[0]
-      );
-      expect(mockSettings.sendSettingsUpdate).toHaveBeenCalledWith({
         providerName: "Provider A",
       });
       expect(mockSettings.setProviderSettingsPopupVisible).toHaveBeenCalledWith(
@@ -425,6 +423,66 @@ describe("ProviderSettingsPopup", () => {
       );
       expect(mockSettings.sendSettingsUpdate).toHaveBeenCalledWith({
         providerName: null,
+      });
+    });
+  });
+
+  it("sends updated provider list to vscode host on save", async () => {
+    const user = userEvent.setup();
+    const mockPostMessage = vi.fn();
+
+    const newProviderData = {
+      name: "New Provider",
+      vendor: "Google",
+      apiKey: "new-key",
+      baseURL: "https://example.com",
+      model: "gemini-pro",
+      provider: "google-ai",
+      maxTokens: "2000",
+      temperature: "0.5",
+    };
+
+    const settings = {
+      ...mockSettings,
+      providerForm: newProviderData,
+      editingProviderName: null,
+      sendSettingsUpdate: (settingsPartial: any) => {
+        mockPostMessage({
+          command: "updateSettings",
+          settings: settingsPartial,
+        });
+      },
+    };
+
+    renderWithSettings(<ProviderSettingsPopup />, settings);
+
+    await user.click(screen.getByRole("button", { name: "+" }));
+
+    const saveButton = screen.getByRole("button", { name: "Save" });
+    await user.click(saveButton);
+
+    await waitFor(() => {
+      const expectedNewProvider = {
+        name: "New Provider",
+        vendor: "Google",
+        apiKey: "new-key",
+        baseURL: "https://example.com",
+        model: "gemini-pro",
+        provider: "google-ai",
+        max_tokens: 2000,
+        temperature: 0.5,
+      };
+      const expectedList = [
+        ...mockSettings.providerSettingsList,
+        expectedNewProvider,
+      ];
+
+      expect(mockPostMessage).toHaveBeenCalledWith({
+        command: "updateSettings",
+        settings: {
+          providerList: expectedList,
+          providerName: "New Provider",
+        },
       });
     });
   });
