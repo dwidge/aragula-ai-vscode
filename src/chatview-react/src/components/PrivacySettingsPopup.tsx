@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { useSettings } from "../contexts/SettingsContext";
 import { PrivacyPair } from "../types";
 import Overlay from "./Overlay";
@@ -19,6 +19,12 @@ const PrivacySettingsPopup: React.FC = () => {
     sendSettingsUpdate,
   } = useSettings();
 
+  const [isEditing, setIsEditing] = useState(!!editingPrivacyPairSearch);
+
+  useEffect(() => {
+    setIsEditing(!!editingPrivacyPairSearch);
+  }, [editingPrivacyPairSearch]);
+
   const closePrivacySettingsPopup = React.useCallback(
     () => setPrivacySettingsPopupVisible(false),
     [setPrivacySettingsPopupVisible]
@@ -35,10 +41,12 @@ const PrivacySettingsPopup: React.FC = () => {
   const handleAddPrivacyPair = React.useCallback(() => {
     setEditingPrivacyPairSearch(null);
     setPrivacyForm({ search: "", replace: "" });
+    setIsEditing(false);
   }, [setEditingPrivacyPairSearch, setPrivacyForm]);
 
   const loadPrivacyPairToForm = React.useCallback(
     (pair: PrivacyPair) => {
+      setIsEditing(true);
       setEditingPrivacyPairSearch(pair.search);
       setPrivacyForm({ search: pair.search, replace: pair.replace });
     },
@@ -131,11 +139,14 @@ const PrivacySettingsPopup: React.FC = () => {
         </div>
         <div className="auto-checkbox" style={{ marginBottom: "10px" }}>
           <input
+            id="enable-data-masking-checkbox"
             type="checkbox"
             checked={isPrivacyMaskingEnabled}
             onChange={(e) => handlePrivacyMaskingChange(e.target.checked)}
           />
-          <label>Enable Data Masking</label>
+          <label htmlFor="enable-data-masking-checkbox">
+            Enable Data Masking
+          </label>
         </div>
         <ul id="privacy-popup-list" className="privacy-list">
           {privacySettings.length === 0 ? (
@@ -172,19 +183,8 @@ const PrivacySettingsPopup: React.FC = () => {
             ))
           )}
         </ul>
-        <div
-          id="privacy-form"
-          className="privacy-form"
-          style={{
-            display:
-              editingPrivacyPairSearch !== null ||
-              privacyForm.search ||
-              privacyForm.replace
-                ? "block"
-                : "none",
-          }}
-        >
-          <h3>{editingPrivacyPairSearch ? "Edit" : "Add"} Replacement Pair</h3>
+        <div id="privacy-form" className="privacy-form">
+          <h3>{isEditing ? "Edit" : "Add"} Replacement Pair</h3>
           <label>Sensitive String (Search):</label>
           <input
             type="text"

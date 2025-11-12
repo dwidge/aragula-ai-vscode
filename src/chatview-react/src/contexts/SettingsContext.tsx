@@ -1,7 +1,7 @@
 import React, { createContext, ReactNode, useContext } from "react";
 import { AIProviderSettings, PlanState, PrivacyPair } from "../types";
 
-interface SettingsContextType {
+export interface SettingsContextType {
   openFiles: string[];
   setOpenFiles: React.Dispatch<React.SetStateAction<string[]>>;
   systemPrompts: string[];

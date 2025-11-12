@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { useSettings } from "../contexts/SettingsContext";
 import { AIProviderSettings } from "../types";
 import Overlay from "./Overlay";
@@ -19,6 +19,12 @@ const ProviderSettingsPopup: React.FC = () => {
     availableVendors,
     sendSettingsUpdate,
   } = useSettings();
+
+  const [isEditing, setIsEditing] = useState(!!editingProviderName);
+
+  useEffect(() => {
+    setIsEditing(!!editingProviderName);
+  }, [editingProviderName]);
 
   const closeProviderSettingsPopup = React.useCallback(
     () => setProviderSettingsPopupVisible(false),
@@ -41,6 +47,7 @@ const ProviderSettingsPopup: React.FC = () => {
 
   const loadProviderToForm = React.useCallback(
     (setting: AIProviderSettings) => {
+      setIsEditing(true);
       setEditingProviderName(setting.name);
       setProviderForm({
         name: setting.name,
@@ -234,7 +241,7 @@ const ProviderSettingsPopup: React.FC = () => {
           ))}
         </ul>
         <div id="provider-form" className="provider-form">
-          <h3>{editingProviderName ? "Edit" : "Add"} Provider</h3>
+          <h3>{isEditing ? "Edit" : "Add"} Provider</h3>
           <label>Name:</label>
           <input
             type="text"
