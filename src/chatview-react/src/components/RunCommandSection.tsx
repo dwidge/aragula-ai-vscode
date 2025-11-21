@@ -19,7 +19,7 @@ const RunCommandSection: React.FC<RunCommandSectionProps> = ({
   inputRef,
   shellRef,
 }) => {
-  const { availableShells, vscode } = useSettings();
+  const { availableShells, postMessage } = useSettings();
 
   const handleRun = React.useCallback(() => {
     const command = inputRef.current?.value.trim();
@@ -27,12 +27,12 @@ const RunCommandSection: React.FC<RunCommandSectionProps> = ({
       return;
     }
 
-    vscode.postMessage({
+    postMessage({
       command: "runCommand",
       runCommand: command,
       shell: shell,
     });
-  }, [inputRef, shell, vscode]);
+  }, [inputRef, shell, postMessage]);
 
   return (
     <div className="input-row">

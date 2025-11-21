@@ -17,6 +17,7 @@ import SelectedProvider from "./components/SelectedProvider";
 import ToolPopup from "./components/ToolPopup";
 import { ChatProvider } from "./contexts/ChatContext";
 import { SettingsProvider } from "./contexts/SettingsContext";
+import { useVscodeApi } from "./contexts/VscodeApiContext";
 import { useDebounce } from "./hooks/useDebounce";
 import { useLocalStorage } from "./hooks/useLocalStorage";
 import { useMessageTree } from "./hooks/useMessageTree";
@@ -29,14 +30,13 @@ import {
 } from "./types";
 
 declare const tabId: string;
-declare function acquireVsCodeApi(): { postMessage: (v: object) => void };
-const vscode = acquireVsCodeApi();
 
 const STORAGE_KEYS = {
   chatHistory: `chatMessages-${tabId}`,
 };
 
 const InnerApp: React.FC = () => {
+  const { postMessage } = useVscodeApi();
   const [chatHistory, setChatHistory] = useLocalStorage<ChatMessage[]>(
     STORAGE_KEYS.chatHistory,
     []
@@ -90,7 +90,9 @@ const InnerApp: React.FC = () => {
           >
             <div className="message-body-content">
               <div
-                className="message-detail-text"
+                className={`message-detail-text ${
+                  msg.messageType ? `${msg.messageType}-message` : ""
+                }`}
                 dangerouslySetInnerHTML={{
                   __html: (msg.detail || "").replace(/\n/g, "<br>"),
                 }}
@@ -187,7 +189,7 @@ const InnerApp: React.FC = () => {
   const shellSelectorRef = useRef<HTMLSelectElement>(null);
 
   const sendSettingsUpdate = useDebounce((settingsPartial: any) => {
-    vscode.postMessage({
+    postMessage({
       command: "updateSettings",
       settings: settingsPartial,
     });
@@ -207,11 +209,21 @@ const InnerApp: React.FC = () => {
         const parent = parentId ? String(parentId) : undefined;
         setChatHistory((prev) => {
           const existingIndex = prev.findIndex((m) => m.id === msgId);
+
+          let summary = taskLog.summary;
+          let detail = taskLog.detail;
+          if (taskLog.type === "error") {
+            const errorMessage =
+              taskLog.detail || taskLog.summary || "An unknown error occurred";
+            detail = errorMessage;
+            summary = errorMessage;
+          }
+
           const newMsg: ChatMessage = {
             id: msgId,
             parentId: parent,
-            summary: taskLog.summary,
-            detail: taskLog.detail,
+            summary: summary || detail,
+            detail: detail,
             messageType: taskLog.type,
             isCollapsed: [
               "prompt",
@@ -254,13 +266,23 @@ const InnerApp: React.FC = () => {
           const updateId = String(message.messageId);
           setChatHistory((prev) => {
             const existingIndex = prev.findIndex((m) => m.id === updateId);
+
+            let text = message.text ?? message.detail ?? "";
+            let summary = message.summary ?? text;
+            if (message.messageType === "error") {
+              const errorMessage = text || summary;
+              text = errorMessage;
+              summary = errorMessage;
+            }
+
             if (existingIndex !== -1) {
               const updated = [...prev];
               updated[existingIndex] = {
                 ...updated[existingIndex],
-                detail: message.detail,
-                summary: message.summary,
+                detail: text,
+                summary: summary,
                 messageType: message.messageType,
+                sender: message.sender,
               };
               return updated;
             } else {
@@ -268,8 +290,8 @@ const InnerApp: React.FC = () => {
                 ...prev,
                 {
                   id: updateId,
-                  summary: message.summary || "",
-                  detail: message.detail || "",
+                  summary: summary,
+                  detail: text,
                   sender: message.sender || "",
                   messageType: message.messageType || "log",
                   isCollapsed: false,
@@ -429,12 +451,12 @@ const InnerApp: React.FC = () => {
     (filePath: string) => {
       const newOpenFiles = openFiles.filter((f) => f !== filePath);
       setOpenFiles(newOpenFiles);
-      vscode.postMessage({
+      postMessage({
         command: "setWorkspaceSettings",
         data: { openFiles: newOpenFiles },
       });
     },
-    [openFiles]
+    [openFiles, postMessage]
   );
 
   const removeTool = useCallback(
@@ -559,7 +581,7 @@ const InnerApp: React.FC = () => {
     systemPromptRef,
     runCommandInputRef,
     shellSelectorRef,
-    vscode,
+    postMessage,
     tabId,
     toggleToolPopup,
     toggleProviderSettingsPopup,

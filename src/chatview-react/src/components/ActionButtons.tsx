@@ -26,7 +26,7 @@ const ActionButtons: React.FC = () => {
     systemPromptRef,
     privacySettings,
     isPrivacyMaskingEnabled,
-    vscode,
+    postMessage,
     updateUserPrompt,
     toggleToolPopup,
     toggleProviderSettingsPopup,
@@ -53,7 +53,7 @@ const ActionButtons: React.FC = () => {
     setChatHistory((prev) => [...prev, userMsg]);
     scrollToBottom();
 
-    vscode.postMessage({
+    postMessage({
       command: "sendMessage",
       user,
       system,
@@ -90,7 +90,7 @@ const ActionButtons: React.FC = () => {
     setChatHistory,
     userInputRef,
     systemPromptRef,
-    vscode,
+    postMessage,
   ]);
 
   const handlePlanAndExecute = React.useCallback(() => {
@@ -111,7 +111,7 @@ const ActionButtons: React.FC = () => {
     setChatHistory((prev) => [...prev, userMsg]);
     scrollToBottom();
 
-    vscode.postMessage({
+    postMessage({
       command: "planAndExecute",
       user,
       system,
@@ -140,66 +140,66 @@ const ActionButtons: React.FC = () => {
     setChatHistory,
     userInputRef,
     systemPromptRef,
-    vscode,
+    postMessage,
   ]);
 
   const addFiles = React.useCallback(() => {
-    vscode.postMessage({ command: "openFilesDialog" });
-  }, [vscode]);
+    postMessage({ command: "openFilesDialog" });
+  }, [postMessage]);
 
   const handleRemoveComments = React.useCallback(() => {
     if (openFiles.length === 0) return;
-    vscode.postMessage({
+    postMessage({
       command: "removeCommentsInFiles",
       filePaths: openFiles,
     });
-  }, [openFiles, vscode]);
+  }, [openFiles, postMessage]);
 
   const handleFormat = React.useCallback(() => {
     if (openFiles.length === 0) return;
-    vscode.postMessage({
+    postMessage({
       command: "formatFilesInFiles",
       filePaths: openFiles,
     });
-  }, [openFiles, vscode]);
+  }, [openFiles, postMessage]);
 
   const handleFixErrors = React.useCallback(() => {
     if (openFiles.length === 0 || !currentProviderSetting) return;
-    vscode.postMessage({
+    postMessage({
       command: "checkErrorsInFiles",
       filePaths: openFiles,
       providerSetting: currentProviderSetting,
     });
-  }, [openFiles, currentProviderSetting, vscode]);
+  }, [openFiles, currentProviderSetting, postMessage]);
 
   const handleCommitFiles = React.useCallback(() => {
     if (openFiles.length === 0) return;
-    vscode.postMessage({ command: "commitFiles", fileNames: openFiles });
-  }, [openFiles, vscode]);
+    postMessage({ command: "commitFiles", fileNames: openFiles });
+  }, [openFiles, postMessage]);
 
   const handleTestTask = React.useCallback(() => {
-    vscode.postMessage({ command: "runTestTask" });
-  }, [vscode]);
+    postMessage({ command: "runTestTask" });
+  }, [postMessage]);
 
   const handleTestMultiTask = React.useCallback(() => {
-    vscode.postMessage({ command: "runTestMultiTask" });
-  }, [vscode]);
+    postMessage({ command: "runTestMultiTask" });
+  }, [postMessage]);
 
   const handleTestSerialTask = React.useCallback(() => {
-    vscode.postMessage({ command: "runTestSerialTask" });
-  }, [vscode]);
+    postMessage({ command: "runTestSerialTask" });
+  }, [postMessage]);
 
   const handleTestFormTask = React.useCallback(() => {
-    vscode.postMessage({ command: "runTestFormTask" });
-  }, [vscode]);
+    postMessage({ command: "runTestFormTask" });
+  }, [postMessage]);
 
   const handleTestSetCommitMessage = React.useCallback(() => {
-    vscode.postMessage({ command: "runTestSetCommitMessage" });
-  }, [vscode]);
+    postMessage({ command: "runTestSetCommitMessage" });
+  }, [postMessage]);
 
   const handleShowCodebaseSummary = React.useCallback(() => {
-    vscode.postMessage({ command: "runShowCodebaseSummary" });
-  }, [vscode]);
+    postMessage({ command: "runShowCodebaseSummary" });
+  }, [postMessage]);
 
   const handleAutoGenerateCommitChange = React.useCallback(
     (checked: boolean) => {

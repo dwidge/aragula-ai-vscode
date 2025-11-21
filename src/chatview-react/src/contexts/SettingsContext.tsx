@@ -119,7 +119,7 @@ export interface SettingsContextType {
   systemPromptRef: React.RefObject<HTMLTextAreaElement | null>;
   runCommandInputRef: React.RefObject<HTMLInputElement | null>;
   shellSelectorRef: React.RefObject<HTMLSelectElement | null>;
-  vscode: { postMessage: (v: object) => void };
+  postMessage: (v: object) => void;
   tabId: string;
   toggleToolPopup: () => void;
   toggleProviderSettingsPopup: () => void;

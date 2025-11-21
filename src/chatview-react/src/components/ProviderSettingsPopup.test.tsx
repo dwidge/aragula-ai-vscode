@@ -174,7 +174,7 @@ const mockSettings: SettingsContextType = {
   systemPromptRef: { current: null },
   runCommandInputRef: { current: null },
   shellSelectorRef: { current: null },
-  vscode: { postMessage: vi.fn() },
+  postMessage: vi.fn(),
   tabId: "test-tab-id",
   toggleToolPopup: vi.fn() as () => void,
   toggleProviderSettingsPopup: vi.fn() as () => void,
