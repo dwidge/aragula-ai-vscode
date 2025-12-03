@@ -29,13 +29,15 @@ import {
   PrivacyPair,
 } from "./types";
 
-declare const tabId: string;
+interface AppProps {
+  tabId: string;
+}
 
-const STORAGE_KEYS = {
-  chatHistory: `chatMessages-${tabId}`,
-};
+const InnerApp: React.FC<AppProps> = ({ tabId }) => {
+  const STORAGE_KEYS = {
+    chatHistory: `chatMessages-${tabId}`,
+  };
 
-const InnerApp: React.FC = () => {
   const { postMessage } = useVscodeApi();
   const [chatHistory, setChatHistory] = useLocalStorage<ChatMessage[]>(
     STORAGE_KEYS.chatHistory,
@@ -54,62 +56,6 @@ const InnerApp: React.FC = () => {
       );
     },
     [setChatHistory]
-  );
-
-  const renderMessageRecursive = useCallback(
-    (msg: ChatMessage & { children?: ChatMessage[] }, level = 0) => (
-      <pre
-        key={msg.id}
-        id={`message-${msg.id}`}
-        className={`message ${msg.messageType}-message ${
-          level > 0 ? "child-message" : ""
-        }`}
-        style={{ marginLeft: `${level * 20}px` }}
-      >
-        <div className="message-content-wrapper">
-          <div className="message-header">
-            <span className="message-preview">{msg.summary}</span>
-            <span className="message-type-badge">{msg.messageType}</span>
-            <button className="cancel-button" style={{ display: "none" }}>
-              ✕
-            </button>
-            <button
-              className="collapse-button"
-              onClick={(e) => {
-                e.stopPropagation();
-                toggleCollapse(msg.id);
-              }}
-            >
-              {msg.isCollapsed ? "▼" : "▲"}
-            </button>
-          </div>
-          <div
-            className={`collapsible-content ${
-              msg.isCollapsed ? "collapsed" : ""
-            }`}
-          >
-            <div className="message-body-content">
-              <div
-                className={`message-detail-text ${
-                  msg.messageType ? `${msg.messageType}-message` : ""
-                }`}
-                dangerouslySetInnerHTML={{
-                  __html: (msg.detail || "").replace(/\n/g, "<br>"),
-                }}
-              />
-            </div>
-            {msg.children && msg.children.length > 0 && (
-              <div className="child-messages-container">
-                {msg.children.map((child) =>
-                  renderMessageRecursive(child, level + 1)
-                )}
-              </div>
-            )}
-          </div>
-        </div>
-      </pre>
-    ),
-    [toggleCollapse]
   );
 
   const [openFiles, setOpenFiles] = useState<string[]>([]);
@@ -239,7 +185,11 @@ const InnerApp: React.FC = () => {
             updated[existingIndex] = { ...updated[existingIndex], ...newMsg };
             return updated;
           } else {
-            return [...prev, newMsg];
+            const collapsedPrev = prev.map((m) => ({
+              ...m,
+              isCollapsed: true,
+            }));
+            return [...collapsedPrev, { ...newMsg, isCollapsed: false }];
           }
         });
         return;
@@ -250,17 +200,23 @@ const InnerApp: React.FC = () => {
           const formParentId = message.formRequest.parentId
             ? String(message.formRequest.parentId)
             : undefined;
-          setChatHistory((prev) => [
-            ...prev,
-            {
-              id: formId,
-              parentId: formParentId,
-              summary: message.formRequest.message,
-              detail: "",
-              messageType: "form-prompt",
-              isCollapsed: false,
-            },
-          ]);
+          setChatHistory((prev) => {
+            const collapsedPrev = prev.map((m) => ({
+              ...m,
+              isCollapsed: true,
+            }));
+            return [
+              ...collapsedPrev,
+              {
+                id: formId,
+                parentId: formParentId,
+                summary: message.formRequest.message,
+                detail: "",
+                messageType: "form-prompt",
+                isCollapsed: false,
+              },
+            ];
+          });
           break;
         case "updateMessage":
           const updateId = String(message.messageId);
@@ -286,8 +242,12 @@ const InnerApp: React.FC = () => {
               };
               return updated;
             } else {
+              const collapsedPrev = prev.map((m) => ({
+                ...m,
+                isCollapsed: true,
+              }));
               return [
-                ...prev,
+                ...collapsedPrev,
                 {
                   id: updateId,
                   summary: summary,
@@ -495,7 +455,6 @@ const InnerApp: React.FC = () => {
     setChatHistory,
     tree,
     toggleCollapse,
-    renderMessageRecursive,
     messagesContainerRef,
     scrollToBottom,
     clearChatHistory,
@@ -610,4 +569,6 @@ const InnerApp: React.FC = () => {
   );
 };
 
-export const App: React.FC = () => <InnerApp />;
+export const App: React.FC<AppProps> = ({ tabId }) => (
+  <InnerApp tabId={tabId} />
+);

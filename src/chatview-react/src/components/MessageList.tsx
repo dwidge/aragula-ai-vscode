@@ -1,10 +1,11 @@
 import React from "react";
 import { useChat } from "../contexts/ChatContext";
 import { useScrollToBottom } from "../hooks/useScrollToBottom";
+import ChatMessageItem from "./ChatMessageItem";
 import "./MessageList.css";
 
 const MessageList: React.FC = () => {
-  const { tree, renderMessageRecursive, messagesContainerRef } = useChat();
+  const { tree, messagesContainerRef, toggleCollapse } = useChat();
   const scrollToBottom = useScrollToBottom(messagesContainerRef);
 
   React.useEffect(() => {
@@ -12,8 +13,18 @@ const MessageList: React.FC = () => {
   }, [tree, scrollToBottom]);
 
   return (
-    <div id="messages-container" className="messages-container">
-      {tree.map((msg) => renderMessageRecursive(msg))}
+    <div
+      id="messages-container"
+      ref={messagesContainerRef}
+      className="messages-container"
+    >
+      {tree.map((msg) => (
+        <ChatMessageItem
+          key={msg.id}
+          message={msg}
+          onToggleCollapse={toggleCollapse}
+        />
+      ))}
     </div>
   );
 };

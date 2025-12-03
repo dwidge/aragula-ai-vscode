@@ -50,7 +50,10 @@ const ActionButtons: React.FC = () => {
       messageType: "user",
       isCollapsed: false,
     };
-    setChatHistory((prev) => [...prev, userMsg]);
+    setChatHistory((prev) => {
+      const collapsedPrev = prev.map((m) => ({ ...m, isCollapsed: true }));
+      return [...collapsedPrev, userMsg];
+    });
     scrollToBottom();
 
     postMessage({
@@ -108,7 +111,10 @@ const ActionButtons: React.FC = () => {
       messageType: "user",
       isCollapsed: false,
     };
-    setChatHistory((prev) => [...prev, userMsg]);
+    setChatHistory((prev) => {
+      const collapsedPrev = prev.map((m) => ({ ...m, isCollapsed: true }));
+      return [...collapsedPrev, userMsg];
+    });
     scrollToBottom();
 
     postMessage({

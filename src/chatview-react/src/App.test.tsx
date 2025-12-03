@@ -6,7 +6,6 @@ import { expect, vi } from "vitest";
 import { App } from "./App";
 import { VscodeApiProvider } from "./contexts/VscodeApiContext";
 
-// Mock vscode api
 const mockPostMessage = vi.fn();
 
 const renderWithProvider = (ui: React.ReactElement) => {
@@ -24,7 +23,7 @@ describe("App", () => {
 
   it("renders the input area and sends a message", async () => {
     const user = userEvent.setup();
-    renderWithProvider(<App />);
+    renderWithProvider(<App tabId="test-tab-id" />);
     await act(() =>
       fireEvent(
         window,
@@ -58,7 +57,7 @@ describe("App", () => {
   });
 
   it("displays an error from a 'log' message", () => {
-    renderWithProvider(<App />);
+    renderWithProvider(<App tabId="test-tab-id" />);
 
     const errorMessage = "This is an error from a log message";
     act(() => {
@@ -70,26 +69,21 @@ describe("App", () => {
             id: "log-123",
             message: {
               detail: errorMessage,
-              // no summary, no type: 'error'
             },
           },
         })
       );
     });
 
-    // The error message should be on the screen.
-    // It should be in the summary (preview) and the detail.
     const errorElements = screen.getAllByText(errorMessage);
     expect(errorElements.length).toBeGreaterThan(0);
 
-    // Check if one is a preview
     const previewElement = errorElements.find((el) =>
       el.classList.contains("message-preview")
     );
     expect(previewElement).toBeDefined();
     expect(previewElement).toBeInTheDocument();
 
-    // Check if one is detail text
     const detailElement = errorElements.find((el) =>
       el.classList.contains("message-detail-text")
     );
@@ -98,13 +92,11 @@ describe("App", () => {
   });
 
   it("displays an error message when an error occurs", () => {
-    renderWithProvider(<App />);
+    renderWithProvider(<App tabId="test-tab-id" />);
 
-    // 1. User sends a message
     const input = screen.getByPlaceholderText("Type your message here...");
     const sendButton = screen.getByRole("button", { name: "Send" });
     act(() => {
-      // Add settings to enable send button
       fireEvent(
         window,
         new MessageEvent("message", {
@@ -124,7 +116,6 @@ describe("App", () => {
       fireEvent.click(sendButton);
     });
 
-    // 2. App receives 'updateMessage' to add a "thinking" message
     act(() => {
       fireEvent(
         window,
@@ -140,7 +131,6 @@ describe("App", () => {
       );
     });
 
-    // 3. App receives 'updateMessage' with the error
     const errorMessage = "API call failed: 401 Incorrect API key";
     act(() => {
       fireEvent(
@@ -157,11 +147,9 @@ describe("App", () => {
       );
     });
 
-    // The error message should be on the screen
     const errorElements = screen.getAllByText(errorMessage);
     expect(errorElements.length).toBeGreaterThan(0);
 
-    // Find the one that is the detail text
     const detailElement = errorElements.find((el) =>
       el.classList.contains("message-detail-text")
     );
@@ -171,5 +159,84 @@ describe("App", () => {
     const messageContainer = detailElement!.closest("pre");
     expect(messageContainer).toHaveClass("message", "error-message");
     expect(detailElement).toHaveClass("message-detail-text", "error-message");
+  });
+
+  it("toggles message collapse state on header click", () => {
+    renderWithProvider(<App tabId="test-tab-id" />);
+
+    act(() => {
+      fireEvent(
+        window,
+        new MessageEvent("message", {
+          data: {
+            command: "log",
+            id: "log-1",
+            message: { summary: "Test Summary", detail: "Test Detail" },
+          },
+        })
+      );
+    });
+
+    const messageHeader = screen
+      .getByText("Test Summary")
+      .closest(".message-header");
+    expect(messageHeader).toBeInTheDocument();
+
+    const collapsibleContent = messageHeader!.nextElementSibling;
+    expect(collapsibleContent).not.toHaveClass("collapsed");
+
+    act(() => {
+      fireEvent.click(messageHeader!);
+    });
+    expect(collapsibleContent).toHaveClass("collapsed");
+
+    act(() => {
+      fireEvent.click(messageHeader!);
+    });
+    expect(collapsibleContent).not.toHaveClass("collapsed");
+  });
+
+  it("auto-expands new messages and collapses old ones", () => {
+    renderWithProvider(<App tabId="test-tab-id" />);
+
+    act(() => {
+      fireEvent(
+        window,
+        new MessageEvent("message", {
+          data: {
+            command: "log",
+            id: "log-1",
+            message: { summary: "First Message", detail: "Detail 1" },
+          },
+        })
+      );
+    });
+
+    const message1Header = screen
+      .getByText("First Message")
+      .closest(".message-header");
+    const collapsible1 = message1Header!.nextElementSibling;
+    expect(collapsible1).not.toHaveClass("collapsed");
+
+    act(() => {
+      fireEvent(
+        window,
+        new MessageEvent("message", {
+          data: {
+            command: "log",
+            id: "log-2",
+            message: { summary: "Second Message", detail: "Detail 2" },
+          },
+        })
+      );
+    });
+
+    const message2Header = screen
+      .getByText("Second Message")
+      .closest(".message-header");
+    const collapsible2 = message2Header!.nextElementSibling;
+
+    expect(collapsible2).not.toHaveClass("collapsed");
+    expect(collapsible1).toHaveClass("collapsed");
   });
 });

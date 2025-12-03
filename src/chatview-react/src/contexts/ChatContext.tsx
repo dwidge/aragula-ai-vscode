@@ -6,10 +6,6 @@ interface ChatContextType {
   setChatHistory: React.Dispatch<React.SetStateAction<ChatMessage[]>>;
   tree: ChatMessage[];
   toggleCollapse: (id: string) => void;
-  renderMessageRecursive: (
-    msg: ChatMessage & { children?: ChatMessage[] },
-    level?: number
-  ) => ReactNode;
   messagesContainerRef: React.RefObject<HTMLDivElement | null>;
   scrollToBottom: () => void;
   clearChatHistory: () => void;

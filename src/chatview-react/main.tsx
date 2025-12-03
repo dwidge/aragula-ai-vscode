@@ -7,10 +7,12 @@ import "./src/index.css";
 declare function acquireVsCodeApi(): { postMessage: (v: object) => void };
 const vscode = acquireVsCodeApi();
 
+declare const tabId: string;
+
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
     <VscodeApiProvider value={{ postMessage: vscode.postMessage }}>
-      <App />
+      <App tabId={tabId} />
     </VscodeApiProvider>
   </React.StrictMode>
 );
