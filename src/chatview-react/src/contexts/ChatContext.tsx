@@ -1,7 +1,7 @@
 import React, { createContext, ReactNode, useContext } from "react";
 import { ChatMessage } from "../types";
 
-interface ChatContextType {
+export interface ChatContextType {
   chatHistory: ChatMessage[];
   setChatHistory: React.Dispatch<React.SetStateAction<ChatMessage[]>>;
   tree: ChatMessage[];
