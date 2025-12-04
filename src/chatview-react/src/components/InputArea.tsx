@@ -2,9 +2,8 @@ import React from "react";
 import { useSettings } from "../contexts/SettingsContext";
 import ActionButtons from "./ActionButtons";
 import "./InputArea.css";
+import PromptSection from "./PromptSection";
 import RunCommandSection from "./RunCommandSection";
-import SystemPromptSection from "./SystemPromptSection";
-import UserPromptSection from "./UserPromptSection";
 
 const InputArea: React.FC = () => {
   const {
@@ -20,19 +19,49 @@ const InputArea: React.FC = () => {
     userInputRef,
     runCommandInputRef,
     shellSelectorRef,
+    systemPrompts,
+    systemPromptsPopupVisible,
+    setSystemPromptsPopupVisible,
+    saveSystemPrompt,
+    loadSystemPrompt,
+    deleteSystemPrompt,
+    userPrompts,
+    userPromptsPopupVisible,
+    setUserPromptsPopupVisible,
+    saveUserPrompt,
+    loadUserPrompt,
+    deleteUserPrompt,
   } = useSettings();
 
   return (
     <div className="input-area">
-      <SystemPromptSection
+      <PromptSection
+        type="system"
         value={currentSystemPrompt}
         onInput={updateSystemPrompt}
         inputRef={systemPromptRef}
+        prompts={systemPrompts}
+        popupVisible={systemPromptsPopupVisible}
+        setPopupVisible={setSystemPromptsPopupVisible}
+        onSave={saveSystemPrompt}
+        onLoad={loadSystemPrompt}
+        onDelete={deleteSystemPrompt}
+        rows={2}
+        placeholder="Edit system prompt here..."
       />
-      <UserPromptSection
+      <PromptSection
+        type="user"
         value={currentUserPrompt}
         onInput={updateUserPrompt}
         inputRef={userInputRef}
+        prompts={userPrompts}
+        popupVisible={userPromptsPopupVisible}
+        setPopupVisible={setUserPromptsPopupVisible}
+        onSave={saveUserPrompt}
+        onLoad={loadUserPrompt}
+        onDelete={deleteUserPrompt}
+        rows={4}
+        placeholder="Type your message here..."
       />
       <RunCommandSection
         value={currentRunCommand}
