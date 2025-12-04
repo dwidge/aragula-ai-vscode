@@ -34,7 +34,7 @@ const UserPromptSection: React.FC<UserPromptSectionProps> = ({
           rows={4}
           placeholder="Type your message here..."
           onInput={(e) => onInput(e.currentTarget.value)}
-          value={value}
+          defaultValue={value}
         />
         <div className="prompt-buttons">
           <button onClick={togglePopup}>Load</button>

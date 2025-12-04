@@ -78,4 +78,20 @@ describe("MessageList", () => {
 
     expect(mockToggleCollapse).toHaveBeenCalledWith("msg-1");
   });
+
+  it("does not show collapse button for message without details or children", () => {
+    const tree = [
+      {
+        id: "msg-1",
+        summary: "No details here",
+        detail: "",
+        children: [],
+      },
+    ];
+    render(<MessageList />, { providerProps: { chatContext: { tree } } });
+
+    const messageHeader = screen.getByText("No details here");
+    expect(messageHeader).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "▲" })).not.toBeInTheDocument();
+  });
 });

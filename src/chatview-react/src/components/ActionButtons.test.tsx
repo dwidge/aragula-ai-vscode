@@ -6,6 +6,7 @@ import {
   userEvent,
 } from "../tests/test-utils";
 import ActionButtons from "./ActionButtons";
+import InputArea from "./InputArea";
 
 describe("ActionButtons", () => {
   beforeEach(() => {
@@ -62,5 +63,35 @@ describe("ActionButtons", () => {
     await user.click(clearButton);
 
     expect(mockClearChatHistory).toHaveBeenCalledTimes(1);
+  });
+
+  it("sends message with user input from InputArea", async () => {
+    const user = userEvent.setup();
+    render(<InputArea />, {
+      providerProps: {
+        settingsContext: {
+          currentProviderSetting: {
+            name: "test",
+            vendor: "test",
+            apiKey: "test",
+            model: "test",
+          },
+          postMessage: mockPostMessage,
+        },
+      },
+    });
+
+    const input = screen.getByPlaceholderText("Type your message here...");
+    await user.type(input, "Hello from input");
+
+    const sendButton = screen.getByRole("button", { name: "Send" });
+    await user.click(sendButton);
+
+    expect(mockPostMessage).toHaveBeenCalledWith(
+      expect.objectContaining({
+        command: "sendMessage",
+        user: "Hello from input",
+      })
+    );
   });
 });
