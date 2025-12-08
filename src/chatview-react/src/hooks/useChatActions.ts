@@ -79,9 +79,6 @@ export const useChatActions = () => {
       isPrivacyMaskingEnabled,
       includeCodebaseSummary,
     });
-
-    if (userInputRef.current) userInputRef.current.value = "";
-    updateUserPrompt("");
   }, [
     currentProviderSetting,
     openFiles,
@@ -94,7 +91,6 @@ export const useChatActions = () => {
     privacySettings,
     isPrivacyMaskingEnabled,
     includeCodebaseSummary,
-    updateUserPrompt,
     scrollToBottom,
     setChatHistory,
     userInputRef,

@@ -47,6 +47,40 @@ describe("ActionButtons", () => {
     );
   });
 
+  it("does not clear user input after sending a message", async () => {
+    const user = userEvent.setup();
+    const initialUserInput = "This is my message.";
+    const userInputRef = { current: document.createElement("textarea") };
+    userInputRef.current.value = initialUserInput;
+    const systemPromptRef = { current: document.createElement("textarea") };
+    systemPromptRef.current.value = "System Prompt";
+    const updateUserPrompt = vi.fn();
+
+    render(<ActionButtons />, {
+      providerProps: {
+        settingsContext: {
+          userInputRef,
+          systemPromptRef,
+          currentProviderSetting: {
+            name: "test",
+            vendor: "test",
+            apiKey: "test",
+            model: "test",
+          },
+          postMessage: mockPostMessage,
+          updateUserPrompt,
+        },
+      },
+    });
+
+    const sendButton = screen.getByRole("button", { name: "Send" });
+    await user.click(sendButton);
+
+    expect(mockPostMessage).toHaveBeenCalledTimes(1);
+    expect(userInputRef.current.value).toBe(initialUserInput);
+    expect(updateUserPrompt).not.toHaveBeenCalled();
+  });
+
   it("clears chat history when clear button is clicked", async () => {
     const user = userEvent.setup();
     const mockClearChatHistory = vi.fn();
