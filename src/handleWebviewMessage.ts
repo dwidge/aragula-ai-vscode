@@ -93,23 +93,31 @@ export async function handleWebviewMessage(
       }
       break;
     case "sendMessage":
-      try {
-        await handleSendMessage(
-          context,
-          postMessage,
-          {
-            ...message,
-            privacySettings: settings.privacySettings,
-          },
-          tabId,
-          logTask
-        );
-      } catch (e) {
-        console.error("handleSendMessage error:", e);
-        log("Error during send message: " + e);
-      } finally {
-        postMessage({ command: "resetSendButton" });
-      }
+      await logTask(
+        { summary: "Sending message...", type: "task" },
+        async (update, log, signal, req) => {
+          try {
+            await handleSendMessage(
+              context,
+              postMessage,
+              {
+                ...message,
+                privacySettings: settings.privacySettings,
+              },
+              tabId
+            )(update, log, signal, req);
+          } catch (e) {
+            console.error("sendMessageE1:", e);
+            await log({
+              type: "error",
+              summary: `${e instanceof Error ? e.message : String(e)}`,
+              detail: e instanceof Error ? `${e.cause}` : undefined,
+            });
+          } finally {
+            postMessage({ command: "resetSendButton" });
+          }
+        }
+      );
       break;
     case "runCommand":
       runShellTask(message.runCommand, message.shell, logTask)

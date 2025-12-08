@@ -21,7 +21,7 @@ import { readFileMap } from "./readFileMap";
 import { checkAndFixErrors } from "./task/checkAndFixErrors";
 import { handleFormatFilesInFiles } from "./task/handleFormatFilesInFiles";
 import { handleRemoveCommentsInFiles } from "./task/handleRemoveCommentsInFiles";
-import { createMessageLogger, Logger, TaskLogger } from "./utils/Logger";
+import { createMessageLogger, Logger, TaskRunner } from "./utils/Logger";
 import { setCommitMessage } from "./vscode/git/setCommitMessage";
 
 interface ActiveRequest {
@@ -40,7 +40,7 @@ export function cancelActiveRequest(messageId: string, log: Logger) {
 }
 
 /** Handles a sendMessage request from the webview. */
-export async function handleSendMessage(
+export function handleSendMessage(
   context: vscode.ExtensionContext,
   postMessage: PostMessage,
   message: {
@@ -58,119 +58,211 @@ export async function handleSendMessage(
     messageId: string;
     privacySettings?: PrivacyPair[];
   },
-  tabId: string,
-  taskLogger: TaskLogger,
-  signal?: AbortSignal
-) {
-  const log = createMessageLogger(taskLogger);
+  tabId: string
+): TaskRunner<void> {
   const providerSetting = message.providerSetting;
   const messageId = message.messageId;
 
-  if (message.autoGenerateCommit) {
-    const commitInstruction = await getCommitMessageInstruction({
-      useConventionalCommits: message.useConventionalCommits,
-      filePaths: message.fileNames,
-    });
-    message.system = `${message.system}\n\n${commitInstruction}`;
-  }
-
-  try {
-    let response: { assistant: string; tools: ToolCall[] };
-
-    await taskLogger(
-      { summary: "Receiving AI response...", type: "stream" },
-      async (setLog) => {
-        let streamedText = "";
-        const onChunk = (chunk: { text?: string }) => {
-          if (chunk.text) {
-            streamedText += chunk.text;
-            setLog({ detail: streamedText });
-          }
-        };
-
-        response = await performAiRequest(message, log, signal, onChunk);
-      }
-    );
-
-    if (providerSetting.vendor !== "manual") {
-      postMessage({
-        command: "updateMessage",
-        messageId,
-        text: response!.assistant,
-        sender: "assistant",
-        messageType: "assistant",
-      });
-    }
-
-    const enabledToolDefinitions = filterToolsByName(
-      availableToolsDefinitions,
-      message.toolNames
-    );
-    const toolCallResults = await executeToolCalls(
-      response!.tools,
-      enabledToolDefinitions,
-      log
-    );
-    const modifiedFileNames = getModifiedFileNames(toolCallResults);
-    const modifiedFiles = await cleanupFiles(
-      log,
-      providerSetting,
-      modifiedFileNames,
-      message.autoRemoveComments,
-      message.autoFormat,
-      message.autoFixErrors
-    );
-
-    if (message.autoFixErrors) {
-      await checkAndFixErrors(modifiedFiles, providerSetting, log);
-    }
-
+  return async (update, log, signal) => {
     if (message.autoGenerateCommit) {
-      const commitMessages = parseCommitMessages(response!.assistant);
-      for (const { repoPath, message: commitMessage } of commitMessages) {
-        await setCommitMessage(repoPath, commitMessage);
-      }
-    }
-
-    if (providerSetting.vendor !== "manual") {
-      postMessage({
-        command: "updateMessage",
-        messageId,
-        text: response!.assistant,
-        sender: "assistant",
-        messageType: "assistant",
-      });
-    }
-
-    context.workspaceState.update(`responseText-${tabId}`, response!);
-  } catch (error: any) {
-    if (error.name === "AbortError") {
-      log("Request was aborted by user.", "info");
-      postMessage({
-        command: "updateMessage",
-        messageId,
-        text: "Request was aborted.",
-        sender: "system",
-        messageType: "aborted",
-      });
-    } else {
-      log(
-        `API call failed: ${error.message}\n${
-          error?.error?.metadata?.raw ?? error?.error
-        }`,
-        "error"
+      await log(
+        { summary: "Preparing commit instruction...", type: "info" },
+        async (commitSetLog) => {
+          const commitInstruction = await getCommitMessageInstruction({
+            useConventionalCommits: message.useConventionalCommits,
+            filePaths: message.fileNames,
+          });
+          message.system = `${message.system}\n\n${commitInstruction}`;
+          commitSetLog({
+            detail: "Commit instruction added to system prompt.",
+          });
+        }
       );
-      postMessage({
-        command: "updateMessage",
-        messageId,
-        text: `API call failed: ${error.message}\n${
-          error?.error?.metadata?.raw ?? error?.error
-        }`,
-        sender: "error",
-        messageType: "error",
-      });
     }
-  }
+
+    try {
+      let response: { assistant: string; tools: ToolCall[] };
+
+      await log(
+        { summary: "Receiving AI response...", type: "stream" },
+        async (aiResponseSetLog, aiResponseSubLog) => {
+          const aiLog = createMessageLogger(aiResponseSubLog);
+
+          aiLog("Enabled tools: " + message.toolNames.join(", "), "info");
+
+          const rawFilesContent: ToolCall[] = await readFiles(
+            message.fileNames
+          );
+          aiLog(
+            `Read ${rawFilesContent.length} files: ${message.fileNames.join(
+              ", "
+            )}`,
+            "info"
+          );
+
+          if (message.includeCodebaseSummary) {
+            const targetDir = "src";
+            const codebaseSummaryFiles = await getCodebaseSummary(targetDir);
+            const codebaseSummaryContent = readFileMap(codebaseSummaryFiles);
+            rawFilesContent.push(...codebaseSummaryContent);
+            aiLog(
+              `Included ${codebaseSummaryContent.length} codebase summary files from "${targetDir}".`,
+              "info"
+            );
+          }
+
+          const privacySettings = message.privacySettings || [];
+          const filesContent = rawFilesContent.map(
+            replaceToolCallContent(privacySettings)
+          );
+          const userMessage = applyPrivacyReplacements(
+            message.user,
+            privacySettings
+          );
+          const systemMessage = applyPrivacyReplacements(
+            message.system,
+            privacySettings
+          );
+
+          const enabledToolDefinitions = filterToolsByName(
+            availableToolsDefinitions,
+            message.toolNames
+          );
+
+          let streamedText = "";
+          const onChunk = (chunk: { text?: string }) => {
+            if (chunk.text) {
+              streamedText += chunk.text;
+              aiResponseSetLog({ detail: streamedText });
+            }
+          };
+
+          response = await newAiApi(message.providerSetting)(
+            {
+              user: userMessage,
+              system: systemMessage,
+              tools: filesContent,
+            },
+            enabledToolDefinitions,
+            { logger: aiLog, signal: signal, onChunk }
+          );
+
+          const responseTools = response.tools.map(
+            restoreToolCallContent(privacySettings)
+          );
+          const responseText = reversePrivacyReplacements(
+            response.assistant,
+            privacySettings
+          );
+
+          response = { assistant: responseText, tools: responseTools };
+        }
+      );
+
+      if (providerSetting.vendor !== "manual") {
+        postMessage({
+          command: "updateMessage",
+          messageId,
+          text: response!.assistant,
+          sender: "assistant",
+          messageType: "assistant",
+        });
+      }
+
+      await log(
+        { summary: "Processing AI output...", type: "task" },
+        async (processSetLog, processSubLog) => {
+          const processLog = createMessageLogger(processSubLog);
+
+          const enabledToolDefinitions = filterToolsByName(
+            availableToolsDefinitions,
+            message.toolNames
+          );
+          processLog("Executing tool calls...", "info");
+          const toolCallResults = await executeToolCalls(
+            response!.tools,
+            enabledToolDefinitions,
+            processLog
+          );
+          const modifiedFileNames = getModifiedFileNames(toolCallResults);
+          processLog(
+            `Executed ${
+              toolCallResults.length
+            } tool calls. Modified files: ${modifiedFileNames.join(", ")}`,
+            "info"
+          );
+
+          if (modifiedFileNames.length > 0) {
+            processLog("Cleaning up modified files...", "info");
+            await cleanupFiles(
+              processLog,
+              message.providerSetting,
+              modifiedFileNames,
+              message.autoRemoveComments,
+              message.autoFormat,
+              message.autoFixErrors
+            );
+            processLog("File cleanup complete.", "info");
+          }
+
+          if (message.autoGenerateCommit) {
+            processLog("Generating and setting commit message...", "info");
+            const commitMessages = parseCommitMessages(response!.assistant);
+            for (const { repoPath, message: commitMessage } of commitMessages) {
+              await setCommitMessage(repoPath, commitMessage);
+              processLog(
+                `Commit message set for ${repoPath}: "${commitMessage}"`,
+                "info"
+              );
+            }
+          }
+
+          if (providerSetting.vendor !== "manual") {
+            postMessage({
+              command: "updateMessage",
+              messageId,
+              text: response!.assistant,
+              sender: "assistant",
+              messageType: "assistant",
+            });
+          }
+
+          context.workspaceState.update(`responseText-${tabId}`, response!);
+        }
+      );
+      update({
+        type: "success",
+        summary: "Message sent and processed.",
+      });
+    } catch (error: any) {
+      if (signal.aborted) {
+        update({ summary: "Request aborted by user.", type: "info" });
+        postMessage({
+          command: "updateMessage",
+          messageId,
+          text: "Request was aborted.",
+          sender: "system",
+          messageType: "aborted",
+        });
+      } else {
+        update({
+          summary: `API call failed: ${error.message}`,
+          detail: `${error?.error?.metadata?.raw ?? error?.error}`,
+          type: "error",
+        });
+        postMessage({
+          command: "updateMessage",
+          messageId,
+          text: `API call failed: ${error.message}\n${
+            error?.error?.metadata?.raw ?? error?.error
+          }`,
+          sender: "error",
+          messageType: "error",
+        });
+      }
+      throw error;
+    }
+  };
 }
 
 /**
