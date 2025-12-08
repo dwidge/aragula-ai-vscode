@@ -4,6 +4,26 @@
   gap: 10px;
 }
 
+.compact-input-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.toggle-advanced {
+  padding: 10px 15px;
+  border: none;
+  background-color: var(--button-background);
+  color: white;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 1.2em;
+}
+
+.toggle-advanced:hover:not(:disabled) {
+  background-color: var(--button-hover);
+}
+
 .input-row {
   display: flex;
   gap: 10px;
@@ -28,6 +48,12 @@ select {
   display: flex;
   gap: 10px;
   flex-wrap: wrap;
+}
+
+.advanced-panel {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--pre-border);
 }
 
 button {
