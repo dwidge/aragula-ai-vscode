@@ -154,11 +154,18 @@ export async function handleSendMessage(
         messageType: "aborted",
       });
     } else {
-      log(`API call failed: ${error.message}`, "error");
+      log(
+        `API call failed: ${error.message}\n${
+          error?.error?.metadata?.raw ?? error?.error
+        }`,
+        "error"
+      );
       postMessage({
         command: "updateMessage",
         messageId,
-        text: `API call failed: ${error.message}`,
+        text: `API call failed: ${error.message}\n${
+          error?.error?.metadata?.raw ?? error?.error
+        }`,
         sender: "error",
         messageType: "error",
       });
