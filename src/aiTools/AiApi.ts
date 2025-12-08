@@ -216,7 +216,7 @@ const callOpenAi = async (
         temperature: apiSettings.temperature,
         messages,
         tools: nativeTools,
-        tool_choice: "auto",
+        tool_choice: nativeTools?.length ? "auto" : undefined,
         stream: true,
         ...(apiSettings.provider && {
           query: { provider: apiSettings.provider },
