@@ -28,7 +28,7 @@ describe("useMessageHandler", () => {
     userInputRef: { current: null },
   });
 
-  it("auto-expands new messages and collapses old ones", () => {
+  it("auto-expands new messages", () => {
     const mockProps = getMockProps();
     renderHook(() => useMessageHandler(mockProps));
 
@@ -69,7 +69,7 @@ describe("useMessageHandler", () => {
     const secondCallUpdater = mockProps.setChatHistory.mock.calls[1][0];
     const stateAfterSecond = secondCallUpdater(stateAfterFirst);
     expect(stateAfterSecond).toEqual([
-      expect.objectContaining({ id: "log-1", isCollapsed: true }),
+      expect.objectContaining({ id: "log-1", isCollapsed: false }),
       expect.objectContaining({ id: "log-2", isCollapsed: false }),
     ]);
   });
@@ -88,7 +88,7 @@ describe("useMessageHandler", () => {
             id: "log-123",
             message: {
               type: "error",
-              detail: errorMessage,
+              summary: errorMessage,
             },
           },
         })
@@ -102,7 +102,6 @@ describe("useMessageHandler", () => {
       expect.objectContaining({
         id: "log-123",
         summary: errorMessage,
-        detail: errorMessage,
         messageType: "error",
       }),
     ]);

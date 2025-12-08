@@ -84,7 +84,7 @@ describe("ActionButtons", () => {
   it("clears chat history when clear button is clicked", async () => {
     const user = userEvent.setup();
     const mockClearChatHistory = vi.fn();
-    render(<ActionButtons />, {
+    render(<ActionButtons variant="compact" />, {
       providerProps: {
         chatContext: {
           clearChatHistory: mockClearChatHistory,
@@ -99,7 +99,7 @@ describe("ActionButtons", () => {
   });
 
   it("disables file-related action buttons when no files are open", () => {
-    render(<ActionButtons />, {
+    render(<ActionButtons variant="advanced" />, {
       providerProps: {
         settingsContext: {
           openFiles: [],
@@ -116,7 +116,7 @@ describe("ActionButtons", () => {
   });
 
   it("enables file-related action buttons when files are open", () => {
-    render(<ActionButtons />, {
+    render(<ActionButtons variant="advanced" />, {
       providerProps: {
         settingsContext: {
           openFiles: ["file1.txt"],
@@ -139,7 +139,7 @@ describe("ActionButtons", () => {
   });
 
   it("disables 'Fix Errors' if no provider is selected, even with files", () => {
-    render(<ActionButtons />, {
+    render(<ActionButtons variant="advanced" />, {
       providerProps: {
         settingsContext: {
           openFiles: ["file1.txt"],

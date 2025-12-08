@@ -6,8 +6,17 @@ type Setters = Omit<SettingsContextType, "postMessage" | "tabId">;
 
 interface UseMessageHandlerProps extends Partial<Setters> {
   setChatHistory: React.Dispatch<React.SetStateAction<ChatMessage[]>>;
-  systemPromptRef: React.RefObject<HTMLTextAreaElement | null>;
-  userInputRef: React.RefObject<HTMLTextAreaElement | null>;
+  systemPromptRef?: React.RefObject<HTMLTextAreaElement | null>;
+  userInputRef?: React.RefObject<HTMLTextAreaElement | null>;
+}
+
+function updateHistoryWithParentExpanded(
+  prev: ChatMessage[],
+  newMsg: ChatMessage
+): ChatMessage[] {
+  const newHistory = [...prev, newMsg];
+
+  return newHistory;
 }
 
 export const useMessageHandler = (props: UseMessageHandlerProps) => {
@@ -32,6 +41,8 @@ export const useMessageHandler = (props: UseMessageHandlerProps) => {
     setAutoGenerateCommit,
     setUseConventionalCommits,
     setIncludeCodebaseSummary,
+    systemPromptRef,
+    userInputRef,
   } = props;
 
   useEffect(() => {
@@ -40,45 +51,21 @@ export const useMessageHandler = (props: UseMessageHandlerProps) => {
       console.log("message1", message.command, message);
       if (message.command === "log") {
         const { id, parentId, message: taskLog } = message;
-        const msgId = String(id);
-        const parent = parentId ? String(parentId) : undefined;
         setChatHistory((prev) => {
-          const existingIndex = prev.findIndex((m) => m.id === msgId);
-
-          let summary = taskLog.summary;
-          let detail = taskLog.detail;
-          if (taskLog.type === "error") {
-            const errorMessage =
-              taskLog.detail || taskLog.summary || "An unknown error occurred";
-            detail = errorMessage;
-            summary = errorMessage;
-          }
-
+          const msgId = String(id);
+          const msgParentId = parentId ? String(parentId) : undefined;
           const newMsg: ChatMessage = {
             id: msgId,
-            parentId: parent,
-            summary: summary || detail,
-            detail: detail,
-            messageType: taskLog.type,
-            isCollapsed: [
-              "prompt",
-              "tool",
-              "log",
-              "info",
-              "warning",
-              "error",
-            ].includes(taskLog.type || "log"),
+            parentId: msgParentId,
+            summary: taskLog.summary || "",
+            detail: taskLog.detail || "",
+            messageType: taskLog.type || "log",
+            isCollapsed: false,
           };
-          if (existingIndex !== -1) {
-            const updated = [...prev];
-            updated[existingIndex] = { ...updated[existingIndex], ...newMsg };
-            return updated;
+          if (prev.find((m) => m.id === msgId)) {
+            return prev.map((m) => (m.id === msgId ? { ...m, ...newMsg } : m));
           } else {
-            const collapsedPrev = prev.map((m) => ({
-              ...m,
-              isCollapsed: true,
-            }));
-            return [...collapsedPrev, { ...newMsg, isCollapsed: false }];
+            return [...prev, newMsg];
           }
         });
         return;
@@ -90,21 +77,15 @@ export const useMessageHandler = (props: UseMessageHandlerProps) => {
             ? String(message.formRequest.parentId)
             : undefined;
           setChatHistory((prev) => {
-            const collapsedPrev = prev.map((m) => ({
-              ...m,
-              isCollapsed: true,
-            }));
-            return [
-              ...collapsedPrev,
-              {
-                id: formId,
-                parentId: formParentId,
-                summary: message.formRequest.message,
-                detail: "",
-                messageType: "form-prompt",
-                isCollapsed: false,
-              },
-            ];
+            const newMsg: ChatMessage = {
+              id: formId,
+              parentId: formParentId,
+              summary: message.formRequest.message,
+              detail: "",
+              messageType: "form-prompt",
+              isCollapsed: false,
+            };
+            return updateHistoryWithParentExpanded(prev, newMsg);
           });
           break;
         case "updateMessage":
@@ -120,32 +101,24 @@ export const useMessageHandler = (props: UseMessageHandlerProps) => {
               summary = errorMessage;
             }
 
+            const newMsg: ChatMessage = {
+              id: updateId,
+              summary,
+              detail: text,
+              sender: message.sender || "",
+              messageType: message.messageType || "log",
+              isCollapsed: false,
+            };
+
             if (existingIndex !== -1) {
               const updated = [...prev];
               updated[existingIndex] = {
                 ...updated[existingIndex],
-                detail: text,
-                summary: summary,
-                messageType: message.messageType,
-                sender: message.sender,
+                ...newMsg,
               };
               return updated;
             } else {
-              const collapsedPrev = prev.map((m) => ({
-                ...m,
-                isCollapsed: true,
-              }));
-              return [
-                ...collapsedPrev,
-                {
-                  id: updateId,
-                  summary: summary,
-                  detail: text,
-                  sender: message.sender || "",
-                  messageType: message.messageType || "log",
-                  isCollapsed: false,
-                },
-              ];
+              return updateHistoryWithParentExpanded(prev, newMsg);
             }
           });
           break;
@@ -213,5 +186,7 @@ export const useMessageHandler = (props: UseMessageHandlerProps) => {
     setAutoGenerateCommit,
     setUseConventionalCommits,
     setIncludeCodebaseSummary,
+    systemPromptRef,
+    userInputRef,
   ]);
 };

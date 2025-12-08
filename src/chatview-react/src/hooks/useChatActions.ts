@@ -47,10 +47,7 @@ export const useChatActions = () => {
       messageType: "user",
       isCollapsed: false,
     };
-    setChatHistory((prev) => {
-      const collapsedPrev = prev.map((m) => ({ ...m, isCollapsed: true }));
-      return [...collapsedPrev, userMsg];
-    });
+    setChatHistory((prev) => [...prev, userMsg]);
     scrollToBottom();
     return messageId;
   };

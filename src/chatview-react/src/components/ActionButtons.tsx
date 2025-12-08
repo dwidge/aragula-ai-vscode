@@ -7,7 +7,9 @@ interface ActionButtonsProps {
   variant?: "compact" | "advanced";
 }
 
-const ActionButtons: React.FC<ActionButtonsProps> = ({ variant = "full" }) => {
+const ActionButtons: React.FC<ActionButtonsProps> = ({
+  variant = "compact",
+}) => {
   const {
     handleSendMessage,
     handlePlanAndExecute,
@@ -45,7 +47,7 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ variant = "full" }) => {
 
   const showCompactButtons = variant === "compact";
   const showUtilityButtons = variant !== "compact";
-  const showAdvancedSections = variant === "advanced" || variant === "full";
+  const showAdvancedSections = variant === "advanced";
 
   return (
     <div className="button-row">
