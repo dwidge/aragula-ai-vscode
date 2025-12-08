@@ -32,8 +32,6 @@ export const useMessageHandler = (props: UseMessageHandlerProps) => {
     setAutoGenerateCommit,
     setUseConventionalCommits,
     setIncludeCodebaseSummary,
-    systemPromptRef,
-    userInputRef,
   } = props;
 
   useEffect(() => {
@@ -162,10 +160,6 @@ export const useMessageHandler = (props: UseMessageHandlerProps) => {
         case "settingsUpdated":
           setCurrentSystemPrompt?.(message.settings.systemPrompt || "");
           setCurrentUserPrompt?.(message.settings.userPrompt || "");
-          if (systemPromptRef?.current)
-            systemPromptRef.current.value = message.settings.systemPrompt || "";
-          if (userInputRef?.current)
-            userInputRef.current.value = message.settings.userPrompt || "";
           setSystemPrompts?.(message.settings.systemPromptList || []);
           setUserPrompts?.(message.settings.userPromptList || []);
           setProviderSettingsList?.(message.settings.providerList || []);
@@ -219,7 +213,5 @@ export const useMessageHandler = (props: UseMessageHandlerProps) => {
     setAutoGenerateCommit,
     setUseConventionalCommits,
     setIncludeCodebaseSummary,
-    systemPromptRef,
-    userInputRef,
   ]);
 };

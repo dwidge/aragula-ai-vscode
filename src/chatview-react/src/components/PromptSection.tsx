@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useRef, useState } from "react";
 import "./PromptSection.css";
 import PromptsPopup from "./PromptsPopup";
 
@@ -31,6 +31,32 @@ const PromptSection: React.FC<PromptSectionProps> = ({
   rows,
   placeholder,
 }) => {
+  const [localValue, setLocalValue] = useState(value);
+  const isFocused = useRef(false);
+
+  useEffect(() => {
+    if (!isFocused.current) {
+      setLocalValue(value);
+    }
+  }, [value]);
+
+  const handleInput = (e: React.FormEvent<HTMLTextAreaElement>) => {
+    const newValue = e.currentTarget.value;
+    setLocalValue(newValue);
+    onInput(newValue);
+  };
+
+  const handleFocus = () => {
+    isFocused.current = true;
+  };
+
+  const handleBlur = () => {
+    isFocused.current = false;
+    if (localValue !== value) {
+      setLocalValue(value);
+    }
+  };
+
   const togglePopup = () => setPopupVisible((prev) => !prev);
   const closePopup = () => setPopupVisible(false);
 
@@ -41,8 +67,10 @@ const PromptSection: React.FC<PromptSectionProps> = ({
           ref={inputRef}
           rows={rows}
           placeholder={placeholder}
-          onInput={(e) => onInput(e.currentTarget.value)}
-          value={value}
+          onInput={handleInput}
+          onFocus={handleFocus}
+          onBlur={handleBlur}
+          value={localValue}
         />
         <div className="prompt-buttons">
           <button onClick={togglePopup}>Load</button>
