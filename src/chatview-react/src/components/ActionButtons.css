@@ -1,7 +1,18 @@
 .button-row {
   display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.main-actions,
+.file-actions,
+.commit-actions,
+.summary-actions,
+.test-actions {
+  display: flex;
   gap: 10px;
   flex-wrap: wrap;
+  align-items: center;
 }
 
 button {

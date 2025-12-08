@@ -34,6 +34,9 @@ export const useChatActions = () => {
 
   const { setChatHistory, scrollToBottom, clearChatHistory } = useChat();
 
+  const isFileActionDisabled = openFiles.length === 0;
+  const isFixErrorsDisabled = isFileActionDisabled || !currentProviderSetting;
+
   const addUserMessageToChat = (user: string) => {
     const messageId = Date.now().toString();
     const userMsg: ChatMessage = {
@@ -90,6 +93,7 @@ export const useChatActions = () => {
     useConventionalCommits,
     privacySettings,
     isPrivacyMaskingEnabled,
+    includeCodebaseSummary,
     updateUserPrompt,
     scrollToBottom,
     setChatHistory,
@@ -142,34 +146,34 @@ export const useChatActions = () => {
   }, [postMessage]);
 
   const handleRemoveComments = React.useCallback(() => {
-    if (openFiles.length === 0) return;
+    if (isFileActionDisabled) return;
     postMessage({
       command: "removeCommentsInFiles",
       filePaths: openFiles,
     });
-  }, [openFiles, postMessage]);
+  }, [openFiles, postMessage, isFileActionDisabled]);
 
   const handleFormat = React.useCallback(() => {
-    if (openFiles.length === 0) return;
+    if (isFileActionDisabled) return;
     postMessage({
       command: "formatFilesInFiles",
       filePaths: openFiles,
     });
-  }, [openFiles, postMessage]);
+  }, [openFiles, postMessage, isFileActionDisabled]);
 
   const handleFixErrors = React.useCallback(() => {
-    if (openFiles.length === 0 || !currentProviderSetting) return;
+    if (isFixErrorsDisabled) return;
     postMessage({
       command: "checkErrorsInFiles",
       filePaths: openFiles,
       providerSetting: currentProviderSetting,
     });
-  }, [openFiles, currentProviderSetting, postMessage]);
+  }, [openFiles, currentProviderSetting, postMessage, isFixErrorsDisabled]);
 
   const handleCommitFiles = React.useCallback(() => {
-    if (openFiles.length === 0) return;
+    if (isFileActionDisabled) return;
     postMessage({ command: "commitFiles", fileNames: openFiles });
-  }, [openFiles, postMessage]);
+  }, [openFiles, postMessage, isFileActionDisabled]);
 
   const handleTestTask = React.useCallback(() => {
     postMessage({ command: "runTestTask" });
@@ -258,5 +262,7 @@ export const useChatActions = () => {
     includeCodebaseSummary,
     handleIncludeCodebaseSummaryChange,
     togglePrivacySettingsPopup,
+    isFileActionDisabled,
+    isFixErrorsDisabled,
   };
 };

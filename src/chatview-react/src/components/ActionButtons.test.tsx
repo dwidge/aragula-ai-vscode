@@ -63,4 +63,57 @@ describe("ActionButtons", () => {
 
     expect(mockClearChatHistory).toHaveBeenCalledTimes(1);
   });
+
+  it("disables file-related action buttons when no files are open", () => {
+    render(<ActionButtons />, {
+      providerProps: {
+        settingsContext: {
+          openFiles: [],
+        },
+      },
+    });
+
+    expect(
+      screen.getByRole("button", { name: "Remove Comments" })
+    ).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Format" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Fix Errors" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Commit Files" })).toBeDisabled();
+  });
+
+  it("enables file-related action buttons when files are open", () => {
+    render(<ActionButtons />, {
+      providerProps: {
+        settingsContext: {
+          openFiles: ["file1.txt"],
+          currentProviderSetting: {
+            name: "test",
+            vendor: "test",
+            apiKey: "test",
+            model: "test",
+          },
+        },
+      },
+    });
+
+    expect(
+      screen.getByRole("button", { name: "Remove Comments" })
+    ).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Format" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Fix Errors" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Commit Files" })).toBeEnabled();
+  });
+
+  it("disables 'Fix Errors' if no provider is selected, even with files", () => {
+    render(<ActionButtons />, {
+      providerProps: {
+        settingsContext: {
+          openFiles: ["file1.txt"],
+          currentProviderSetting: undefined,
+        },
+      },
+    });
+
+    expect(screen.getByRole("button", { name: "Fix Errors" })).toBeDisabled();
+  });
 });

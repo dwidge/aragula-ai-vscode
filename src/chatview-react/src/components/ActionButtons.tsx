@@ -1,6 +1,7 @@
 import React from "react";
 import { useChatActions } from "../hooks/useChatActions";
 import "./ActionButtons.css";
+import ActionWithCheckbox from "./ActionWithCheckbox";
 
 const ActionButtons: React.FC = () => {
   const {
@@ -34,87 +35,112 @@ const ActionButtons: React.FC = () => {
     includeCodebaseSummary,
     handleIncludeCodebaseSummaryChange,
     togglePrivacySettingsPopup,
+    isFileActionDisabled,
+    isFixErrorsDisabled,
   } = useChatActions();
 
   return (
     <div className="button-row">
-      <button onClick={handleSendMessage}>Send</button>
-      <button onClick={handlePlanAndExecute}>Plan & Execute</button>
-      <button onClick={clearChatHistory}>Clear</button>
-      <button onClick={addFiles}>Add Files</button>
-      <button onClick={toggleToolPopup}>Add Tool</button>
-      <button onClick={toggleProviderSettingsPopup}>Providers</button>
-      <div className="auto-checkbox">
-        <input
-          type="checkbox"
-          checked={autoRemoveComments}
-          onChange={(e) => {
-            setAutoRemoveComments(e.target.checked);
-            sendSettingsUpdate({ autoRemoveComments: e.target.checked });
+      <div className="main-actions">
+        <button onClick={handleSendMessage}>Send</button>
+        <button onClick={handlePlanAndExecute}>Plan & Execute</button>
+        <button onClick={clearChatHistory}>Clear</button>
+        <button onClick={addFiles}>Add Files</button>
+        <button onClick={toggleToolPopup}>Add Tool</button>
+        <button onClick={toggleProviderSettingsPopup}>Providers</button>
+        <button onClick={togglePrivacySettingsPopup}>Privacy</button>
+      </div>
+
+      <div className="file-actions">
+        <ActionWithCheckbox
+          label="Auto Remove Comments"
+          actionLabel="Remove Comments"
+          autoChecked={autoRemoveComments}
+          onAutoChange={(checked) => {
+            setAutoRemoveComments(checked);
+            sendSettingsUpdate({ autoRemoveComments: checked });
           }}
+          onActionClick={handleRemoveComments}
+          actionDisabled={isFileActionDisabled}
         />
-        <label>Auto Remove Comments</label>
-      </div>
-      <button onClick={handleRemoveComments}>Remove Comments</button>
-      <div className="auto-checkbox">
-        <input
-          type="checkbox"
-          checked={autoFormat}
-          onChange={(e) => {
-            setAutoFormat(e.target.checked);
-            sendSettingsUpdate({ autoFormat: e.target.checked });
+        <ActionWithCheckbox
+          label="Auto Format"
+          actionLabel="Format"
+          autoChecked={autoFormat}
+          onAutoChange={(checked) => {
+            setAutoFormat(checked);
+            sendSettingsUpdate({ autoFormat: checked });
           }}
+          onActionClick={handleFormat}
+          actionDisabled={isFileActionDisabled}
         />
-        <label>Auto Format</label>
-      </div>
-      <button onClick={handleFormat}>Format</button>
-      <div className="auto-checkbox">
-        <input
-          type="checkbox"
-          checked={autoFixErrors}
-          onChange={(e) => {
-            setAutoFixErrors(e.target.checked);
-            sendSettingsUpdate({ autoFixErrors: e.target.checked });
+        <ActionWithCheckbox
+          label="Auto Fix Errors"
+          actionLabel="Fix Errors"
+          autoChecked={autoFixErrors}
+          onAutoChange={(checked) => {
+            setAutoFixErrors(checked);
+            sendSettingsUpdate({ autoFixErrors: checked });
           }}
+          onActionClick={handleFixErrors}
+          actionDisabled={isFixErrorsDisabled}
         />
-        <label>Auto Fix Errors</label>
       </div>
-      <button onClick={handleFixErrors}>Fix Errors</button>
-      <div className="auto-checkbox">
-        <input
-          type="checkbox"
-          checked={autoGenerateCommit}
-          onChange={(e) => handleAutoGenerateCommitChange(e.target.checked)}
-        />
-        <label>Generate Commit Message</label>
+      <div className="commit-actions">
+        <div className="auto-checkbox">
+          <input
+            type="checkbox"
+            id="auto-generate-commit"
+            checked={autoGenerateCommit}
+            onChange={(e) => handleAutoGenerateCommitChange(e.target.checked)}
+          />
+          <label htmlFor="auto-generate-commit">Generate Commit Message</label>
+        </div>
+        <div className="auto-checkbox">
+          <input
+            type="checkbox"
+            id="use-conventional-commits"
+            checked={useConventionalCommits}
+            disabled={!autoGenerateCommit}
+            onChange={(e) =>
+              handleUseConventionalCommitsChange(e.target.checked)
+            }
+          />
+          <label htmlFor="use-conventional-commits">
+            Use Conventional Commits
+          </label>
+        </div>
+        <button onClick={handleCommitFiles} disabled={isFileActionDisabled}>
+          Commit Files
+        </button>
       </div>
-      <div className="auto-checkbox">
-        <input
-          type="checkbox"
-          checked={useConventionalCommits}
-          disabled={!autoGenerateCommit}
-          onChange={(e) => handleUseConventionalCommitsChange(e.target.checked)}
-        />
-        <label>Use Conventional Commits</label>
+      <div className="summary-actions">
+        <div className="auto-checkbox">
+          <input
+            type="checkbox"
+            id="include-codebase-summary"
+            checked={includeCodebaseSummary}
+            onChange={(e) =>
+              handleIncludeCodebaseSummaryChange(e.target.checked)
+            }
+          />
+          <label htmlFor="include-codebase-summary">
+            Include Codebase Summary
+          </label>
+        </div>
+        <button onClick={handleShowCodebaseSummary}>
+          Show Codebase Summary
+        </button>
       </div>
-      <button onClick={handleCommitFiles}>Commit Files</button>
-      <button onClick={handleTestTask}>Test Task Logger</button>
-      <button onClick={handleTestMultiTask}>Test Multi Task</button>
-      <button onClick={handleTestSerialTask}>Test Serial Task</button>
-      <button onClick={handleTestFormTask}>Test Form Task</button>
-      <button onClick={handleTestSetCommitMessage}>
-        Test Set Commit Message
-      </button>
-      <button onClick={handleShowCodebaseSummary}>Show Codebase Summary</button>
-      <div className="auto-checkbox">
-        <input
-          type="checkbox"
-          checked={includeCodebaseSummary}
-          onChange={(e) => handleIncludeCodebaseSummaryChange(e.target.checked)}
-        />
-        <label>Include Codebase Summary</label>
+      <div className="test-actions">
+        <button onClick={handleTestTask}>Test Task Logger</button>
+        <button onClick={handleTestMultiTask}>Test Multi Task</button>
+        <button onClick={handleTestSerialTask}>Test Serial Task</button>
+        <button onClick={handleTestFormTask}>Test Form Task</button>
+        <button onClick={handleTestSetCommitMessage}>
+          Test Set Commit Message
+        </button>
       </div>
-      <button onClick={togglePrivacySettingsPopup}>Privacy</button>
     </div>
   );
 };
