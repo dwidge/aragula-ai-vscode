@@ -41,11 +41,13 @@ export const useChatActions = () => {
     const messageId = Date.now().toString();
     const userMsg: ChatMessage = {
       id: messageId,
-      summary: user,
-      detail: user,
-      sender: "user",
-      messageType: "user",
+      message: {
+        summary: user,
+        detail: user,
+        type: "user",
+      },
       isCollapsed: false,
+      sender: "user",
     };
     setChatHistory((prev) => [...prev, userMsg]);
     scrollToBottom();

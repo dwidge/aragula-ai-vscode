@@ -7,8 +7,8 @@ import { fireEvent, render, renderHook, screen } from "../tests/test-utils";
 describe("MessageList", () => {
   it("renders a list of messages from the tree", () => {
     const tree = [
-      { id: "1", summary: "First message" },
-      { id: "2", summary: "Second message" },
+      { id: "1", message: { summary: "First message" } },
+      { id: "2", message: { summary: "Second message" } },
     ];
     render(<MessageList />, {
       providerProps: { chatContext: { tree } },
@@ -22,9 +22,7 @@ describe("MessageList", () => {
     const tree = [
       {
         id: "error-1",
-        summary: errorMessage,
-        detail: errorMessage,
-        messageType: "error",
+        message: { summary: errorMessage, detail: errorMessage, type: "error" },
       },
     ];
     render(<MessageList />, {
@@ -53,8 +51,7 @@ describe("MessageList", () => {
     const tree = [
       {
         id: "msg-1",
-        summary: "Test Summary",
-        detail: "Test Detail",
+        message: { summary: "Test Summary", detail: "Test Detail" },
         isCollapsed: false,
       },
     ];
@@ -84,8 +81,7 @@ describe("MessageList", () => {
     const tree = [
       {
         id: "msg-1",
-        summary: "No details here",
-        detail: "",
+        message: { summary: "No details here", detail: "" },
         children: [],
       },
     ];
@@ -100,21 +96,27 @@ describe("MessageList", () => {
     const tree = [
       {
         id: "parent-1",
-        summary: "Parent Message",
-        detail: "Parent detail",
-        messageType: "task",
+        message: {
+          summary: "Parent Message",
+          detail: "Parent detail",
+          type: "task",
+        },
         children: [
           {
             id: "child-1",
-            summary: "Child Message 1",
-            detail: "Child 1 detail",
-            messageType: "log",
+            message: {
+              summary: "Child Message 1",
+              detail: "Child 1 detail",
+              type: "log",
+            },
           },
           {
             id: "child-2",
-            summary: "Child Message 2",
-            detail: "Child 2 detail",
-            messageType: "info",
+            message: {
+              summary: "Child Message 2",
+              detail: "Child 2 detail",
+              type: "info",
+            },
           },
         ],
       },
@@ -170,8 +172,10 @@ describe("MessageList", () => {
     expect(stateAfterParent).toEqual([
       expect.objectContaining({
         id: "parent-1",
-        summary: "Parent Task",
-        messageType: "task",
+        message: {
+          summary: "Parent Task",
+          type: "task",
+        },
         isCollapsed: false,
       }),
     ]);
@@ -207,8 +211,7 @@ describe("MessageList", () => {
         id: "child-1",
         parentId: "parent-1",
         isCollapsed: false,
-        messageType: "log",
-        summary: "Child Log",
+        message: { type: "log", summary: "Child Log" },
       })
     );
   });

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useCallback, useRef, useState } from "react";
 
 const enableWrite = false;
 
@@ -15,19 +15,24 @@ export const useLocalStorage = <T>(
       return initialValue;
     }
   });
+  const valueRef = useRef(storedValue);
 
-  const setValue = (value: React.SetStateAction<T>) => {
-    try {
-      const valueToStore =
-        value instanceof Function ? value(storedValue) : value;
-      setStoredValue(valueToStore);
-      if (enableWrite) {
-        window.localStorage.setItem(key, JSON.stringify(valueToStore));
+  const setValue = useCallback(
+    (value: React.SetStateAction<T>) => {
+      try {
+        const valueToStore =
+          value instanceof Function ? value(valueRef.current) : value;
+        setStoredValue(valueToStore);
+        valueRef.current = valueToStore;
+        if (enableWrite) {
+          window.localStorage.setItem(key, JSON.stringify(valueToStore));
+        }
+      } catch (error) {
+        console.error(`Error setting localStorage key "${key}":`, error);
       }
-    } catch (error) {
-      console.error(`Error setting localStorage key "${key}":`, error);
-    }
-  };
+    },
+    [key]
+  );
 
   return [storedValue, setValue];
 };

@@ -2,7 +2,6 @@
   word-wrap: break-word;
   display: flex;
   flex-direction: column;
-  gap: 8px;
   background-color: var(--pre-background);
   border-radius: 5px;
   border: 1px solid var(--pre-border);
@@ -15,11 +14,9 @@
 }
 
 .message-content-wrapper {
-  padding: 8px;
   display: flex;
   flex-direction: column;
   flex-grow: 1;
-  gap: 8px;
 }
 
 .message-header {
@@ -28,6 +25,7 @@
   align-items: start;
   cursor: pointer;
   position: relative;
+  padding: 8px;
 }
 .message-header.non-collapsible {
   cursor: default;
@@ -68,35 +66,13 @@
 }
 
 .message-body-content {
-  padding-top: 8px;
+  padding: 8px;
   border-top: 1px dashed var(--pre-border);
 }
 
-.collapsible-content {
-  overflow: hidden;
-  transition: max-height 0.3s ease-out;
-}
-.collapsible-content.collapsed {
-  max-height: 0;
-  padding-top: 0;
-  padding-bottom: 0;
-  margin-bottom: 0;
-  overflow: hidden;
-}
-
-.child-messages-container {
+.messages-container {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-}
-.child-messages-container .message {
-  border: 1px solid var(--plan-step-message-border);
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-.child-messages-container .message .message-content-wrapper {
-  padding: 8px;
 }
 
 .user-message {

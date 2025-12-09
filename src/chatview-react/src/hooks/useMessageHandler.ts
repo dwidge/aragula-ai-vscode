@@ -10,13 +10,29 @@ interface UseMessageHandlerProps extends Partial<Setters> {
   userInputRef?: React.RefObject<HTMLTextAreaElement | null>;
 }
 
-function updateHistoryWithParentExpanded(
+function updateHistory(
   prev: ChatMessage[],
   newMsg: ChatMessage
 ): ChatMessage[] {
-  const newHistory = [...prev, newMsg];
-
-  return newHistory;
+  if (prev.find((m) => m.id === newMsg.id)) {
+    return prev.map((m) =>
+      m.id === newMsg.id
+        ? (console.log("Updating history with message:", m, newMsg, {
+            ...m,
+            ...newMsg,
+            message: { ...m.message, ...newMsg.message },
+          }),
+          {
+            ...m,
+            ...newMsg,
+            message: { ...m.message, ...newMsg.message },
+          })
+        : m
+    );
+  } else {
+    console.log("Add history with message:", prev, newMsg);
+    return [...prev, newMsg];
+  }
 }
 
 export const useMessageHandler = (props: UseMessageHandlerProps) => {
@@ -49,78 +65,33 @@ export const useMessageHandler = (props: UseMessageHandlerProps) => {
     const handler = (event: MessageEvent) => {
       const message = event.data;
       console.log("message1", message.command, message);
-      if (message.command === "log") {
-        const { id, parentId, message: taskLog } = message;
-        setChatHistory((prev) => {
-          const msgId = String(id);
-          const msgParentId = parentId ? String(parentId) : undefined;
-          const newMsg: ChatMessage = {
-            id: msgId,
-            parentId: msgParentId,
-            summary: taskLog.summary || "",
-            detail: taskLog.detail || "",
-            messageType: taskLog.type || "log",
-            isCollapsed: false,
-          };
-          if (prev.find((m) => m.id === msgId)) {
-            return prev.map((m) => (m.id === msgId ? { ...m, ...newMsg } : m));
-          } else {
-            return [...prev, newMsg];
-          }
-        });
-        return;
-      }
+
       switch (message.command) {
+        case "log":
+          setChatHistory((prev) =>
+            updateHistory(prev, {
+              ...message,
+              isCollapsed: false,
+            })
+          );
+          break;
         case "promptForm":
           const formId = String(message.formRequest.id);
           const formParentId = message.formRequest.parentId
             ? String(message.formRequest.parentId)
             : undefined;
-          setChatHistory((prev) => {
-            const newMsg: ChatMessage = {
+          setChatHistory((prev) =>
+            updateHistory(prev, {
               id: formId,
               parentId: formParentId,
-              summary: message.formRequest.message,
-              detail: "",
-              messageType: "form-prompt",
+              message: {
+                summary: message.formRequest.message,
+                detail: "",
+                type: "form-prompt",
+              },
               isCollapsed: false,
-            };
-            return updateHistoryWithParentExpanded(prev, newMsg);
-          });
-          break;
-        case "updateMessage":
-          const updateId = String(message.messageId);
-          setChatHistory((prev) => {
-            const existingIndex = prev.findIndex((m) => m.id === updateId);
-
-            let text = message.text ?? message.detail ?? "";
-            let summary = message.summary ?? text;
-            if (message.messageType === "error") {
-              const errorMessage = text || summary;
-              text = errorMessage;
-              summary = errorMessage;
-            }
-
-            const newMsg: ChatMessage = {
-              id: updateId,
-              summary,
-              detail: text,
-              sender: message.sender || "",
-              messageType: message.messageType || "log",
-              isCollapsed: false,
-            };
-
-            if (existingIndex !== -1) {
-              const updated = [...prev];
-              updated[existingIndex] = {
-                ...updated[existingIndex],
-                ...newMsg,
-              };
-              return updated;
-            } else {
-              return updateHistoryWithParentExpanded(prev, newMsg);
-            }
-          });
+            })
+          );
           break;
         case "clearMessages":
           setChatHistory([]);

@@ -2,7 +2,6 @@ import React from "react";
 import { useChat } from "../contexts/ChatContext";
 import { useScrollToBottom } from "../hooks/useScrollToBottom";
 import ChatMessageItem from "./ChatMessageItem";
-import "./MessageList.css";
 
 const MessageList: React.FC = () => {
   const { tree, messagesContainerRef, toggleCollapse } = useChat();

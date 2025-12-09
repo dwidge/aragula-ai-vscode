@@ -1,10 +1,12 @@
 export interface ChatMessage {
   id: string;
   parentId?: string;
-  summary: string;
-  detail?: string;
+  message?: {
+    summary?: string;
+    detail?: string;
+    type?: string;
+  };
   sender?: string;
-  messageType?: string;
   isCollapsed?: boolean;
   stepIndex?: number;
   text?: string;

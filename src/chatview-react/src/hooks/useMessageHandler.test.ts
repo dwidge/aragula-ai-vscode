@@ -97,47 +97,16 @@ describe("useMessageHandler", () => {
 
     expect(mockProps.setChatHistory).toHaveBeenCalledTimes(1);
     const updater = mockProps.setChatHistory.mock.calls[0][0];
-    const newState = updater([]);
+    const newState = updater([
+      {
+        id: "log-123",
+        message: { type: "log" },
+      },
+    ]);
     expect(newState).toEqual([
       expect.objectContaining({
         id: "log-123",
-        summary: errorMessage,
-        messageType: "error",
-      }),
-    ]);
-  });
-
-  it("handles an 'updateMessage' command with an error type", () => {
-    const mockProps = getMockProps();
-    renderHook(() => useMessageHandler(mockProps));
-    const errorMessage = "API call failed: 401 Incorrect API key";
-
-    act(() => {
-      fireEvent(
-        window,
-        new MessageEvent("message", {
-          data: {
-            command: "updateMessage",
-            messageId: "thinking-123",
-            text: errorMessage,
-            sender: "error",
-            messageType: "error",
-          },
-        })
-      );
-    });
-
-    expect(mockProps.setChatHistory).toHaveBeenCalledTimes(1);
-    const updater = mockProps.setChatHistory.mock.calls[0][0];
-    const newState = updater([
-      { id: "thinking-123", summary: "Thinking...", messageType: "thinking" },
-    ]);
-    expect(newState).toEqual([
-      expect.objectContaining({
-        id: "thinking-123",
-        summary: errorMessage,
-        detail: errorMessage,
-        messageType: "error",
+        message: { summary: errorMessage, type: "error" },
       }),
     ]);
   });

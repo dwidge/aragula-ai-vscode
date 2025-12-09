@@ -160,12 +160,10 @@ export function handleSendMessage(
       );
 
       if (providerSetting.vendor !== "manual") {
-        postMessage({
-          command: "updateMessage",
-          messageId,
-          text: response!.assistant,
-          sender: "assistant",
-          messageType: "assistant",
+        log({
+          summary: "AI Response Received",
+          detail: response!.assistant,
+          type: "assistant",
         });
       }
 
@@ -218,13 +216,7 @@ export function handleSendMessage(
           }
 
           if (providerSetting.vendor !== "manual") {
-            postMessage({
-              command: "updateMessage",
-              messageId,
-              text: response!.assistant,
-              sender: "assistant",
-              messageType: "assistant",
-            });
+            processLog(response!.assistant, "assistant");
           }
 
           context.workspaceState.update(`responseText-${tabId}`, response!);
@@ -236,28 +228,16 @@ export function handleSendMessage(
       });
     } catch (error: any) {
       if (signal.aborted) {
-        update({ summary: "Request aborted by user.", type: "info" });
-        postMessage({
-          command: "updateMessage",
-          messageId,
-          text: "Request was aborted.",
-          sender: "system",
-          messageType: "aborted",
-        });
+        update({ type: "system" });
+        log({ summary: "Request aborted by user.", type: "system" });
       } else {
         update({
-          summary: `API call failed: ${error.message}`,
-          detail: `${error?.error?.metadata?.raw ?? error?.error}`,
           type: "error",
         });
-        postMessage({
-          command: "updateMessage",
-          messageId,
-          text: `API call failed: ${error.message}\n${
-            error?.error?.metadata?.raw ?? error?.error
-          }`,
-          sender: "error",
-          messageType: "error",
+        log({
+          type: "error",
+          summary: `API call failed: ${error.message}`,
+          detail: `${error?.error?.metadata?.raw ?? error?.error}`,
         });
       }
       throw error;

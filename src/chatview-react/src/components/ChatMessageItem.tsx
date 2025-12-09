@@ -14,17 +14,16 @@ const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
   onToggleCollapse,
 }) => {
   const isCollapsible = !!(
-    message.detail ||
+    message.message?.detail ||
     (message.children && message.children.length > 0)
   );
 
   return (
     <pre
       id={`message-${message.id}`}
-      className={`message ${message.messageType || "log"}-message ${
+      className={`message ${message.message?.type || "log"}-message ${
         level > 0 ? "child-message" : ""
       }`}
-      style={{ marginLeft: `${level * 20}px` }}
     >
       <div className="message-content-wrapper">
         <div
@@ -35,8 +34,8 @@ const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
             isCollapsible ? () => onToggleCollapse(message.id) : undefined
           }
         >
-          <span className="message-preview">{message.summary}</span>
-          <span className="message-type-badge">{message.messageType}</span>
+          <span className="message-preview">{message.message?.summary}</span>
+          <span className="message-type-badge">{message.message?.type}</span>
           <button className="cancel-button" style={{ display: "none" }}>
             ✕
           </button>
@@ -46,24 +45,22 @@ const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
             </button>
           )}
         </div>
-        {isCollapsible && (
-          <div
-            className={`collapsible-content ${
-              message.isCollapsed ? "collapsed" : ""
-            }`}
-          >
-            <div className="message-body-content">
-              <div
-                className={`message-detail-text ${
-                  message.messageType ? `${message.messageType}-message` : ""
-                }`}
-                dangerouslySetInnerHTML={{
-                  __html: (message.detail || "").replace(/\n/g, "<br>"),
-                }}
-              />
+        {isCollapsible && !message.isCollapsed ? (
+          <div className="message-body-content">
+            <div
+              className={`message-detail-text ${
+                message.message?.type ? `${message.message?.type}-message` : ""
+              }`}
+            >
+              {message.message?.detail?.split("\n").map((line, index) => (
+                <React.Fragment key={index}>
+                  {line}
+                  <br />
+                </React.Fragment>
+              ))}
             </div>
             {message.children && message.children.length > 0 && (
-              <div className="child-messages-container">
+              <div className="messages-container">
                 {message.children.map((child) => (
                   <ChatMessageItem
                     key={child.id}
@@ -75,7 +72,7 @@ const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
               </div>
             )}
           </div>
-        )}
+        ) : null}
       </div>
     </pre>
   );
