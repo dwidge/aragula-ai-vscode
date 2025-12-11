@@ -97,21 +97,23 @@ export async function handleWebviewMessage(
         { summary: "Sending message...", type: "task" },
         async (update, log, signal, req) => {
           try {
-            await handleSendMessage(
-              context,
-              postMessage,
-              {
-                ...message,
-                privacySettings: settings.privacySettings,
-              },
-              tabId
-            )(update, log, signal, req);
+            const response = await handleSendMessage({
+              ...message,
+              privacySettings: settings.privacySettings,
+            })(update, log, signal, req);
+            await context.workspaceState.update(
+              `responseText-${tabId}`,
+              response!
+            );
           } catch (e) {
             console.error("sendMessageE1:", e);
             await log({
               type: "error",
               summary: `${e instanceof Error ? e.message : String(e)}`,
               detail: e instanceof Error ? `${e.cause}` : undefined,
+            });
+            await update({
+              type: "error",
             });
           } finally {
             postMessage({ command: "resetSendButton" });
