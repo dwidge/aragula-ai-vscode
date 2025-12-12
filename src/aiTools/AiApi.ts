@@ -280,9 +280,6 @@ const callOpenAi = async (
       ...decodeToolCalls(messageContent, tools ?? []),
     ];
 
-    logger("messageContent\n\n" + messageContent, "prompt");
-    logger("toolCalls\n\n" + JSON.stringify(toolCalls, null, 2), "prompt");
-
     return { assistant: messageContent, tools: toolCalls };
   } else {
     const openaiPrompt: OpenAI.Chat.Completions.ChatCompletionCreateParamsNonStreaming =
@@ -319,9 +316,6 @@ const callOpenAi = async (
       ...(responseMessage?.tool_calls?.map(convertFromOpenAiToolCall) ?? []),
       ...decodeToolCalls(messageContent, tools ?? []),
     ];
-
-    logger("messageContent\n\n" + messageContent, "prompt");
-    logger("toolCalls\n\n" + JSON.stringify(toolCalls, null, 2), "prompt");
 
     return { assistant: messageContent, tools: toolCalls };
   }
@@ -525,9 +519,6 @@ const callGemini = async (
       ...convertFromGeminiToolCalls(functionCalls),
       ...decodeToolCalls(messageContent, tools ?? []),
     ];
-
-    logger("messageContent\n\n" + messageContent, "prompt");
-    logger("toolCalls\n\n" + JSON.stringify(toolCalls, null, 2), "prompt");
 
     return { assistant: messageContent, tools: toolCalls };
   } else {
