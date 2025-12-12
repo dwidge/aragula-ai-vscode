@@ -187,6 +187,7 @@ const sendAiPrompt =
     }
   ): TaskRunner<{ assistant: string; tools: ToolCall[] }> =>
   async (update, log, signal) => {
+    const enableStreaming = false;
     let streamedText = "";
     const onChunk = (chunk: { text?: string }) => {
       if (chunk.text) {
@@ -203,7 +204,11 @@ const sendAiPrompt =
     const response = await newAiApi(message.providerSetting)(
       prompt,
       enabledToolDefinitions,
-      { logger: createMessageLogger(log), signal: signal, onChunk }
+      {
+        logger: createMessageLogger(log),
+        signal: signal,
+        onChunk: enableStreaming ? onChunk : undefined,
+      }
     );
     await update({ detail: response.assistant });
     response.tools.map((tool) =>
