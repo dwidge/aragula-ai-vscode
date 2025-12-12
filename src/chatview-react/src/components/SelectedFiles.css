@@ -1,4 +1,4 @@
-#selected-files-container {
+.selected-files-container {
   display: flex;
   gap: 5px;
   margin-bottom: 10px;
@@ -59,4 +59,23 @@
 
 .clear-all-button:hover {
   background-color: #c82333;
+}
+
+.filter-button {
+  background-color: #28a745;
+  color: white;
+  border: none;
+  padding: 5px 12px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 0.9em;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  height: fit-content;
+  margin-left: 5px;
+}
+
+.filter-button:hover {
+  background-color: #218838;
 }

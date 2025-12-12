@@ -5,13 +5,19 @@ import { expect, vi } from "vitest";
 import SelectedFiles from "./SelectedFiles";
 
 const clearAllAriaLabel = "Clear all selected files";
+const filterAriaLabel = "Filter relevant files using current prompt";
 
 describe("SelectedFiles", () => {
   it("renders no files when the files array is empty", () => {
     render(<SelectedFiles files={[]} onRemoveFile={vi.fn()} />);
-    expect(screen.queryByRole("button", { name: "✕" })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /Remove/ })
+    ).not.toBeInTheDocument();
     expect(
       screen.queryByRole("button", { name: clearAllAriaLabel })
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: filterAriaLabel })
     ).not.toBeInTheDocument();
   });
 
@@ -65,6 +71,22 @@ describe("SelectedFiles", () => {
     ).toBeInTheDocument();
   });
 
+  it("renders filter button when files are present and onFilter is provided", () => {
+    const files = ["file1.js"];
+    const mockOnFilter = vi.fn();
+    render(
+      <SelectedFiles
+        files={files}
+        onRemoveFile={vi.fn()}
+        onFilter={mockOnFilter}
+      />
+    );
+
+    expect(
+      screen.getByRole("button", { name: filterAriaLabel })
+    ).toBeInTheDocument();
+  });
+
   it("does not render clear all button when no files", () => {
     render(
       <SelectedFiles files={[]} onRemoveFile={vi.fn()} onClearAll={vi.fn()} />
@@ -74,10 +96,26 @@ describe("SelectedFiles", () => {
     ).not.toBeInTheDocument();
   });
 
+  it("does not render filter button when no files", () => {
+    render(
+      <SelectedFiles files={[]} onRemoveFile={vi.fn()} onFilter={vi.fn()} />
+    );
+    expect(
+      screen.queryByRole("button", { name: filterAriaLabel })
+    ).not.toBeInTheDocument();
+  });
+
   it("does not render clear all button when onClearAll not provided", () => {
     render(<SelectedFiles files={["file1.js"]} onRemoveFile={vi.fn()} />);
     expect(
       screen.queryByRole("button", { name: clearAllAriaLabel })
+    ).not.toBeInTheDocument();
+  });
+
+  it("does not render filter button when onFilter not provided", () => {
+    render(<SelectedFiles files={["file1.js"]} onRemoveFile={vi.fn()} />);
+    expect(
+      screen.queryByRole("button", { name: filterAriaLabel })
     ).not.toBeInTheDocument();
   });
 
@@ -100,6 +138,25 @@ describe("SelectedFiles", () => {
     expect(mockOnClearAll).toHaveBeenCalledTimes(1);
   });
 
+  it("calls onFilter when filter button is clicked", async () => {
+    const files = ["file1.js", "file2.ts"];
+    const mockOnFilter = vi.fn();
+    render(
+      <SelectedFiles
+        files={files}
+        onRemoveFile={vi.fn()}
+        onFilter={mockOnFilter}
+      />
+    );
+
+    const filterButton = screen.getByRole("button", {
+      name: filterAriaLabel,
+    });
+    await userEvent.click(filterButton);
+
+    expect(mockOnFilter).toHaveBeenCalledTimes(1);
+  });
+
   it("clicking clear all does not call onRemoveFile", async () => {
     const files = ["file1.js"];
     const mockOnRemoveFile = vi.fn();
@@ -119,5 +176,24 @@ describe("SelectedFiles", () => {
 
     expect(mockOnRemoveFile).not.toHaveBeenCalled();
     expect(mockOnClearAll).toHaveBeenCalledTimes(1);
+  });
+
+  it("renders both clear all and filter buttons when both provided and files present", () => {
+    const files = ["file1.js"];
+    render(
+      <SelectedFiles
+        files={files}
+        onRemoveFile={vi.fn()}
+        onClearAll={vi.fn()}
+        onFilter={vi.fn()}
+      />
+    );
+
+    expect(
+      screen.getByRole("button", { name: clearAllAriaLabel })
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: filterAriaLabel })
+    ).toBeInTheDocument();
   });
 });
