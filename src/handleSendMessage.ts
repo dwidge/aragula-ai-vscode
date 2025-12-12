@@ -77,7 +77,7 @@ export function handleSendMessage(message: {
 
     await log(
       { summary: "Apply AI Changes", type: "task" },
-      applyAiChanges(restoredResponse, message.providerSetting, message)
+      applyAiChanges(restoredResponse, message)
     );
 
     update({
@@ -228,11 +228,7 @@ const restoreResponsePrivacy = (
 const applyAiChanges =
   (
     response: { assistant: string; tools: ToolCall[] },
-    providerSetting: AiApiSettings,
     message: {
-      autoGenerateCommit: boolean;
-      useConventionalCommits: boolean;
-      fileNames: string[];
       toolNames: string[];
       providerSetting: AiApiSettings;
       autoRemoveComments: boolean;
@@ -241,53 +237,59 @@ const applyAiChanges =
     }
   ): TaskRunner<void> =>
   async (update, log) => {
-    const processLog = createMessageLogger(log);
+    const toolCallResults = response.tools.length
+      ? await log(
+          { summary: `${response.tools.length} tool call(s)`, type: "info" },
+          async (update, log) => {
+            const enabledToolDefinitions = filterToolsByName(
+              availableToolsDefinitions,
+              message.toolNames
+            );
+            return executeToolCalls(
+              response.tools,
+              enabledToolDefinitions,
+              createMessageLogger(log)
+            );
+          }
+        )
+      : [];
 
-    const enabledToolDefinitions = filterToolsByName(
-      availableToolsDefinitions,
-      message.toolNames
-    );
-    processLog("Executing tool calls...", "info");
-    const toolCallResults = await executeToolCalls(
-      response!.tools,
-      enabledToolDefinitions,
-      processLog
-    );
     const modifiedFileNames = getModifiedFileNames(toolCallResults);
-    processLog(
-      `Executed ${
-        toolCallResults.length
-      } tool calls. Modified files: ${modifiedFileNames.join(", ")}`,
-      "info"
-    );
-
-    if (modifiedFileNames.length > 0) {
-      processLog("Cleaning up modified files...", "info");
-      await cleanupFiles(
-        processLog,
-        message.providerSetting,
-        modifiedFileNames,
-        message.autoRemoveComments,
-        message.autoFormat,
-        message.autoFixErrors
+    if (modifiedFileNames.length) {
+      await log(
+        {
+          summary: `${modifiedFileNames.length} modified file(s)`,
+          detail: modifiedFileNames.join("\n"),
+          type: "info",
+        },
+        async (update, log) => {
+          await cleanupFiles(
+            createMessageLogger(log),
+            message.providerSetting,
+            modifiedFileNames,
+            message.autoRemoveComments,
+            message.autoFormat,
+            message.autoFixErrors
+          );
+        }
       );
-      processLog("File cleanup complete.", "info");
     }
 
-    if (message.autoGenerateCommit) {
-      processLog("Generating and setting commit message...", "info");
-      const commitMessages = parseCommitMessages(response!.assistant);
-      for (const { repoPath, message: commitMessage } of commitMessages) {
-        await setCommitMessage(repoPath, commitMessage);
-        processLog(
-          `Commit message set for ${repoPath}: "${commitMessage}"`,
-          "info"
-        );
-      }
-    }
-
-    if (providerSetting.vendor !== "manual") {
-      processLog(response!.assistant, "assistant");
+    const commitMessages = parseCommitMessages(response.assistant);
+    if (commitMessages.length) {
+      await log(
+        { summary: `${commitMessages.length} commit message(s)`, type: "info" },
+        async (update, log) => {
+          for (const { repoPath, message: commitMessage } of commitMessages) {
+            await setCommitMessage(repoPath, commitMessage);
+            await log({
+              summary: repoPath || ".",
+              detail: commitMessage,
+              type: "info",
+            });
+          }
+        }
+      );
     }
   };
 
