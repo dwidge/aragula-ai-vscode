@@ -2,6 +2,7 @@ import { AiApiSettings } from "@/ai-api/types/AiApiSettings";
 import { ToolCall } from "@/ai-api/types/ToolCall";
 import { ToolDefinition } from "@/ai-api/types/ToolDefinition";
 import { executeToolCalls } from "./ai-api/executeToolCalls";
+import { AiPrompt } from "./ai-api/types/AiApiCaller";
 import { ToolCallResult } from "./ai-api/types/ToolCallResult";
 import { newAiApi } from "./aiTools/AiApi";
 import { availableToolsDefinitions } from "./aiTools/availableToolNames";
@@ -53,42 +54,30 @@ export function handleSendMessage(message: {
   messageId: string;
   privacySettings?: PrivacyPair[];
 }): TaskRunner<{ assistant: string; tools: ToolCall[] }> {
-  const providerSetting = message.providerSetting;
-  const messageId = message.messageId;
-
   return async (update, log, signal) => {
-    if (message.autoGenerateCommit) {
-      await log(
-        { summary: "Preparing commit instruction...", type: "info" },
-        async (update) => {
-          const commitInstruction = await getCommitMessageInstruction({
-            useConventionalCommits: message.useConventionalCommits,
-            filePaths: message.fileNames,
-          });
-          message.system = `${message.system}\n\n${commitInstruction}`;
-          update({
-            detail: commitInstruction,
-          });
-        }
-      );
-    }
-
-    const response: { assistant: string; tools: ToolCall[] } = await log(
-      { summary: "Receiving AI response...", type: "stream" },
-      sendAiPrompt(message)
+    const prompt: AiPrompt = await log(
+      { summary: "Create Ai Prompt", type: "user" },
+      createAiPrompt(message)
     );
 
-    if (providerSetting.vendor !== "manual") {
-      log({
-        summary: "AI Response Received",
-        detail: response!.assistant,
-        type: "assistant",
-      });
-    }
+    const safePrompt = applyPromptPrivacy(
+      prompt,
+      message.privacySettings || []
+    );
+
+    const response = await log(
+      { summary: "Send Ai Prompt", type: "task" },
+      sendAiPrompt(safePrompt, message)
+    );
+
+    const restoredResponse = await restoreResponsePrivacy(
+      response,
+      message.privacySettings || []
+    );
 
     await log(
-      { summary: "Processing AI output...", type: "task" },
-      applyAiChanges(response, providerSetting, message)
+      { summary: "Apply AI Changes", type: "task" },
+      applyAiChanges(restoredResponse, message.providerSetting, message)
     );
 
     update({
@@ -100,86 +89,141 @@ export function handleSendMessage(message: {
   };
 }
 
-const sendAiPrompt =
+const createAiPrompt =
   (message: {
     user: string;
     system: string;
     fileNames: string[];
     toolNames: string[];
     providerSetting: AiApiSettings;
+    autoGenerateCommit: boolean;
+    useConventionalCommits: boolean;
     includeCodebaseSummary: boolean;
-    privacySettings?: PrivacyPair[];
-  }): TaskRunner<{ assistant: string; tools: ToolCall[] }> =>
+  }): TaskRunner<AiPrompt> =>
   async (update, log, signal) => {
-    const aiLog = createMessageLogger(log);
+    const commitPrompt = message.autoGenerateCommit
+      ? await log(
+          { summary: "Preparing commit instruction...", type: "info" },
+          async (update) => {
+            const commitPrompt = await getCommitMessageInstruction({
+              useConventionalCommits: message.useConventionalCommits,
+              filePaths: message.fileNames,
+            });
+            await update({
+              detail: commitPrompt,
+            });
+            return commitPrompt;
+          }
+        )
+      : undefined;
 
     log({
       summary: "Enabled tools",
       detail: message.toolNames.join("\n"),
     });
 
-    const rawFilesContent: ToolCall[] = await readFiles(message.fileNames);
-    log({
-      summary: `Read ${rawFilesContent.length} files`,
-      detail: message.fileNames.join("'n'"),
-    });
+    const rawFilesContent: ToolCall[] = message.fileNames.length
+      ? await log(
+          {
+            summary: `Read ${message.fileNames.length} files`,
+            detail: message.fileNames.join("'n'"),
+          },
+          async (update) => {
+            const files = await readFiles(message.fileNames);
+            await update({
+              summary: `Read ${files.length} files`,
+              detail: message.fileNames.join("'n'"),
+            });
+            return files;
+          }
+        )
+      : [];
 
-    if (message.includeCodebaseSummary) {
-      const targetDir = "src";
-      const codebaseSummaryFiles = await getCodebaseSummary(targetDir);
-      const codebaseSummaryContent = readFileMap(codebaseSummaryFiles);
-      rawFilesContent.push(...codebaseSummaryContent);
-      log({
-        summary: `Codebase summary ${codebaseSummaryContent.length} files`,
-        detail: `Dir: "${targetDir}"`,
-      });
+    const codebaseSummaryToolcalls = message.includeCodebaseSummary
+      ? await log(
+          {
+            summary: `Codebase summary`,
+          },
+          async (update, log) => {
+            const targetDir = "src";
+            const codebaseSummaryFiles = await getCodebaseSummary(targetDir);
+            const codebaseSummaryContent = readFileMap(codebaseSummaryFiles);
+            update({
+              summary: `Codebase summary ${codebaseSummaryContent.length} files`,
+              detail: `Dir: "${targetDir}"`,
+            });
+            return codebaseSummaryContent;
+          }
+        )
+      : [];
+    rawFilesContent.push(...codebaseSummaryToolcalls);
+
+    const prompt = {
+      user: message.user,
+      system: [message.system, commitPrompt].filter((s) => s).join("\n\n"),
+      tools: rawFilesContent,
+    };
+
+    update({ detail: prompt.user });
+
+    return prompt;
+  };
+
+const applyPromptPrivacy = (
+  prompt: AiPrompt,
+  privacySettings: PrivacyPair[]
+) => ({
+  user: applyPrivacyReplacements(prompt.user, privacySettings),
+  system: applyPrivacyReplacements(prompt.system || "", privacySettings),
+  tools: prompt.tools?.map(replaceToolCallContent(privacySettings)),
+});
+
+const sendAiPrompt =
+  (
+    prompt: AiPrompt,
+    message: {
+      toolNames: string[];
+      providerSetting: AiApiSettings;
     }
-
-    const privacySettings = message.privacySettings || [];
-    const filesContent = rawFilesContent.map(
-      replaceToolCallContent(privacySettings)
-    );
-    const userMessage = applyPrivacyReplacements(message.user, privacySettings);
-    const systemMessage = applyPrivacyReplacements(
-      message.system,
-      privacySettings
-    );
+  ): TaskRunner<{ assistant: string; tools: ToolCall[] }> =>
+  async (update, log, signal) => {
+    let streamedText = "";
+    const onChunk = (chunk: { text?: string }) => {
+      if (chunk.text) {
+        streamedText += chunk.text;
+        update({ detail: streamedText });
+      }
+    };
 
     const enabledToolDefinitions = filterToolsByName(
       availableToolsDefinitions,
       message.toolNames
     );
 
-    const response = await log(
-      { summary: "Calling AI API...", type: "info" },
-      async (update, log) => {
-        let streamedText = "";
-        const onChunk = (chunk: { text?: string }) => {
-          if (chunk.text) {
-            streamedText += chunk.text;
-            update({ detail: streamedText });
-          }
-        };
-        return await newAiApi(message.providerSetting)(
-          {
-            user: userMessage,
-            system: systemMessage,
-            tools: filesContent,
-          },
-          enabledToolDefinitions,
-          { logger: aiLog, signal: signal, onChunk }
-        );
-      }
+    const response = await newAiApi(message.providerSetting)(
+      prompt,
+      enabledToolDefinitions,
+      { logger: createMessageLogger(log), signal: signal, onChunk }
     );
-
-    return {
-      assistant: reversePrivacyReplacements(
-        response.assistant,
-        privacySettings
-      ),
-      tools: response.tools.map(restoreToolCallContent(privacySettings)),
-    };
+    await update({ detail: response.assistant });
+    response.tools.map((tool) =>
+      log({
+        summary: `${tool.name}`,
+        detail: JSON.stringify(tool.parameters),
+      })
+    );
+    return response;
   };
+
+type AiResponse = { assistant: string; tools: ToolCall[] };
+
+const restoreResponsePrivacy = (
+  response: AiResponse,
+  privacySettings: PrivacyPair[]
+): AiResponse => ({
+  assistant: reversePrivacyReplacements(response.assistant, privacySettings),
+  tools: response.tools.map(restoreToolCallContent(privacySettings)),
+});
 
 const applyAiChanges =
   (
@@ -246,6 +290,7 @@ const applyAiChanges =
       processLog(response!.assistant, "assistant");
     }
   };
+
 /**
  * Performs the core AI API request logic.
  * This function is used by both standard chat and plan execution.
