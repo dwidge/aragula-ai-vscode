@@ -126,13 +126,13 @@ const createAiPrompt =
       ? await log(
           {
             summary: `${message.fileNames.length} file(s)`,
-            detail: message.fileNames.join("'n'"),
+            detail: message.fileNames.join("\n"),
           },
           async (update) => {
             const files = await readFiles(message.fileNames);
             await update({
               summary: `${files.length} file(s)`,
-              detail: files.map((t) => t.parameters.path).join("'n'"),
+              detail: files.map((t) => t.parameters.path).join("\n"),
             });
             return files;
           }
