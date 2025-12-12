@@ -18,20 +18,6 @@ export const useMessageTree = (chatHistory: ChatMessage[]) => {
         }
       }
     });
-    roots.forEach((root) => {
-      if (root.children) {
-        root.children.sort((a: ChatMessage, b: ChatMessage) =>
-          a.id.localeCompare(b.id)
-        );
-        root.children.forEach((child: ChatMessage) => {
-          if (child.children) {
-            child.children.sort((a: ChatMessage, b: ChatMessage) =>
-              a.id.localeCompare(b.id)
-            );
-          }
-        });
-      }
-    });
     return roots;
   }, []);
 
