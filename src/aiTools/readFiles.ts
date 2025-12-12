@@ -1,8 +1,10 @@
-import { ToolCall } from "@/ai-api/types/ToolCall";
 import { readFileSafe } from "@/file/readFileSafe";
+import { ReadFileToolCall } from "@/readFileMap";
 import { getWorkspaceAbsolutePath } from "@/vscode/getWorkspaceAbsolutePath";
 
-export const readFiles = async (relativePaths: string[]): Promise<ToolCall[]> =>
+export const readFiles = async (
+  relativePaths: string[]
+): Promise<ReadFileToolCall[]> =>
   Promise.all(
     relativePaths.map(async (k) => ({
       name: "readFile",

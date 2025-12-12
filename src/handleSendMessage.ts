@@ -56,7 +56,7 @@ export function handleSendMessage(message: {
 }): TaskRunner<{ assistant: string; tools: ToolCall[] }> {
   return async (update, log, signal) => {
     const prompt: AiPrompt = await log(
-      { summary: "Create Ai Prompt", type: "user" },
+      { summary: "Prompt", type: "user" },
       createAiPrompt(message)
     );
 
@@ -66,7 +66,7 @@ export function handleSendMessage(message: {
     );
 
     const response = await log(
-      { summary: "Send Ai Prompt", type: "task" },
+      { summary: "Call", type: "task" },
       sendAiPrompt(safePrompt, message)
     );
 
@@ -76,7 +76,7 @@ export function handleSendMessage(message: {
     );
 
     await log(
-      { summary: "Apply AI Changes", type: "task" },
+      { summary: "Apply", type: "task" },
       applyAiChanges(restoredResponse, message)
     );
 
@@ -103,7 +103,7 @@ const createAiPrompt =
   async (update, log, signal) => {
     const commitPrompt = message.autoGenerateCommit
       ? await log(
-          { summary: "Preparing commit instruction...", type: "info" },
+          { summary: "Commit instruction", type: "info" },
           async (update) => {
             const commitPrompt = await getCommitMessageInstruction({
               useConventionalCommits: message.useConventionalCommits,
@@ -118,21 +118,21 @@ const createAiPrompt =
       : undefined;
 
     log({
-      summary: "Enabled tools",
+      summary: `${message.toolNames.length} tools`,
       detail: message.toolNames.join("\n"),
     });
 
     const rawFilesContent: ToolCall[] = message.fileNames.length
       ? await log(
           {
-            summary: `Read ${message.fileNames.length} files`,
+            summary: `${message.fileNames.length} file(s)`,
             detail: message.fileNames.join("'n'"),
           },
           async (update) => {
             const files = await readFiles(message.fileNames);
             await update({
-              summary: `Read ${files.length} files`,
-              detail: message.fileNames.join("'n'"),
+              summary: `${files.length} file(s)`,
+              detail: files.map((t) => t.parameters.path).join("'n'"),
             });
             return files;
           }
@@ -142,14 +142,14 @@ const createAiPrompt =
     const codebaseSummaryToolcalls = message.includeCodebaseSummary
       ? await log(
           {
-            summary: `Codebase summary`,
+            summary: `0 codebase definition(s)`,
           },
           async (update, log) => {
             const targetDir = "src";
             const codebaseSummaryFiles = await getCodebaseSummary(targetDir);
             const codebaseSummaryContent = readFileMap(codebaseSummaryFiles);
             update({
-              summary: `Codebase summary ${codebaseSummaryContent.length} files`,
+              summary: `${codebaseSummaryContent.length} codebase definition(s)`,
               detail: `Dir: "${targetDir}"`,
             });
             return codebaseSummaryContent;

@@ -7,3 +7,8 @@ export const readFileMap = (fileMap: Record<string, string>): ToolCall[] =>
     response: { content: c },
     type: "backtick",
   }));
+
+export type ReadFileToolCall = ToolCall & {
+  parameters: { path: string };
+  response: { content: string };
+};
