@@ -195,6 +195,14 @@ export const useSettingsManager = (tabId: string) => {
     [openFiles, postMessage]
   );
 
+  const clearAllFiles = useCallback(() => {
+    setOpenFiles([]);
+    postMessage({
+      command: "setWorkspaceSettings",
+      data: { openFiles: [] },
+    });
+  }, [postMessage]);
+
   const removeTool = useCallback(
     (tool: string) => {
       setEnabledTools((prev) => prev.filter((t) => t !== tool));
@@ -293,6 +301,7 @@ export const useSettingsManager = (tabId: string) => {
     deleteSystemPrompt,
     deleteUserPrompt,
     removeFile,
+    clearAllFiles,
     removeTool,
     userInputRef,
     systemPromptRef,

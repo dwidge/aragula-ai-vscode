@@ -76,6 +76,7 @@ const InnerApp: React.FC<AppProps> = ({ tabId }) => {
               <SelectedFiles
                 files={settingsManager.openFiles}
                 onRemoveFile={settingsManager.removeFile}
+                onClearAll={settingsManager.clearAllFiles}
               />
               <MessageList />
               <InputArea />

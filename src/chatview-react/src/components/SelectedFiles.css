@@ -3,6 +3,7 @@
   gap: 5px;
   margin-bottom: 10px;
   flex-wrap: wrap;
+  align-items: center;
 }
 
 .file-button {
@@ -40,4 +41,22 @@
 .file-button .remove-file-button:hover {
   color: white;
   background-color: var(--file-button-remove-hover);
+}
+
+.clear-all-button {
+  background-color: #dc3545;
+  color: white;
+  border: none;
+  padding: 5px 12px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 0.9em;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  height: fit-content;
+}
+
+.clear-all-button:hover {
+  background-color: #c82333;
 }
